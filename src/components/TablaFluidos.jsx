@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   CopyOutlined,
   DeleteOutlined,
@@ -9,7 +8,7 @@ import {
 import { Button, Tooltip } from 'antd';
 import { Table, ExportTableButton } from 'ant-table-extensions';
 
-import { useState } from '@hookstate/core';
+import { useHookstate } from '@hookstate/core';
 import { configuracion } from '../configuracion';
 import { listaFluidos, nuevoFluido, borrarFluidos, duplicarFluidos } from '../listaFluidos';
 import formatear from '../util/formatear';
@@ -82,10 +81,10 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaFluidos = () => {
-  const { iActual, columnasTablaFluidos, nCifras, verConfiguracion } = useState(configuracion);
+  const { iActual, columnasTablaFluidos, nCifras, verConfiguracion } = useHookstate(configuracion);
 
-  const lista = useState(listaFluidos);
-  const filasSeleccionadas = useState([]);
+  const lista = useHookstate(listaFluidos);
+  const filasSeleccionadas = useHookstate([]);
 
   let columnas = [
     {

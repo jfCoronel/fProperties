@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   CopyOutlined,
   DeleteOutlined,
@@ -9,7 +8,7 @@ import {
 import { Button, Tooltip } from 'antd';
 import { Table, ExportTableButton } from 'ant-table-extensions';
 
-import { useState } from '@hookstate/core';
+import { useHookstate } from '@hookstate/core';
 import { configuracion } from '../configuracion';
 import { listaAires, nuevoAire, borrarAires, duplicarAires } from '../listaAires';
 import formatear from '../util/formatear';
@@ -47,14 +46,14 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaAires = () => {
-  const conf = useState(configuracion);
+  const conf = useHookstate(configuracion);
   const columnasTabla = conf.columnasTablaAires;
   const nCifras = conf.nCifras;
   const verConfiguracion = conf.verConfiguracion;
   const iActual = conf.iActual;
 
-  const lista = useState(listaAires);
-  const filasSeleccionadas = useState([]);
+  const lista = useHookstate(listaAires);
+  const filasSeleccionadas = useHookstate([]);
 
   let columnas = [
     {
@@ -112,7 +111,7 @@ const TablaAires = () => {
         dato[NOMBRE_COLUMNAS[columna.get()]] = formatear(aire[columna.get()].get(), nCifras.get());
       }
     });
-   
+
     return dato;
   });
 
@@ -120,7 +119,7 @@ const TablaAires = () => {
     selectedRowKeys: filasSeleccionadas.get(),
     onChange: (selectedRowKeys) => {
       filasSeleccionadas.set(selectedRowKeys);
-      if(selectedRowKeys.length > 0){
+      if (selectedRowKeys.length > 0) {
         iActual.set(-1);
       }
     }
@@ -135,7 +134,7 @@ const TablaAires = () => {
       iInicial++;
     }
   });
- 
+
 
   return (
     <div>
@@ -180,7 +179,7 @@ const TablaAires = () => {
         dataSource={datos}
         onRow={(record, rowIndex) => {
           return {
-            onClick: event => {event.stopPropagation(); iActual.set(record.key);} // click row            
+            onClick: event => { event.stopPropagation(); iActual.set(record.key); } // click row            
           };
         }}
       />
@@ -193,7 +192,7 @@ const TablaAires = () => {
       >
         Exportar a CSV
       </ExportTableButton>
-      { verConfiguracion.get() && <ConfiguracionAires />}
+      {verConfiguracion.get() && <ConfiguracionAires />}
     </div >
   );
 

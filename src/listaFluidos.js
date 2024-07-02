@@ -1,8 +1,8 @@
-import { createState, none } from '@hookstate/core';
+import { hookstate, none } from '@hookstate/core';
 import { getObjetoFluido } from './propFluidos/fluidos'
 
 
-export const listaFluidos = createState([]);
+export const listaFluidos = hookstate([]);
 
 export const nuevoFluido = () => {
   const objetoFluido = getObjetoFluido('Agua', 'T', 25, 'P', 101.325);

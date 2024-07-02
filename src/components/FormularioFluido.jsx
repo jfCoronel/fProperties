@@ -1,4 +1,4 @@
-import { useState } from '@hookstate/core';
+import { useHookstate } from '@hookstate/core';
 import { Row, Col, Select, Input, InputNumber } from 'antd'
 import { configuracion } from '../configuracion';
 import { listaFluidos, actualizarFluido } from '../listaFluidos';
@@ -7,8 +7,8 @@ import { getListaFluidos } from '../propFluidos/fluidos';
 const { Option } = Select;
 
 const FormularioFluido = () => {
-    const lista = useState(listaFluidos);
-    const { iActual } = useState(configuracion);
+    const lista = useHookstate(listaFluidos);
+    const { iActual } = useHookstate(configuracion);
     const fila = iActual.get();
 
     let fluido = {

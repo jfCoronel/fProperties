@@ -1,7 +1,7 @@
-import { createState, none } from '@hookstate/core';
+import { hookstate, none } from '@hookstate/core';
 import { getObjetoAireHumedo } from './propFluidos/aires'
 
-export const listaAires = createState([]);
+export const listaAires = hookstate([]);
 
 export const nuevoAire = () => {
   const objetoAire = getObjetoAireHumedo('A', 0, 'T', 25, 'HR', 50);

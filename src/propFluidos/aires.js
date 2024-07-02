@@ -1,6 +1,8 @@
-// versión 1.1 basada en coolprop 6.3.0
+// versión 1.2 basada en coolprop 6.4.1
 // La varible a sido cargada globalmente con un script
-var Module = window.Module;
+//var Module = window.Module;
+import { Module } from './coolprop'
+
 const P_ATM = 101.325;
 const T0C = 273.15;
 

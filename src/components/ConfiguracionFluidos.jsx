@@ -1,13 +1,12 @@
-import React from 'react';
 import { Drawer, Form, Select, InputNumber } from 'antd';
 
-import { useState } from '@hookstate/core';
+import { useHookstate } from '@hookstate/core';
 import { configuracion } from '../configuracion';
 
 
 
 const ConfiguracionFluidos = () => {
-  const conf = useState(configuracion);
+  const conf = useHookstate(configuracion);
   const columnasTabla = conf.columnasTablaFluidos;
   const nCifras = conf.nCifras;
   const verConfiguracion = conf.verConfiguracion;
@@ -55,7 +54,7 @@ const ConfiguracionFluidos = () => {
       placement="left"
       closable={false}
       onClose={() => { verConfiguracion.set(false); }}
-      visible={verConfiguracion.get()}
+      open={verConfiguracion.get()}
     >
       <Form {...formItemLayout} >
         <Form.Item label="Nº cifras sig.">

@@ -1,4 +1,4 @@
-import { useState } from '@hookstate/core';
+import { useHookstate } from '@hookstate/core';
 import { Row, Col, Select, Input, InputNumber } from 'antd'
 import { configuracion } from '../configuracion';
 import { listaAires, actualizarAire } from '../listaAires';
@@ -6,8 +6,8 @@ import { listaAires, actualizarAire } from '../listaAires';
 const { Option } = Select;
 
 const FormularioAire = () => {
-    const lista = useState(listaAires);
-    const { iActual } = useState(configuracion);
+    const lista = useHookstate(listaAires);
+    const { iActual } = useHookstate(configuracion);
     const fila = iActual.get();
 
     let aire = {

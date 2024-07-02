@@ -1,10 +1,11 @@
-// versión 1.1 basada en coolprop 6.3.0
+// versión 1.2 basada en coolprop 6.4.1
 // La varible a sido cargada globalmente con un script
-var Module = window.Module;
+// var Module = window.Module;
+import { Module } from './coolprop'
 
 const T0C = 273.15;
 
-const NOMBRES_FLUIDOS = {
+export const NOMBRES_FLUIDOS = {
   "1-Buteno": "1-Butene",
   Acetona: "Acetone",
   "Ácido sulfhídrico": "HydrogenSulfide",
@@ -128,7 +129,7 @@ const NOMBRES_FLUIDOS = {
   Xenon: "Xenon",
 };
 
-const UNIDADES_FLUIDOS = {
+export const UNIDADES_FLUIDOS = {
   T: 'ºC',
   P: 'kPa',
   X: '%',
@@ -152,9 +153,36 @@ const UNIDADES_FLUIDOS = {
   PTRIPLE: 'kPa'
 }
 
+export const PROPIEDADES_FLUIDOS = {
+  T: 'T',
+  P: 'p',
+  X: 'X',
+  RO: 'ρ',
+  V: 'v',
+  H: 'h',
+  U: 'u',
+  CP: 'c<sub>p</sub>',
+  S: 's',
+  CV: 'c<sub>v</sub>',
+  K: 'k',
+  PR: 'Pr',
+  MU: 'μ',
+  NU: 'ν',
+  ALFA: 'α',
+  BETA: 'β',
+  M: 'M',
+  TCRIT: 'T<sub>crit</sub>',
+  PCRIT: 'p<sub>crit</sub>',
+  TTRIPLE: 'T<sub>trip</sub>',
+  PTRIPLE: 'T<sub>trip</sub>'
+}
 
-export function getListaFluidos() {
-  return Object.keys(NOMBRES_FLUIDOS);
+export function getListaFluidos(idioma = "es") {
+  if (idioma === "es") {
+    return Object.keys(NOMBRES_FLUIDOS);
+  } else {
+    return Object.values(NOMBRES_FLUIDOS);
+  }
 }
 
 export function getUnidadPropFluido(propiedad) {
@@ -247,7 +275,7 @@ export function getObjetoFluido(fluido, propiedad1, valor1, propiedad2, valor2) 
   };
 }
 
-function cambiarNombreFluido(nombreSpain) {
+export function cambiarNombreFluido(nombreSpain) {
   const fluidoIngles = NOMBRES_FLUIDOS[nombreSpain];
   if (typeof fluidoIngles === "undefined") {
     return nombreSpain;
@@ -368,6 +396,7 @@ function cambiarUnidadSalidaFluido(propiedad, valor, fluido) {
 
 export function existeFluido(nombre) {
   const nombreCoolprop = cambiarNombreFluido(nombre);
-  const valor = Module.PropsSI("M", "T", T0C, "P", 101325, nombreCoolprop); // masa molar
+  // Comprobar la densidad a 25ºC y 1 atm 
+  const valor = Module.PropsSI("D", "T", T0C + 25, "P", 101325, nombreCoolprop);
   return isFinite(valor);
 }

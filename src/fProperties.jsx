@@ -1,17 +1,30 @@
 import { Menu, Tooltip, Button } from 'antd';
-import { ExperimentOutlined, ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { ExperimentOutlined, CloudOutlined, ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 
-import { useState } from '@hookstate/core';
+import { useHookstate } from '@hookstate/core';
 import { configuracion } from './configuracion';
 import TablaFluidos from './components/TablaFluidos';
 import TablaAires from './components/TablaAires';
 import BarraLateral from './components/BarraLateral'
 
 
-const fProperties = () => {
-  const { menuActual, iActual, year, version, verBarraLateral } = useState(configuracion);
+const FProperties = () => {
+  const { menuActual, iActual, year, version, verBarraLateral } = useHookstate(configuracion);
 
   const margen = (verBarraLateral.get()) ? '350px' : '0px';
+
+  const menuTabItems = [
+    {
+      label: 'Fluidos',
+      key: 'fluidos',
+      icon: <ExperimentOutlined />,
+    },
+    {
+      label: 'Aire Húmedo',
+      key: 'aireHumedo',
+      icon: <CloudOutlined />,
+    }]
+
 
   return (
     <div className="contenido" >
@@ -34,13 +47,7 @@ const fProperties = () => {
               />
             </Tooltip>)}
         </span>
-        <Menu onClick={(e) => menuActual.set(e.key.toString())} selectedKeys={[menuActual.get()]} mode="horizontal">
-          <Menu.Item key="fluidos">
-            Fluidos
-          </Menu.Item>
-          <Menu.Item key="aireHumedo">
-            Aire Húmedo
-          </Menu.Item>
+        <Menu onClick={(e) => menuActual.set(e.key.toString())} selectedKeys={[menuActual.get()]} mode="horizontal" items={menuTabItems}>
         </Menu>
 
         {(menuActual.get() === 'fluidos') && <TablaFluidos />}
@@ -55,4 +62,4 @@ const fProperties = () => {
   );
 }
 
-export default fProperties;
+export default FProperties;
