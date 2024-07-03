@@ -3,6 +3,14 @@ body {
 
 }
 
+a {
+  color: #1890ff;
+  text-decoration: none;
+  background-color: transparent;
+  outline: none;
+  cursor: pointer;
+}
+
 .contenido {
   position: relative;
 
@@ -13,21 +21,9 @@ body {
   padding-right: 40px;
 }
 
-.barra-lateral {
-  position: fixed;
-  top: 0px;
-  right: 0px;
-  height: 100%;
-  padding-top: 1rem;
-  padding-left: 1rem;
-  padding-right: 1rem;
-  width: 350px;
-  background: white;
-  padding-bottom: 10px;
-  border-left: 1px solid gray;
-  border-right: 1px solid gray;
-  z-index: 100;
-  overflow: scroll;
+.editor-fila {
+  padding-left: 60px;
+  padding-right: 60px;
 }
 
 .etiqueta {
@@ -40,4 +36,8 @@ body {
 
 .titulo {
   font-size: 1.3rem;
+}
+
+.selected-row {
+  background-color: #EFEFEF;
 }

@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, Input, InputNumber } from 'antd'
+import { Row, Col, Select, Input, InputNumber, Form } from 'antd'
 import { configuracion } from '../configuracion';
 import { listaFluidos, actualizarFluido } from '../listaFluidos';
 import { getListaFluidos } from '../propFluidos/fluidos';
@@ -21,122 +21,106 @@ const FormularioFluido = () => {
     }
 
     return (
-        <div>
-            <Row gutter={8} className="grande">
-                FLUIDO:
-            </Row>
-            <Row gutter={8}>
-                <Col span={24} className="etiqueta">
-                    Nombre
-                </Col>
-            </Row>
-            <Row gutter={8}>
-                <Col span={24}>
-                    <Input
-                        size="large"
-                        value={fluido.nombre}
-                        onChange={(e) => {
-                            fluido.nombre = e.target.value;
-                            actualizarFluido(fila, fluido);
-                        }}
-                    />
-                </Col>
-            </Row>
-
-            <div className="etiqueta">Fluido</div>
-            <Select
-                showSearch
-                style={{ width: "300px" }}
-                value={fluido.fluido}
-                onChange={(value) => {
-                    fluido.fluido = value;
-                    actualizarFluido(fila, fluido);
-                }}
-            >
-                {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
-            </Select>
-
-            <Row gutter={8}>
-                <Col span={12} className="etiqueta">
-                    1º propiedad
-                </Col>
-                <Col span={12} className="etiqueta">
-                    Valor
-                </Col>
-            </Row>
-            <Row gutter={8}>
-                <Col span={12}>
-                    <Select
-                        showSearch
-                        style={{ width: "150px" }}
-                        value={fluido.in1Id}
-                        onChange={(value) => {
-                            fluido.in1Id = value;
-                            actualizarFluido(fila, fluido);
-                        }}
-                    >
-                        <Option value="T">T [ºC]</Option>
-                        <Option value="P">p [kPa]</Option>
-                        <Option value="X">X [%]</Option>
-                        <Option value="RO">ρ [kg/m³]</Option>
-                        <Option value="H">h [kJ/kg]</Option>
-                        <Option value="S">s [kJ/(kg·K)]</Option>
-                    </Select>
-                </Col>
-                <Col span={12} >
-                    <InputNumber
-                        style={{ width: "100%" }}
-                        value={fluido.in1Val}
-                        onChange={(value) => {
-                            fluido.in1Val = value;
-                            actualizarFluido(fila, fluido);
-                        }}
-                    />
-                </Col>
-            </Row>
-
-            <Row gutter={8}>
-                <Col span={12} className="etiqueta">
-                    2ª propiedad
-                </Col>
-                <Col span={12} className="etiqueta">
-                    Valor
-                </Col>
-            </Row>
-            <Row gutter={8}>
-                <Col span={12}>
-                    <Select
-                        showSearch
-                        style={{ width: "150px" }}
-                        value={fluido.in2Id}
-                        onChange={(value) => {
-                            fluido.in2Id = value;
-                            actualizarFluido(fila, fluido);
-                        }}
-                    >
-                        <Option value="T">T [ºC]</Option>
-                        <Option value="P">p [kPa]</Option>
-                        <Option value="X">X [%]</Option>
-                        <Option value="RO">ρ [kg/m³]</Option>
-                        <Option value="H">h [kJ/kg]</Option>
-                        <Option value="S">s [kJ/(kg·K)]</Option>
-                    </Select>
-                </Col>
-                <Col span={12} >
-                    <InputNumber
-                        style={{ width: "100%" }}
-                        value={fluido.in2Val}
-                        onChange={(value) => {
-                            fluido.in2Val = value;
-                            actualizarFluido(fila, fluido);
-                        }}
-                    />
-                </Col>
-            </Row>
+        <div className="editor-fila">
+            <Form name="editor_fluidos">
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Form.Item
+                            label="Nombre:"
+                        >
+                            <Input
+                                value={fluido.nombre}
+                                onChange={(e) => {
+                                    fluido.nombre = e.target.value;
+                                    actualizarFluido(fila, fluido);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item
+                            label="Fluido:"
+                        >
+                            <Select
+                                showSearch
+                                value={fluido.fluido}
+                                onChange={(value) => {
+                                    fluido.fluido = value;
+                                    actualizarFluido(fila, fluido);
+                                }}
+                            >
+                                {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
+                <Row gutter={8}>
+                    <Col span={9}>
+                        <Form.Item
+                            label="1º propiedad:"
+                        >
+                            <Select
+                                showSearch
+                                value={fluido.in1Id}
+                                onChange={(value) => {
+                                    fluido.in1Id = value;
+                                    actualizarFluido(fila, fluido);
+                                }}
+                            >
+                                <Option value="T">T [ºC]</Option>
+                                <Option value="P">p [kPa]</Option>
+                                <Option value="X">X [%]</Option>
+                                <Option value="RO">ρ [kg/m³]</Option>
+                                <Option value="H">h [kJ/kg]</Option>
+                                <Option value="S">s [kJ/(kg·K)]</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={3}>
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            value={fluido.in1Val}
+                            onChange={(value) => {
+                                fluido.in1Val = value;
+                                actualizarFluido(fila, fluido);
+                            }}
+                        />
+                    </Col>
+                    <Col span={9}>
+                        <Form.Item
+                            label="2º propiedad:"
+                        >
+                            <Select
+                                showSearch
+                                value={fluido.in2Id}
+                                onChange={(value) => {
+                                    fluido.in2Id = value;
+                                    actualizarFluido(fila, fluido);
+                                }}
+                            >
+                                <Option value="T">T [ºC]</Option>
+                                <Option value="P">p [kPa]</Option>
+                                <Option value="X">X [%]</Option>
+                                <Option value="RO">ρ [kg/m³]</Option>
+                                <Option value="H">h [kJ/kg]</Option>
+                                <Option value="S">s [kJ/(kg·K)]</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={3}>
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            value={fluido.in2Val}
+                            onChange={(value) => {
+                                fluido.in2Val = value;
+                                actualizarFluido(fila, fluido);
+                            }}
+                        />
+                    </Col>
+                </Row>
+            </Form>
             <p></p>
-
         </div >
-
     );
 
 

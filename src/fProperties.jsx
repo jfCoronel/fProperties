@@ -1,51 +1,65 @@
-import { Menu, Tooltip, Button } from 'antd';
+import { Menu, Tooltip, Button, Col, Select } from 'antd';
 import { ExperimentOutlined, CloudOutlined, ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 
 import { useHookstate } from '@hookstate/core';
-import { configuracion } from './configuracion';
+import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
 import TablaFluidos from './components/TablaFluidos';
 import TablaAires from './components/TablaAires';
-import BarraLateral from './components/BarraLateral'
+import EditorFila from './components/EditorFila'
 
+const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, iActual, year, version, verBarraLateral } = useHookstate(configuracion);
+  const { menuActual, iActual, year, version, verBarraLateral, idioma, textosCargados } = useHookstate(configuracion);
 
   const margen = (verBarraLateral.get()) ? '350px' : '0px';
 
   const menuTabItems = [
     {
-      label: 'Fluidos',
+      label: getTextoUI("tab_fluidos"),
       key: 'fluidos',
       icon: <ExperimentOutlined />,
     },
     {
-      label: 'Aire Húmedo',
+      label: getTextoUI("tab_airehumedo"),
       key: 'aireHumedo',
       icon: <CloudOutlined />,
-    }]
+    }
+  ]
+
+  // Cargar textos json
+  cargarTextosUI();
+
+  function jsxSelectorIdioma() {
+    if (textosCargados.get()) {
+      return (
+        <Select
+          value={idioma.get()}
+          onChange={value => {
+            textosCargados.set(false);
+            idioma.set(value);
+            cargarTextosUI();
+          }}
+        >
+          <Option key="es" value="es"><img src="./img/es.svg" width="24" /> {" " + getTextoUI("lab_idioma_es")}</Option>
+          <Option key="en" value="en"><img src="./img/en.svg" width="24" /> {" " + getTextoUI("lab_idioma_en")}</Option>
+        </Select>
+      );
+    } else {
+      return (<></>);
+    }
+  }
 
 
   return (
     <div className="contenido" >
       <div className='tablas'
-        style={{ marginRight: margen }}
         onClick={() => { iActual.set(-1) }} >
         <p> </p>
-        <span className='titulo'> <a href="https://personal.us.es/jfc/PropiedadesDeFluidos/descripcion" target="blank"><ExperimentOutlined /> PropiedadesDeFluidos</a> </span>
+        <span className='titulo'> <a href="http://fproperties.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
+        <span className='etiqueta'> {getTextoUI("lab_version")}: {version.get()},  <a href="http://jfc.us.es" target="blank">{getTextoUI("lab_copyright")} </a></span>
         <span style={{ float: "right" }}>
-          {verBarraLateral.get() ?
-            (<Tooltip title="Barra lateral">
-              <Button type="primary" shape="circle" icon={<ArrowRightOutlined />}
-                onClick={() => { verBarraLateral.set(false) }}
-              />
-            </Tooltip>)
-            :
-            (<Tooltip title="Barra lateral">
-              <Button type="primary" shape="circle" icon={<ArrowLeftOutlined />}
-                onClick={() => { verBarraLateral.set(true) }}
-              />
-            </Tooltip>)}
+          {jsxSelectorIdioma()}
         </span>
         <Menu onClick={(e) => menuActual.set(e.key.toString())} selectedKeys={[menuActual.get()]} mode="horizontal" items={menuTabItems}>
         </Menu>
@@ -54,11 +68,10 @@ const FProperties = () => {
         {(menuActual.get() === 'aireHumedo') && <TablaAires />}
 
         <p>  </p>
-        <a href="https://personal.us.es/jfc/PropiedadesDeFluidos/descripcion" target="blank">PropiedadesDeFluidos</a> es un calculadora de propiedades de fluidos basada en <a href="http://www.coolprop.org" target="blank">Coolprop</a>
-        <p><a href="http://jfc.us.es" target="blank">©jfc</a>-{year.get()}, Versión: {version.get()} </p>
       </div>
-      {verBarraLateral.get() && <BarraLateral />}
-    </div>
+      <EditorFila />
+
+    </div >
   );
 }
 

@@ -158,6 +158,10 @@ const TablaFluidos = () => {
     }
   }
 
+  const rowClassName = (record) => {
+    return record.key === iActual.get() ? 'selected-row' : '';
+  };
+
   const columnasCsv = columnas.map((a) => ({ ...a }));
 
   let iInicial = 5;
@@ -204,17 +208,6 @@ const TablaFluidos = () => {
       <Tooltip title="Configuración" mouseEnterDelay={1}>
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
       </Tooltip>
-      <p> </p>
-      <Table
-        rowSelection={seleccionFilas}
-        columns={columnas}
-        dataSource={datos}
-        onRow={(record, rowIndex) => {
-          return {
-            onClick: event => { event.stopPropagation(); iActual.set(record.key); } // click row            
-          };
-        }}
-      />
       <ExportTableButton
         dataSource={datos}
         columns={columnasCsv}
@@ -224,6 +217,24 @@ const TablaFluidos = () => {
       >
         Exportar a CSV
       </ExportTableButton>
+      <p> </p>
+      <Table
+        rowSelection={seleccionFilas}
+        columns={columnas}
+        dataSource={datos}
+        rowClassName={rowClassName}
+        pagination={{
+          showSizeChanger: true,
+          defaultPageSize: 5,
+          pageSizeOptions: [5, 10, 100]
+        }}
+        onRow={(record, rowIndex) => {
+          return {
+            onClick: event => { event.stopPropagation(); iActual.set(record.key); } // click row            
+          };
+        }}
+      />
+
       {verConfiguracion.get() && <ConfiguracionFluidos />}
     </div >
   );
