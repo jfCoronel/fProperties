@@ -2,7 +2,7 @@ import React from 'react';
 import { Drawer, Form, Select, InputNumber } from 'antd';
 
 import { useHookstate } from '@hookstate/core';
-import { configuracion } from '../configuracion';
+import { configuracion, getTextoUI } from '../configuracion';
 
 const ConfiguracionFluidos = () => {
   const conf = useHookstate(configuracion);
@@ -24,28 +24,28 @@ const ConfiguracionFluidos = () => {
   }
 
   const OPCIONES = (<>
-    <Option value='RO'>Densidad, ρ[kg/m³]</Option>
-    <Option value='HR'>Humedad rel., ϕ[%]</Option>
-    <Option value='TH'>Temp. húmeda, T<sub>H</sub>[°C]</Option>
-    <Option value='TR'>Temp. de rocío, T<sub>R</sub>[°C]</Option>
-    <Option value='H'>Entalpía, h[kJ/kg]</Option>
-    <Option value='S'>Entropía, s[kJ/(kg·K)]</Option>
-    <Option value='V'>Volumen esp., v[m³/kg]</Option>
-    <Option value='CP'>Calor esp., c<sub>p</sub>[J/(kg·K)]</Option>
-    <Option value='NO'>NO INCLUIR</Option>
+    <Option value='RO'>{getTextoUI("prop_RO")}</Option>
+    <Option value='HR'>{getTextoUI("prop_HR")}</Option>
+    <Option value='TH'>{getTextoUI("prop_TH")}[°C]</Option>
+    <Option value='TR'>{getTextoUI("prop_TR")}</Option>
+    <Option value='H'>{getTextoUI("prop_H")}</Option>
+    <Option value='S'>{getTextoUI("prop_S")}</Option>
+    <Option value='V'>{getTextoUI("prop_V")}</Option>
+    <Option value='CP'>{getTextoUI("prop_CP")}</Option>
+    <Option value='NO'>{getTextoUI("prop_NO")}</Option>
   </>);
 
   return (
     <Drawer
       width={400}
-      title="Configuración"
+      title={getTextoUI("tooltip_configuracion")}
       placement="left"
       closable={false}
       onClose={() => { verConfiguracion.set(false); }}
       open={verConfiguracion.get()}
     >
       <Form {...formItemLayout} >
-        <Form.Item label="Nº cifras sig.">
+        <Form.Item label={getTextoUI("lab_n_cifras")}>
           <InputNumber
             min={0}
             max={10}
@@ -59,7 +59,7 @@ const ConfiguracionFluidos = () => {
             }}
           />
         </Form.Item>
-        <Form.Item label="Columna nº 6">
+        <Form.Item label={getTextoUI("lab_columna_n") + "6"}>
           <Select
             showSearch
             defaultValue={columnasTabla[0].get()}
@@ -68,7 +68,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 7">
+        <Form.Item label={getTextoUI("lab_columna_n") + "7"}>
           <Select
             showSearch
             defaultValue={columnasTabla[1].get()}
@@ -77,7 +77,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 8">
+        <Form.Item label={getTextoUI("lab_columna_n") + "8"}>
           <Select
             showSearch
             defaultValue={columnasTabla[2].get()}
@@ -86,7 +86,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 9">
+        <Form.Item label={getTextoUI("lab_columna_n") + "9"}>
           <Select
             showSearch
             defaultValue={columnasTabla[3].get()}
@@ -95,7 +95,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 10">
+        <Form.Item label={getTextoUI("lab_columna_n") + "10"}>
           <Select
             showSearch
             defaultValue={columnasTabla[4].get()}
@@ -104,7 +104,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 11">
+        <Form.Item label={getTextoUI("lab_columna_n") + "11"}>
           <Select
             showSearch
             defaultValue={columnasTabla[5].get()}
@@ -113,7 +113,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 12">
+        <Form.Item label={getTextoUI("lab_columna_n") + "12"}>
           <Select
             showSearch
             defaultValue={columnasTabla[6].get()}

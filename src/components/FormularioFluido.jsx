@@ -1,6 +1,6 @@
 import { useHookstate } from '@hookstate/core';
 import { Row, Col, Select, Input, InputNumber, Form } from 'antd'
-import { configuracion } from '../configuracion';
+import { configuracion, getTextoUI } from '../configuracion';
 import { listaFluidos, actualizarFluido } from '../listaFluidos';
 import { getListaFluidos } from '../propFluidos/fluidos';
 
@@ -26,7 +26,7 @@ const FormularioFluido = () => {
                 <Row gutter={8}>
                     <Col span={12}>
                         <Form.Item
-                            label="Nombre:"
+                            label={getTextoUI("lab_nombre")}
                         >
                             <Input
                                 value={fluido.nombre}
@@ -39,7 +39,7 @@ const FormularioFluido = () => {
                     </Col>
                     <Col span={12}>
                         <Form.Item
-                            label="Fluido:"
+                            label={getTextoUI("lab_fluido")}
                         >
                             <Select
                                 showSearch
@@ -57,7 +57,7 @@ const FormularioFluido = () => {
                 <Row gutter={8}>
                     <Col span={9}>
                         <Form.Item
-                            label="1º propiedad:"
+                            label={getTextoUI("lab_prop_1")}
                         >
                             <Select
                                 showSearch
@@ -88,7 +88,7 @@ const FormularioFluido = () => {
                     </Col>
                     <Col span={9}>
                         <Form.Item
-                            label="2º propiedad:"
+                            label={getTextoUI("lab_prop_2")}
                         >
                             <Select
                                 showSearch

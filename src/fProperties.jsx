@@ -1,5 +1,5 @@
-import { Menu, Tooltip, Button, Col, Select } from 'antd';
-import { ExperimentOutlined, CloudOutlined, ArrowRightOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Menu, Select } from 'antd';
+import { ExperimentOutlined, CloudOutlined } from '@ant-design/icons';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
@@ -10,9 +10,7 @@ import EditorFila from './components/EditorFila'
 const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, iActual, year, version, verBarraLateral, idioma, textosCargados } = useHookstate(configuracion);
-
-  const margen = (verBarraLateral.get()) ? '350px' : '0px';
+  const { menuActual, iActual, version, idioma, textosCargados } = useHookstate(configuracion);
 
   const menuTabItems = [
     {

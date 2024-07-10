@@ -9,7 +9,7 @@ import { Button, Tooltip } from 'antd';
 import { Table, ExportTableButton } from 'ant-table-extensions';
 
 import { useHookstate } from '@hookstate/core';
-import { configuracion } from '../configuracion';
+import { configuracion, getTextoUI } from '../configuracion';
 import { listaFluidos, nuevoFluido, borrarFluidos, duplicarFluidos } from '../listaFluidos';
 import formatear from '../util/formatear';
 import ConfiguracionFluidos from './ConfiguracionFluidos';
@@ -88,19 +88,19 @@ const TablaFluidos = () => {
 
   let columnas = [
     {
-      title: 'Nombre',
+      title: getTextoUI("tabla_nombre"),
       dataIndex: 'nombre',
       sortDirections: ['descend', 'ascend'],
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
       key: 'nombre'
     },
     {
-      title: 'Fluido',
+      title: getTextoUI("tabla_fluido"),
       dataIndex: 'fluido',
       key: 'fluido',
     },
     {
-      title: 'Fase',
+      title: getTextoUI("tabla_fase"),
       dataIndex: 'fase',
       key: 'fase',
     },
@@ -175,7 +175,7 @@ const TablaFluidos = () => {
   return (
     <div>
       <p>  </p>
-      <Tooltip title="Nuevo fluido" mouseEnterDelay={1}>
+      <Tooltip title={getTextoUI("tooltip_nuevo_fluido")} mouseEnterDelay={1}>
         <Button type='link' icon={<PlusCircleOutlined />} size='large' onClick={() => nuevoFluido()}></Button>
       </Tooltip>
       <span>  </span>
@@ -187,7 +187,7 @@ const TablaFluidos = () => {
             <Button type='link' icon={<CopyOutlined />} size='large' disabled></Button>
           </span>
           : <span>
-            <Tooltip title="Borrar seleccionados" mouseEnterDelay={1}>
+            <Tooltip title={getTextoUI("tooltip_borrar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<DeleteOutlined />} size='large' onClick={() => {
                 const filas = [...filasSeleccionadas.get()];
                 filasSeleccionadas.set([]);
@@ -195,7 +195,7 @@ const TablaFluidos = () => {
               }}></Button>
             </Tooltip>
             <span>  </span>
-            <Tooltip title="Duplicar seleccionados" mouseEnterDelay={1}>
+            <Tooltip title={getTextoUI("tooltip_duplicar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<CopyOutlined />} size='large' onClick={() => {
                 const filas = [...filasSeleccionadas.get()];
                 filasSeleccionadas.set([]);
@@ -205,17 +205,17 @@ const TablaFluidos = () => {
           </span>
       }
       <span>  </span>
-      <Tooltip title="Configuración" mouseEnterDelay={1}>
+      <Tooltip title={getTextoUI("tooltip_configuracion")} mouseEnterDelay={1}>
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
       </Tooltip>
       <ExportTableButton
         dataSource={datos}
         columns={columnasCsv}
         btnProps={{ icon: <FileExcelOutlined /> }}
-        fileName="PropiedadesDeFluidos"
+        fileName="fProperties"
         showColumnPicker
       >
-        Exportar a CSV
+        {getTextoUI("btn_exportar_csv")}
       </ExportTableButton>
       <p> </p>
       <Table

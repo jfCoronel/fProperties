@@ -1,9 +1,7 @@
 import { Drawer, Form, Select, InputNumber } from 'antd';
 
 import { useHookstate } from '@hookstate/core';
-import { configuracion } from '../configuracion';
-
-
+import { configuracion, getTextoUI } from '../configuracion';
 
 const ConfiguracionFluidos = () => {
   const conf = useHookstate(configuracion);
@@ -25,39 +23,39 @@ const ConfiguracionFluidos = () => {
   }
 
   const OPCIONES = (<>
-    <Option value='X'>Título de vapor, X[%]</Option>
-    <Option value='RO'>Densidad, ρ[kg/m³]</Option>
-    <Option value='V'>Volumen esp., v[m³/kg]</Option>
-    <Option value='H'>Entalpía, h[kJ/kg]</Option>
-    <Option value='U'>Energía interna, u[kJ/kg]</Option>
-    <Option value='S'>Entropía, s[kJ/(kg·K)]</Option>
-    <Option value='CP'>Calor esp., c<sub>p</sub> [J/(kg·K)]</Option>
-    <Option value='CV'>Calor esp., c<sub>v</sub> [J/(kg·K)]</Option>
-    <Option value='K'>Conductividad, k[W/(m·K)]</Option>
-    <Option value='PR'>Nº de Prandtl, Pr[-]</Option>
-    <Option value='MU'>Viscosidad, μ[Pa·s]</Option>
-    <Option value='NU'>Viscosidad cinemática, ν[m²/s]</Option>
-    <Option value='ALFA'>Difusividad térmica, α[m²/s]</Option>
-    <Option value='BETA'>Coef. de exp. térm., β[1/K]</Option>
-    <Option value='M'>Masa molar, M[kg/mol]</Option>
-    <Option value='TCRIT'>Temperatura crítica, T<sub>crit</sub>[°C]</Option>
-    <Option value='PCRIT'>Presión crítica, p<sub>crit</sub>[kPa]</Option>
-    <Option value='TTRIPLE'>Temperatura triple, T<sub>trip</sub>[°C]</Option>
-    <Option value='PTRIPLE'>Presión triple, p<sub>trip</sub>[kPa]</Option>
-    <Option value='NO'>NO INCLUIR</Option>
+    <Option value='X'>{getTextoUI("prop_X")}</Option>
+    <Option value='RO'>{getTextoUI("prop_RO")}</Option>
+    <Option value='V'>{getTextoUI("prop_V")}</Option>
+    <Option value='H'>{getTextoUI("prop_H")}</Option>
+    <Option value='U'>{getTextoUI("prop_U")}</Option>
+    <Option value='S'>{getTextoUI("prop_S")}</Option>
+    <Option value='CP'>{getTextoUI("prop_CP")}</Option>
+    <Option value='CV'>{getTextoUI("prop_CV")}</Option>
+    <Option value='K'>{getTextoUI("prop_K")}</Option>
+    <Option value='PR'>{getTextoUI("prop_PR")}</Option>
+    <Option value='MU'>{getTextoUI("prop_MU")}</Option>
+    <Option value='NU'>{getTextoUI("prop_NU")}</Option>
+    <Option value='ALFA'>{getTextoUI("prop_ALFA")}</Option>
+    <Option value='BETA'>{getTextoUI("prop_BETA")}</Option>
+    <Option value='M'>{getTextoUI("prop_M")}</Option>
+    <Option value='TCRIT'>{getTextoUI("prop_TCRIT")}</Option>
+    <Option value='PCRIT'>{getTextoUI("prop_PCRIT")}</Option>
+    <Option value='TTRIPLE'>{getTextoUI("prop_TTRIPLE")}</Option>
+    <Option value='PTRIPLE'>{getTextoUI("prop_PTRIPLE")}</Option>
+    <Option value='NO'>{getTextoUI("prop_NO")}</Option>
   </>);
 
   return (
     <Drawer
       width={400}
-      title="Configuración"
+      title={getTextoUI("tooltip_configuracion")}
       placement="left"
       closable={false}
       onClose={() => { verConfiguracion.set(false); }}
       open={verConfiguracion.get()}
     >
       <Form {...formItemLayout} >
-        <Form.Item label="Nº cifras sig.">
+        <Form.Item label={getTextoUI("lab_n_cifras")}>
           <InputNumber
             min={0}
             max={10}
@@ -71,7 +69,7 @@ const ConfiguracionFluidos = () => {
             }}
           />
         </Form.Item>
-        <Form.Item label="Columna nº 6">
+        <Form.Item label={getTextoUI("lab_columna_n") + "6"}>
           <Select
             showSearch
             defaultValue={columnasTabla[0].get()}
@@ -80,7 +78,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 7">
+        <Form.Item label={getTextoUI("lab_columna_n") + "7"}>
           <Select
             showSearch
             defaultValue={columnasTabla[1].get()}
@@ -89,7 +87,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 8">
+        <Form.Item label={getTextoUI("lab_columna_n") + "8"}>
           <Select
             showSearch
             defaultValue={columnasTabla[2].get()}
@@ -98,7 +96,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 9">
+        <Form.Item label={getTextoUI("lab_columna_n") + "9"}>
           <Select
             showSearch
             defaultValue={columnasTabla[3].get()}
@@ -107,7 +105,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 10">
+        <Form.Item label={getTextoUI("lab_columna_n") + "10"}>
           <Select
             showSearch
             defaultValue={columnasTabla[4].get()}
@@ -116,7 +114,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 11">
+        <Form.Item label={getTextoUI("lab_columna_n") + "11"}>
           <Select
             showSearch
             defaultValue={columnasTabla[5].get()}
@@ -125,7 +123,7 @@ const ConfiguracionFluidos = () => {
             {OPCIONES}
           </Select>
         </Form.Item>
-        <Form.Item label="Columna nº 12">
+        <Form.Item label={getTextoUI("lab_columna_n") + "12"}>
           <Select
             showSearch
             defaultValue={columnasTabla[6].get()}

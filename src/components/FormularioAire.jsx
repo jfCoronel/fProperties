@@ -1,6 +1,6 @@
 import { useHookstate } from '@hookstate/core';
 import { Row, Col, Select, Input, InputNumber, Form } from 'antd'
-import { configuracion } from '../configuracion';
+import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires, actualizarAire } from '../listaAires';
 
 const { Option } = Select;
@@ -26,7 +26,7 @@ const FormularioAire = () => {
             <Row gutter={8}>
                 <Col span={12}>
                     <Form.Item
-                        label="Nombre:"
+                        label={getTextoUI("lab_nombre")}
                     >
                         <Input
                             value={aire.nombre}
@@ -40,7 +40,7 @@ const FormularioAire = () => {
 
                 <Col span={9}>
                     <Form.Item
-                        label="1º propiedad:"
+                        label={getTextoUI("lab_prop_1")}
                     >
                         <Select
                             showSearch
@@ -50,7 +50,7 @@ const FormularioAire = () => {
                                 actualizarAire(fila, aire);
                             }}
                         >
-                            <Option value="A">Altura [m]</Option>
+                            <Option value="A">{getTextoUI("tabla_altura")}</Option>
                             <Option value="P">p [kPa]</Option>
                         </Select>
                     </Form.Item>
@@ -69,7 +69,7 @@ const FormularioAire = () => {
             <Row gutter={8}>
                 <Col span={9}>
                     <Form.Item
-                        label="2º propiedad:"
+                        label={getTextoUI("lab_prop_2")}
                     >
                         <Select
                             showSearch
@@ -97,7 +97,7 @@ const FormularioAire = () => {
                 </Col>
                 <Col span={9}>
                     <Form.Item
-                        label="3º propiedad:"
+                        label={getTextoUI("lab_prop_3")}
                     >
                         <Select
                             showSearch

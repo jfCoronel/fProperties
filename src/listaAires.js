@@ -1,5 +1,6 @@
 import { hookstate, none } from '@hookstate/core';
 import { getObjetoAireHumedo } from './propFluidos/aires'
+import { getTextoUI } from './configuracion';
 
 export const listaAires = hookstate([]);
 
@@ -28,7 +29,7 @@ export const borrarAires = (lista) => {
 export const duplicarAires = (lista) => {
   lista.forEach(i => {
     let nuevoAire = Object.assign({}, listaAires[i].get());
-    nuevoAire.nombre = "Copia de " + nuevoAire.nombre;
+    nuevoAire.nombre = nuevoAire.nombre + getTextoUI("copia_de");
     listaAires.merge([nuevoAire]);
   })
 }
@@ -42,7 +43,7 @@ export const actualizarAire = (i, aire) => {
 function nuevoNombreAire() {
   let i = 1;
   do {
-    let nuevoNombre = 'Aire ' + i;
+    let nuevoNombre = getTextoUI("nuevo_aire") + i;
     if (listaAires.find(aire => aire.nombre.get() === nuevoNombre)) { // encontrado
       i++;
     } else {

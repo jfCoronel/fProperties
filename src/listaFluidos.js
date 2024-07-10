@@ -1,12 +1,12 @@
 import { hookstate, none } from '@hookstate/core';
 import { getObjetoFluido } from './propFluidos/fluidos'
-
+import { getTextoUI } from './configuracion';
 
 export const listaFluidos = hookstate([]);
 
 export const nuevoFluido = () => {
   const objetoFluido = getObjetoFluido('Agua', 'T', 25, 'P', 101.325);
-  //const nuevoNombre = nuevoNombreFluido(lista);
+
   const fluidoNuevo = {
     nombre: nuevoNombreFluido(),
     fluido: "Agua",
@@ -29,7 +29,7 @@ export const borrarFluidos = (lista) => {
 export const duplicarFluidos = (lista) => {
   lista.forEach(i => {
     let nuevoFluido = Object.assign({}, listaFluidos[i].get());
-    nuevoFluido.nombre = "Copia de " + nuevoFluido.nombre;
+    nuevoFluido.nombre = nuevoFluido.nombre + getTextoUI("copia_de");
     listaFluidos.merge([nuevoFluido]);
   })
 }
@@ -44,7 +44,7 @@ export const actualizarFluido = (i, fluido) => {
 function nuevoNombreFluido() {
   let i = 1;
   do {
-    let nuevoNombre = 'Fluido ' + i;
+    let nuevoNombre = getTextoUI("nuevo_fluido") + i;
     if (listaFluidos.find(fluido => fluido.nombre.get() === nuevoNombre)) { // encontrado
       i++;
     } else {
