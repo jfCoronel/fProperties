@@ -1,4 +1,4 @@
-import { Menu, Select } from 'antd';
+import { Divider, Menu, Select } from 'antd';
 import { ExperimentOutlined, CloudOutlined } from '@ant-design/icons';
 
 import { useHookstate } from '@hookstate/core';
@@ -6,11 +6,12 @@ import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
 import TablaFluidos from './components/TablaFluidos';
 import TablaAires from './components/TablaAires';
 import EditorFila from './components/EditorFila'
+import Psicrometrico from './components/Psicrometrico';
 
 const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, iActual, version, idioma, textosCargados } = useHookstate(configuracion);
+  const { menuActual, iActual, version, idioma, textosCargados, verPsicrometrico } = useHookstate(configuracion);
 
   const menuTabItems = [
     {
@@ -55,7 +56,6 @@ const FProperties = () => {
         onClick={() => { iActual.set(-1) }} >
         <p> </p>
         <span className='titulo'> <a href="http://fproperties.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
-        <span className='etiqueta'> {getTextoUI("lab_version")}: {version.get()},  <a href="http://jfc.us.es" target="blank">{getTextoUI("lab_copyright")} </a></span>
         <span style={{ float: "right" }}>
           {jsxSelectorIdioma()}
         </span>
@@ -68,6 +68,11 @@ const FProperties = () => {
         <p>  </p>
       </div>
       <EditorFila />
+      {verPsicrometrico.get() && <Psicrometrico />}
+      <Divider />
+      <div className='pie'>
+        <span className='etiqueta'> {getTextoUI("lab_version")}: {version.get()},  <a href="http://jfc.us.es" target="blank">{getTextoUI("lab_copyright")} </a></span>
+      </div>
 
     </div >
   );

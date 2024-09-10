@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, Input, InputNumber, Form } from 'antd'
+import { Row, Col, Select, Input, InputNumber, Form, Divider } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires, actualizarAire } from '../listaAires';
 
@@ -22,6 +22,8 @@ const FormularioAire = () => {
 
 
     return (<div className="editor-fila">
+        <Divider />
+        <h3>{getTextoUI("titulo_editor_aires")}</h3>
         <Form name="editor_fluidos">
             <Row gutter={8}>
                 <Col span={12}>

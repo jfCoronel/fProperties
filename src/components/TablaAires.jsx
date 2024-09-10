@@ -3,9 +3,10 @@ import {
   DeleteOutlined,
   SettingOutlined,
   FileExcelOutlined,
-  PlusCircleOutlined
+  PlusCircleOutlined,
+  LineChartOutlined
 } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, Switch } from 'antd';
 import { Table, ExportTableButton } from 'ant-table-extensions';
 
 import { useHookstate } from '@hookstate/core';
@@ -51,6 +52,7 @@ const TablaAires = () => {
   const nCifras = conf.nCifras;
   const verConfiguracion = conf.verConfiguracion;
   const iActual = conf.iActual;
+  const verPsicrometrico = conf.verPsicrometrico;
 
   const lista = useHookstate(listaAires);
   const filasSeleccionadas = useHookstate([]);
@@ -176,6 +178,16 @@ const TablaAires = () => {
       <Tooltip title={getTextoUI("tooltip_configuracion")} mouseEnterDelay={1}>
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
       </Tooltip>
+      <span>  </span>
+      <Tooltip title={getTextoUI("tooltip_psicrometrico")} mouseEnterDelay={1}>
+        <Switch
+          checkedChildren={<LineChartOutlined />}
+          unCheckedChildren={<LineChartOutlined />}
+          defaultChecked={false}
+          onClick={() => { verPsicrometrico.set(!verPsicrometrico.get()); }}
+        />
+      </Tooltip>
+      <span>  </span>
       <ExportTableButton
         dataSource={datos}
         columns={columnasCsv}

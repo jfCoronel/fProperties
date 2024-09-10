@@ -13,7 +13,9 @@
     "@hookstate/core": "^4.0.1",
     "ant-table-extensions": "^2.0.0",
     "antd": "^5.19.0",
+    "chart.js": "^4.4.4",
     "react": "^18.3.1",
+    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
