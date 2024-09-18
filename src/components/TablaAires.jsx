@@ -47,12 +47,8 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaAires = () => {
-  const conf = useHookstate(configuracion);
-  const columnasTabla = conf.columnasTablaAires;
-  const nCifras = conf.nCifras;
-  const verConfiguracion = conf.verConfiguracion;
-  const iActual = conf.iActual;
-  const verPsicrometrico = conf.verPsicrometrico;
+  const { iAireActual, columnasTablaAires, nCifras, verConfiguracion, verPsicrometrico, verDialogoAire } = useHookstate(configuracion);
+
 
   const lista = useHookstate(listaAires);
   const filasSeleccionadas = useHookstate([]);
@@ -63,7 +59,8 @@ const TablaAires = () => {
       dataIndex: 'nombre',
       sortDirections: ['descend', 'ascend'],
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
-      key: 'nombre'
+      key: 'nombre',
+      render: (text, record) => <a onClick={(event) => { event.stopPropagation(); iAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>,
     },
     {
       title: getTextoUI("tabla_altura"),
@@ -87,7 +84,7 @@ const TablaAires = () => {
     }
   ];
 
-  columnasTabla.forEach((columna) => {
+  columnasTablaAires.forEach((columna) => {
     if (columna.get() !== "NO") {
       const nuevaColumna = {
         title: <div dangerouslySetInnerHTML={{ __html: TITULO_COLUMNAS[columna.get()] }} />,
@@ -108,7 +105,7 @@ const TablaAires = () => {
       humedadAbsoluta: formatear(aire.W.get(), nCifras.get())
     }
 
-    columnasTabla.forEach((columna) => {
+    columnasTablaAires.forEach((columna) => {
       if (columna.get() !== "NO") {
         dato[NOMBRE_COLUMNAS[columna.get()]] = formatear(aire[columna.get()].get(), nCifras.get());
       }
@@ -122,19 +119,19 @@ const TablaAires = () => {
     onChange: (selectedRowKeys) => {
       filasSeleccionadas.set(selectedRowKeys);
       if (selectedRowKeys.length > 0) {
-        iActual.set(-1);
+        iAireActual.set(-1);
       }
     }
   }
 
   const rowClassName = (record) => {
-    return record.key === iActual.get() ? 'selected-row' : '';
+    return record.key === iAireActual.get() ? 'selected-row' : '';
   };
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
 
   let iInicial = 5;
-  columnasTabla.forEach((columna) => {
+  columnasTablaAires.forEach((columna) => {
     if (columna.get() !== "NO") {
       columnasCsv[iInicial].title = TITULO_COLUMNAS_CSV[columna.get()];
       iInicial++;
@@ -210,7 +207,7 @@ const TablaAires = () => {
         }}
         onRow={(record, rowIndex) => {
           return {
-            onClick: event => { event.stopPropagation(); iActual.set(record.key); } // click row            
+            onDoubleClick: event => { iAireActual.set(record.key); verDialogoAire.set(true) } // click row            
           };
         }}
       />

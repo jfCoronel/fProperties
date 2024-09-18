@@ -1,30 +1,52 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, Input, InputNumber, Form } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, InputNumber, Form } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaFluidos, actualizarFluido } from '../listaFluidos';
 import { getListaFluidos } from '../propFluidos/fluidos';
 
 const { Option } = Select;
 
-const FormularioFluido = () => {
+const DialogoFluido = () => {
     const lista = useHookstate(listaFluidos);
-    const { iActual } = useHookstate(configuracion);
-    const fila = iActual.get();
+    const { iFluidoActual, verDialogoFluido } = useHookstate(configuracion);
+    const fila = iFluidoActual.get();
 
-    let fluido = {
-        nombre: lista[fila].nombre.get(),
-        fluido: lista[fila].fluido.get(),
-        in1Id: lista[fila].in1Id.get(),
-        in2Id: lista[fila].in2Id.get(),
-        in1Val: lista[fila].in1Val.get(),
-        in2Val: lista[fila].in2Val.get()
+    let fluido = undefined
+    if (fila >= 0) {
+        fluido = {
+            nombre: lista[fila].nombre.get(),
+            fluido: lista[fila].fluido.get(),
+            in1Id: lista[fila].in1Id.get(),
+            in2Id: lista[fila].in2Id.get(),
+            in1Val: lista[fila].in1Val.get(),
+            in2Val: lista[fila].in2Val.get()
+        }
     }
+    const handleOk = () => {
+        verDialogoFluido.set(false);
+    };
+    const handleCancel = () => {
+        verDialogoFluido.set(false);
+    };
 
-    return (
-        <div className="editor-fila">
-            <Form name="editor_fluidos">
+    if (fila >= 0) {
+        return (<Modal
+            title={getTextoUI("titulo_editor_fluido")}
+            open={verDialogoFluido.get()}
+            onOk={handleOk}
+            onCancel={handleCancel}
+            closable={false}
+            width={640}
+            footer={[
+                <Button key="ok" type="primary" onClick={handleOk}>
+                    OK
+                </Button>,
+            ]}>
+
+
+            <Form name="dialogo_fluidos">
                 <Row gutter={8}>
-                    <Col span={12}>
+                    <Col span={24}>
                         <Form.Item
                             label={getTextoUI("lab_nombre")}
                         >
@@ -37,7 +59,9 @@ const FormularioFluido = () => {
                             />
                         </Form.Item>
                     </Col>
-                    <Col span={12}>
+                </Row>
+                <Row gutter={8}>
+                    <Col span={24}>
                         <Form.Item
                             label={getTextoUI("lab_fluido")}
                         >
@@ -55,7 +79,7 @@ const FormularioFluido = () => {
                     </Col>
                 </Row>
                 <Row gutter={8}>
-                    <Col span={9}>
+                    <Col span={14}>
                         <Form.Item
                             label={getTextoUI("lab_prop_1")}
                         >
@@ -76,7 +100,7 @@ const FormularioFluido = () => {
                             </Select>
                         </Form.Item>
                     </Col>
-                    <Col span={3}>
+                    <Col span={10}>
                         <InputNumber
                             style={{ width: "100%" }}
                             value={fluido.in1Val}
@@ -86,7 +110,9 @@ const FormularioFluido = () => {
                             }}
                         />
                     </Col>
-                    <Col span={9}>
+                </Row>
+                <Row gutter={8}>
+                    <Col span={14}>
                         <Form.Item
                             label={getTextoUI("lab_prop_2")}
                         >
@@ -107,7 +133,7 @@ const FormularioFluido = () => {
                             </Select>
                         </Form.Item>
                     </Col>
-                    <Col span={3}>
+                    <Col span={10}>
                         <InputNumber
                             style={{ width: "100%" }}
                             value={fluido.in2Val}
@@ -119,11 +145,12 @@ const FormularioFluido = () => {
                     </Col>
                 </Row>
             </Form>
-            <p></p>
-        </div >
-    );
 
-
+        </Modal>
+        );
+    } else {
+        return (<></>)
+    }
 }
 
-export default FormularioFluido;
+export default DialogoFluido;

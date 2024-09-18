@@ -2,8 +2,9 @@ import { hookstate } from '@hookstate/core';
 
 const configuracionInicial = {
   menuActual: "fluidos",
-  version: "1.1.0",
-  iActual: -1,
+  version: "1.2.0",
+  iFluidoActual: -1,
+  iAireActual: -1,
   columnasTablaFluidos: ["X", "RO", "H", "S", "CP", "NO", "NO"],
   columnasTablaAires: ["RO", "HR", "TH", "TR", "H", "NO", "NO"],
   verConfiguracion: false,
@@ -13,7 +14,9 @@ const configuracionInicial = {
   textosCargados: false,
   verPsicrometrico: false,
   opcionPsicrometrico: "A",
-  valorOpcionPsicrometrico: 0
+  valorOpcionPsicrometrico: 0,
+  verDialogoFluido: false,
+  verDialogoAire: false
 }
 
 export const configuracion = hookstate(configuracionInicial);

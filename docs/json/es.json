@@ -48,5 +48,11 @@
     "prop_NO": "NO INCLUIR",
     "prop_HR": "Humedad rel., ϕ[%]",
     "prop_TH": "Temp. húmeda, T_H[°C]",
-    "prop_TR": "Temp. de rocío, T_R[°C]"
+    "prop_TR": "Temp. de rocío, T_R[°C]",
+    "titulo_psicrometrico": "Diagrama Psicrométrico:",
+    "tooltip_psicrometrico": "Mostrar diagrama psicrométrico",
+    "lab_opcion_psicrometrico": "Altura/Presión Psicrométrico",
+    "coment_psicrometrico": "Sólo los puntos con este valor serán mostrados.",
+    "titulo_editor_fluido": "Editar Fluido:",
+    "titulo_editor_aire": "Editar Aire Húmedo:"
 }

@@ -48,5 +48,11 @@
     "prop_NO": "NOT INCLUDED",
     "prop_HR": "Rel. humidity, ϕ[%]",
     "prop_TH": "Wet bulb Temp., T_H[°C]",
-    "prop_TR": "Dew point Temp., T_R[°C]"
+    "prop_TR": "Dew point Temp., T_R[°C]",
+    "titulo_psicrometrico": "Psychrometric Diagram:",
+    "tooltip_psicrometrico": "Show psychrometric diagram",
+    "lab_opcion_psicrometrico": "Psychrometric Altitude/Pressure",
+    "coment_psicrometrico": "Only points with this value will be shown.",
+    "titulo_editor_fluido": "Edit Fluid:",
+    "titulo_editor_aire": "Edit Moist Air:"
 }

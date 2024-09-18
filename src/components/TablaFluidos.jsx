@@ -81,7 +81,7 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaFluidos = () => {
-  const { iActual, columnasTablaFluidos, nCifras, verConfiguracion } = useHookstate(configuracion);
+  const { iFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido } = useHookstate(configuracion);
 
   const lista = useHookstate(listaFluidos);
   const filasSeleccionadas = useHookstate([]);
@@ -92,7 +92,8 @@ const TablaFluidos = () => {
       dataIndex: 'nombre',
       sortDirections: ['descend', 'ascend'],
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
-      key: 'nombre'
+      key: 'nombre',
+      render: (text, record) => <a onClick={(event) => { event.stopPropagation(); iFluidoActual.set(record.key); verDialogoFluido.set(true) }} >{text}</a>,
     },
     {
       title: getTextoUI("tabla_fluido"),
@@ -153,13 +154,13 @@ const TablaFluidos = () => {
     onChange: (selectedRowKeys) => {
       filasSeleccionadas.set(selectedRowKeys);
       if (selectedRowKeys.length > 0) {
-        iActual.set(-1);
+        iFluidoActual.set(-1);
       }
     }
   }
 
   const rowClassName = (record) => {
-    return record.key === iActual.get() ? 'selected-row' : '';
+    return record.key === iFluidoActual.get() ? 'selected-row' : '';
   };
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
@@ -230,7 +231,7 @@ const TablaFluidos = () => {
         }}
         onRow={(record, rowIndex) => {
           return {
-            onClick: event => { event.stopPropagation(); iActual.set(record.key); } // click row            
+            onDoubleClick: event => { iFluidoActual.set(record.key); verDialogoFluido.set(true) } // click row            
           };
         }}
       />
