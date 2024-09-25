@@ -15,6 +15,10 @@ const configuracionInicial = {
   verPsicrometrico: false,
   opcionPsicrometrico: "A",
   valorOpcionPsicrometrico: 0,
+  ejeXmaxPsicrometrico: 50,
+  ejeXminPsicrometrico: 0,
+  ejeYmaxPsicrometrico: 50,
+  ejeYminPsicrometrico: 0,
   verDialogoFluido: false,
   verDialogoAire: false
 }

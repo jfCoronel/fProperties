@@ -11,21 +11,23 @@ const { Option } = Select;
 
 const Psicrometrico = () => {
     const lista = useHookstate(listaAires);
-    const { opcionPsicrometrico, valorOpcionPsicrometrico } = useHookstate(configuracion);
+    const { opcionPsicrometrico, valorOpcionPsicrometrico,
+        ejeXmaxPsicrometrico, ejeXminPsicrometrico,
+        ejeYmaxPsicrometrico, ejeYminPsicrometrico } = useHookstate(configuracion);
 
     // Tooltip
     const titleTooltip = (ctx) => {
         return ctx[0].raw.nombre;
     }
 
-    const getSaturacion = () => {
+    const getCurvaHRcte = (hr, grosor = 1) => {
         let datos = [];
         let w = 0
-        for (let t = 0; t < 50; t++) {
+        for (let t = ejeXminPsicrometrico.get(); t <= ejeXmaxPsicrometrico.get(); t++) {
             if (opcionPsicrometrico.get() === "A") {
-                w = getPropAireHumedo("W", 'A', valorOpcionPsicrometrico.get(), 'T', t, 'HR', 100)
+                w = getPropAireHumedo("W", 'A', valorOpcionPsicrometrico.get(), 'T', t, 'HR', hr)
             } else if (opcionPsicrometrico.get() === "P") {
-                w = getPropAireHumedo("W", 'P', valorOpcionPsicrometrico.get(), 'T', t, 'HR', 100)
+                w = getPropAireHumedo("W", 'P', valorOpcionPsicrometrico.get(), 'T', t, 'HR', hr)
             }
 
             datos.push({ x: t, y: w })
@@ -35,7 +37,8 @@ const Psicrometrico = () => {
             data: datos,
             borderColor: "black",
             showLine: true,
-            pointRadius: 0
+            pointRadius: 0,
+            borderWidth: grosor
         };
     }
 
@@ -109,6 +112,53 @@ const Psicrometrico = () => {
                     <span className='comentario'>{getTextoUI("coment_psicrometrico")}</span>
                 </Col>
             </Row>
+            <Row gutter={8}>
+                <Col span={9}>
+                    <Form.Item
+                        label={getTextoUI("lab_ejeX_psicrometrico")}
+                    >
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            value={ejeXminPsicrometrico.get()}
+                            onChange={(value) => {
+                                ejeXminPsicrometrico.set(value);
+                            }}
+                        />
+                    </Form.Item>
+                </Col>
+                <Col span={3}>
+                    <InputNumber
+                        style={{ width: "100%" }}
+                        value={ejeXmaxPsicrometrico.get()}
+                        onChange={(value) => {
+                            ejeXmaxPsicrometrico.set(value);
+                        }}
+                    />
+                </Col>
+                <Col span={9}>
+                    <Form.Item
+                        label={getTextoUI("lab_ejeY_psicrometrico")}
+                    >
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            value={ejeYminPsicrometrico.get()}
+                            onChange={(value) => {
+                                ejeYminPsicrometrico.set(value);
+                            }}
+                        />
+                    </Form.Item>
+                </Col>
+                <Col span={3}>
+                    <InputNumber
+                        style={{ width: "100%" }}
+                        value={ejeYmaxPsicrometrico.get()}
+                        onChange={(value) => {
+                            ejeYmaxPsicrometrico.set(value);
+                        }}
+                    />
+                </Col>
+
+            </Row>
         </Form>
 
         <Scatter
@@ -116,6 +166,8 @@ const Psicrometrico = () => {
                 locale: "es",
                 scales: {
                     x: {
+                        min: ejeXminPsicrometrico.get(),
+                        max: ejeXmaxPsicrometrico.get(),
                         title: {
                             display: true,
                             text: "T [°C]",
@@ -126,6 +178,8 @@ const Psicrometrico = () => {
                         }
                     },
                     y: {
+                        min: ejeYminPsicrometrico.get(),
+                        max: ejeYmaxPsicrometrico.get(),
                         title: {
                             display: true,
                             text: "w [g/kg a.s.]",
@@ -150,7 +204,10 @@ const Psicrometrico = () => {
             }}
             data={{
                 datasets: [
-                    getSaturacion(),
+                    getCurvaHRcte(100, 3),
+                    getCurvaHRcte(75),
+                    getCurvaHRcte(50),
+                    getCurvaHRcte(25),
                     getAires()
                 ]
             }}

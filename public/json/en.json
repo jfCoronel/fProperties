@@ -54,5 +54,7 @@
     "lab_opcion_psicrometrico": "Psychrometric Altitude/Pressure",
     "coment_psicrometrico": "Only points with this value will be shown.",
     "titulo_editor_fluido": "Edit Fluid:",
-    "titulo_editor_aire": "Edit Moist Air:"
+    "titulo_editor_aire": "Edit Moist Air:",
+    "lab_ejeX_psicrometrico": "Minimum and Maximum Temperature [°C]",
+    "lab_ejeY_psicrometrico": "Minimum and Maximum Humidity [g/kg a.s.]"
 }
