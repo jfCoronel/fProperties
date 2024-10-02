@@ -2,7 +2,7 @@ import { hookstate } from '@hookstate/core';
 
 const configuracionInicial = {
   menuActual: "fluidos",
-  version: "1.2.0",
+  version: "1.2.1",
   iFluidoActual: -1,
   iAireActual: -1,
   columnasTablaFluidos: ["X", "RO", "H", "S", "CP", "NO", "NO"],

@@ -54,5 +54,7 @@
     "lab_opcion_psicrometrico": "Altura/Presión Psicrométrico",
     "coment_psicrometrico": "Sólo los puntos con este valor serán mostrados.",
     "titulo_editor_fluido": "Editar Fluido:",
-    "titulo_editor_aire": "Editar Aire Húmedo:"
+    "titulo_editor_aire": "Editar Aire Húmedo:",
+    "lab_ejeX_psicrometrico": "Temperatura Mínima y Máxima [°C]",
+    "lab_ejeY_psicrometrico": "Humedad Mínima y Máxima [g/kg a.s.]"
 }
