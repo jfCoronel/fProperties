@@ -1,7 +1,7 @@
 {
     "lab_nombreApp": "fProperties",
     "lab_version": "Version",
-    "lab_copyright": "ⓒ JFC-2024 ",
+    "lab_copyright": "ⓒ JFC-2025 ",
     "lab_idioma_es": "Spanish",
     "lab_idioma_en": "English",
     "tab_fluidos": "Fluids",
@@ -56,5 +56,16 @@
     "titulo_editor_fluido": "Edit Fluid:",
     "titulo_editor_aire": "Edit Moist Air:",
     "lab_ejeX_psicrometrico": "Minimum and Maximum Temperature [°C]",
-    "lab_ejeY_psicrometrico": "Minimum and Maximum Humidity [g/kg a.s.]"
+    "lab_ejeY_psicrometrico": "Minimum and Maximum Humidity [g/kg a.s.]",
+    "tooltip_diagrama": "Show diagram",
+    "titulo_diagrama": "Diagram:",
+    "lab_tipo_diagrama": "Diagram type:",
+    "lab_fluido_diagrama": "Fluid:",
+    "tipo_p-T": "Diagram p-T",
+    "tipo_p-h": "Diagram p-h",
+    "tipo_T-s": "Diagram T-s",
+    "coment_ejes": "Minimum - maximum values for the axes:",
+    "bot_actualizar_ejes": "Adjust automatically",
+    "lab_punto_triple": "Triple Point",
+    "lab_punto_critico": "Critical Point"
 }
