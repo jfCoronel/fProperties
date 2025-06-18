@@ -22,11 +22,11 @@ const configuracionInicial = {
   verDialogoFluido: false,
   verDialogoAire: false,
   verDiagrama: false,
-  tipoDiagrama: "p-h",
+  tipoDiagrama: "p-T",
   fluidoDiagrama: "Agua",
-  ejeXmaxDiagrama: 50,
+  ejeXmaxDiagrama: 100,
   ejeXminDiagrama: 0,
-  ejeYmaxDiagrama: 50,
+  ejeYmaxDiagrama: 150,
   ejeYminDiagrama: 0,
 }
 

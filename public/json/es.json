@@ -61,7 +61,11 @@
     "titulo_diagrama": "Diagrama:",
     "lab_tipo_diagrama": "Tipo de diagrama:",
     "lab_fluido_diagrama": "Fluido:",
-    "coment_diagrama": "Sólo los puntos con este fluido mostrados.",
+    "tipo_p-T": "Diagrama p-T",
     "tipo_p-h": "Diagrama p-h",
-    "tipo_T-s": "Diagrama T-s"
+    "tipo_T-s": "Diagrama T-s",
+    "coment_ejes": "Valores mínimos - máximos para los ejes:",
+    "bot_actualizar_ejes": "Ajustar automaticamente",
+    "lab_punto_triple": "Punto triple",
+    "lab_punto_critico": "Punto crítico"
 }
