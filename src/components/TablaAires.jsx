@@ -180,7 +180,7 @@ const TablaAires = () => {
         <Switch
           checkedChildren={<LineChartOutlined />}
           unCheckedChildren={<LineChartOutlined />}
-          defaultChecked={false}
+          defaultChecked={verPsicrometrico.get()}
           onClick={() => { verPsicrometrico.set(!verPsicrometrico.get()); }}
         />
       </Tooltip>

@@ -6,13 +6,14 @@ import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
 import TablaFluidos from './components/TablaFluidos';
 import TablaAires from './components/TablaAires';
 import Psicrometrico from './components/Psicrometrico';
+import Diagrama from './components/Diagrama';
 import DialogoFluido from './components/DialogoFluido';
 import DialogoAire from './components/DialogoAire';
 
 const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, iFluidoActual, iAireActual, version, idioma, textosCargados, verPsicrometrico } = useHookstate(configuracion);
+  const { menuActual, iFluidoActual, iAireActual, version, idioma, textosCargados, verPsicrometrico, verDiagrama } = useHookstate(configuracion);
 
   const menuTabItems = [
     {
@@ -69,7 +70,8 @@ const FProperties = () => {
         <p>  </p>
       </div>
 
-      {verPsicrometrico.get() && <Psicrometrico />}
+      {(verPsicrometrico.get() && (menuActual.get() === 'aireHumedo')) && <Psicrometrico />}
+      {(verDiagrama.get() && (menuActual.get() === 'fluidos')) && <Diagrama />}
       <Divider />
       <div className='pie'>
         <span className='etiqueta'> {getTextoUI("lab_version")}: {version.get()},  <a href="http://jfc.us.es" target="blank">{getTextoUI("lab_copyright")} </a></span>

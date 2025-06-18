@@ -2,7 +2,7 @@ import { hookstate } from '@hookstate/core';
 
 const configuracionInicial = {
   menuActual: "fluidos",
-  version: "1.2.1",
+  version: "1.3.0",
   iFluidoActual: -1,
   iAireActual: -1,
   columnasTablaFluidos: ["X", "RO", "H", "S", "CP", "NO", "NO"],
@@ -20,7 +20,14 @@ const configuracionInicial = {
   ejeYmaxPsicrometrico: 50,
   ejeYminPsicrometrico: 0,
   verDialogoFluido: false,
-  verDialogoAire: false
+  verDialogoAire: false,
+  verDiagrama: false,
+  tipoDiagrama: "p-h",
+  fluidoDiagrama: "Agua",
+  ejeXmaxDiagrama: 50,
+  ejeXminDiagrama: 0,
+  ejeYmaxDiagrama: 50,
+  ejeYminDiagrama: 0,
 }
 
 export const configuracion = hookstate(configuracionInicial);

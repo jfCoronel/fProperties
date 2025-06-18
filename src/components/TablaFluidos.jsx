@@ -3,9 +3,10 @@ import {
   DeleteOutlined,
   SettingOutlined,
   FileExcelOutlined,
-  PlusCircleOutlined
+  PlusCircleOutlined,
+  LineChartOutlined
 } from '@ant-design/icons';
-import { Button, Tooltip } from 'antd';
+import { Button, Tooltip, Switch } from 'antd';
 import { Table, ExportTableButton } from 'ant-table-extensions';
 
 import { useHookstate } from '@hookstate/core';
@@ -81,7 +82,7 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaFluidos = () => {
-  const { iFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido } = useHookstate(configuracion);
+  const { iFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido, verDiagrama } = useHookstate(configuracion);
 
   const lista = useHookstate(listaFluidos);
   const filasSeleccionadas = useHookstate([]);
@@ -209,6 +210,16 @@ const TablaFluidos = () => {
       <Tooltip title={getTextoUI("tooltip_configuracion")} mouseEnterDelay={1}>
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
       </Tooltip>
+      <span>  </span>
+      <Tooltip title={getTextoUI("tooltip_diagrama")} mouseEnterDelay={1}>
+        <Switch
+          checkedChildren={<LineChartOutlined />}
+          unCheckedChildren={<LineChartOutlined />}
+          defaultChecked={verDiagrama.get()}
+          onClick={() => { verDiagrama.set(!verDiagrama.get()); }}
+        />
+      </Tooltip>
+      <span>  </span>
       <ExportTableButton
         dataSource={datos}
         columns={columnasCsv}

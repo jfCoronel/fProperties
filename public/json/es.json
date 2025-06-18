@@ -56,5 +56,12 @@
     "titulo_editor_fluido": "Editar Fluido:",
     "titulo_editor_aire": "Editar Aire Húmedo:",
     "lab_ejeX_psicrometrico": "Temperatura Mínima y Máxima [°C]",
-    "lab_ejeY_psicrometrico": "Humedad Mínima y Máxima [g/kg a.s.]"
+    "lab_ejeY_psicrometrico": "Humedad Mínima y Máxima [g/kg a.s.]",
+    "tooltip_diagrama": "Mostrar diagrama",
+    "titulo_diagrama": "Diagrama:",
+    "lab_tipo_diagrama": "Tipo de diagrama:",
+    "lab_fluido_diagrama": "Fluido:",
+    "coment_diagrama": "Sólo los puntos con este fluido mostrados.",
+    "tipo_p-h": "Diagrama p-h",
+    "tipo_T-s": "Diagrama T-s"
 }
