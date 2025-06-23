@@ -15,6 +15,7 @@ const configuracionInicial = {
   verPsicrometrico: false,
   opcionPsicrometrico: "A",
   valorOpcionPsicrometrico: 0,
+  opcionAddDatosPsicrometrico: "todos",
   ejeXmaxPsicrometrico: 50,
   ejeXminPsicrometrico: 0,
   ejeYmaxPsicrometrico: 50,
@@ -22,12 +23,14 @@ const configuracionInicial = {
   verDialogoFluido: false,
   verDialogoAire: false,
   verDiagrama: false,
-  tipoDiagrama: "p-T",
+  tipoDiagrama: "p-h",
   fluidoDiagrama: "Agua",
-  ejeXmaxDiagrama: 100,
+  ejeXmaxDiagrama: 50,
   ejeXminDiagrama: 0,
-  ejeYmaxDiagrama: 150,
+  ejeYmaxDiagrama: 50,
   ejeYminDiagrama: 0,
+  colorDatos: "#0000FF",
+  lineaDatos: false
 }
 
 export const configuracion = hookstate(configuracionInicial);
