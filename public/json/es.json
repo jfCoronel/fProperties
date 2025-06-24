@@ -71,5 +71,8 @@
     "opcion_add_datos_todos": "Todos",
     "opcion_add_datos_seleccionados": "Seleccionados",
     "lab_color_datos": "Color",
-    "lab_add_linea": "Añadir línea"
+    "lab_add_linea": "Añadir línea",
+    "bot_guardar_serie_aires": "Guardar la serie",
+    "bot_borrar_series_aires": "Borrar todas las series",
+    "lab_mostrar_nombre": "Mostrar nombre"
 }

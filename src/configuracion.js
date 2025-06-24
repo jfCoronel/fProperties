@@ -30,7 +30,9 @@ const configuracionInicial = {
   ejeYmaxDiagrama: 50,
   ejeYminDiagrama: 0,
   colorDatos: "#0000FF",
-  lineaDatos: false
+  lineaDatos: false,
+  nombreDatos: false,
+  airesSeleccionados: []
 }
 
 export const configuracion = hookstate(configuracionInicial);

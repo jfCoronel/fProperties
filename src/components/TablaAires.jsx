@@ -47,11 +47,10 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaAires = () => {
-  const { iAireActual, columnasTablaAires, nCifras, verConfiguracion, verPsicrometrico, verDialogoAire } = useHookstate(configuracion);
+  const { iAireActual, columnasTablaAires, nCifras, verConfiguracion, verPsicrometrico, verDialogoAire, airesSeleccionados } = useHookstate(configuracion);
 
 
   const lista = useHookstate(listaAires);
-  const filasSeleccionadas = useHookstate([]);
 
   let columnas = [
     {
@@ -115,9 +114,9 @@ const TablaAires = () => {
   });
 
   const seleccionFilas = {
-    selectedRowKeys: filasSeleccionadas.get(),
+    selectedRowKeys: airesSeleccionados.get(),
     onChange: (selectedRowKeys) => {
-      filasSeleccionadas.set(selectedRowKeys);
+      airesSeleccionados.set(selectedRowKeys);
       if (selectedRowKeys.length > 0) {
         iAireActual.set(-1);
       }
@@ -148,7 +147,7 @@ const TablaAires = () => {
       <span>  </span>
 
       {
-        (filasSeleccionadas.length === 0) ?
+        (airesSeleccionados.length === 0) ?
           <span><Button type='link' icon={<DeleteOutlined />} size='large' disabled></Button>
             <span>  </span>
             <Button type='link' icon={<CopyOutlined />} size='large' disabled></Button>
@@ -156,16 +155,16 @@ const TablaAires = () => {
           : <span>
             <Tooltip title={getTextoUI("tooltip_borrar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<DeleteOutlined />} size='large' onClick={() => {
-                const filas = [...filasSeleccionadas.get()];
-                filasSeleccionadas.set([]);
+                const filas = [...airesSeleccionados.get()];
+                airesSeleccionados.set([]);
                 borrarAires(filas);
               }}></Button>
             </Tooltip>
             <span>  </span>
             <Tooltip title={getTextoUI("tooltip_duplicar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<CopyOutlined />} size='large' onClick={() => {
-                const filas = [...filasSeleccionadas.get()];
-                filasSeleccionadas.set([]);
+                const filas = [...airesSeleccionados.get()];
+                airesSeleccionados.set([]);
                 duplicarAires(filas);
               }}></Button>
             </Tooltip>

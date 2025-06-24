@@ -1,6 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, InputNumber, Form, Collapse, ColorPicker, Checkbox } from 'antd'
-import { SettingOutlined } from '@ant-design/icons';
+import { Row, Col, Select, InputNumber, Form, Collapse, ColorPicker, Checkbox, Button } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires } from '../listaAires';
 import { Chart as ChartJS } from 'chart.js/auto';
@@ -11,16 +10,51 @@ import formatear from '../util/formatear';
 const { Option } = Select;
 const { Panel } = Collapse;
 
+
+
+
+
 const Psicrometrico = () => {
     const lista = useHookstate(listaAires);
     const { opcionPsicrometrico, valorOpcionPsicrometrico,
         ejeXmaxPsicrometrico, ejeXminPsicrometrico,
-        ejeYmaxPsicrometrico, ejeYminPsicrometrico, opcionAddDatosPsicrometrico, colorDatos, lineaDatos } = useHookstate(configuracion);
+        ejeYmaxPsicrometrico, ejeYminPsicrometrico, opcionAddDatosPsicrometrico,
+        colorDatos, lineaDatos, airesSeleccionados, nombreDatos } = useHookstate(configuracion);
+
+    let series = useHookstate([]);
 
     // Tooltip
     const titleTooltip = (ctx) => {
         return ctx[0].raw.nombre;
     }
+
+    // 
+    const mostrarNombres = {
+    id: 'mostrarNombres',
+    afterDatasetDraw: (chart, args, options) => {
+        const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
+        const datasets = chart.data.datasets;
+
+        datasets.forEach((dataset, i) => {
+            const meta = chart.getDatasetMeta(i);
+            if (!meta.hidden) {
+                meta.data.forEach((datapoint, index) => {
+                    // Solo mostrar si hay nombre
+                    if (options.showLabels && dataset.data[index] && dataset.data[index].nombre ) {
+                        const pos = datapoint.getProps(['x', 'y'], true); // <-- Cambia aquí
+                        ctx.save();
+                        ctx.fillStyle = dataset.borderColor || 'black';
+                        ctx.font = options.font || '12px Arial';
+                        ctx.textAlign = options.align || 'center';
+                        ctx.textBaseline = options.baseline || 'bottom';
+                        ctx.fillText(dataset.data[index].nombre, pos.x + 5, pos.y - 15);
+                        ctx.restore();
+                    }
+                });
+            }
+        });
+    }
+};
 
     const getCurvaHRcte = (hr, grosor = 1) => {
         let datos = [];
@@ -60,24 +94,59 @@ const Psicrometrico = () => {
             }
         }
     }
-    const getAires = () => {
-        const datos = lista.reduce((result, aire) => {
-            if (check_altura(aire)) {
-                let dato = {
-                    x: aire.T.get(),
-                    y: aire.W.get(),
-                    nombre: aire.nombre.get()
+    const getSerie = (incluirDatos = "todos") => {
+        let datos = [];
+        if (incluirDatos === "todos") {
+            lista.forEach(aire => {
+                if (check_altura(aire)) {
+                    let dato = {
+                        x: aire.T.get(),
+                        y: aire.W.get(),
+                        nombre: aire.nombre.get()
+                    }
+                    datos.push(dato);
                 }
-                result.push(dato);
-            }
-            return result;
-        }, []);
+            })
+        } else if (incluirDatos === "seleccionados") {
+            const listaIndices = [...airesSeleccionados.get()]
+            listaIndices.forEach(i => {
+                const aire = lista[i];
+                if (check_altura(aire)) {
+                    let dato = {
+                        x: aire.T.get(),
+                        y: aire.W.get(),
+                        nombre: aire.nombre.get()
+                    }
+                    datos.push(dato);
+                }
+            })
+        }
 
         return {
             data: datos,
-            borderColor: "blue",
+            borderColor: colorDatos.get(),
+            showLine: lineaDatos.get(),
             pointRadius: 6
         };
+    }
+
+    function getTodasSeries() {
+        let todasSeries = [
+            getCurvaHRcte(100, 3),
+            getCurvaHRcte(75),
+            getCurvaHRcte(50),
+            getCurvaHRcte(25)
+        ]
+
+        if (opcionAddDatosPsicrometrico.get() === "todos") {
+            todasSeries.push(getSerie("todos"));
+        } else if (opcionAddDatosPsicrometrico.get() === "seleccionados") {
+            series.get({ noproxy: true }).forEach(serie => {
+                todasSeries.push(serie);
+            });
+            todasSeries.push(getSerie("seleccionados"));
+        }
+        return todasSeries;
     }
 
     return (<div className="grafica">
@@ -120,18 +189,18 @@ const Psicrometrico = () => {
                             title: titleTooltip,
                             label: ctx => ' T: ' + formatear(ctx.parsed.x, 3) + '°C,  w: ' + formatear(ctx.parsed.y, 3) + ' g/kg'
                         }
+                    },
+                    mostrarNombres: {
+                        showLabels: nombreDatos.get(),
+                        align: 'left',
+                        baseline: 'middle'
                     }
                 }
             }}
             data={{
-                datasets: [
-                    getCurvaHRcte(100, 3),
-                    getCurvaHRcte(75),
-                    getCurvaHRcte(50),
-                    getCurvaHRcte(25),
-                    getAires()
-                ]
+                datasets: getTodasSeries()
             }}
+            plugins={[mostrarNombres]}
         />
 
         <Collapse >
@@ -168,7 +237,7 @@ const Psicrometrico = () => {
                         </Col>
                     </Row>
                     <Row gutter={8}>
-                        <Col span={8}>
+                        <Col span={6}>
                             <Form.Item label={getTextoUI("lab_add_puntos")}>
                                 <Select
                                     showSearch
@@ -182,24 +251,46 @@ const Psicrometrico = () => {
                                 </Select>
                             </Form.Item>
                         </Col>
-                        <Col span={3}>
+                        <Col span={2}>
                             <Form.Item label={getTextoUI("lab_color_datos")}>
                                 <ColorPicker
                                     value={colorDatos.get()}
-                                    onChange={(value) => {
-                                        colorDatos.set(value);
+                                    onChange={(_, hex) => {
+                                        colorDatos.set(hex);
                                     }}
                                 />
                             </Form.Item>
                         </Col>
+                         <Col span={4}>
+                            <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
+                                <Checkbox
+                                    checked={nombreDatos.get()}
+                                    onChange={(e) => {
+                                        nombreDatos.set(e.target.checked);
+                                    }}> </Checkbox>
+                            </Form.Item>
+                        </Col>
                         <Col span={3}>
-                         <Form.Item label={getTextoUI("lab_add_linea")}>
-                            <Checkbox
-                                checked={lineaDatos.get()}
-                                onChange={(e) => {
-                                    lineaDatos.set(e.target.checked);
-                                }}> </Checkbox>
-                                </Form.Item>
+                            <Form.Item label={getTextoUI("lab_add_linea")}>
+                                <Checkbox
+                                    checked={lineaDatos.get()}
+                                    onChange={(e) => {
+                                        lineaDatos.set(e.target.checked);
+                                    }}> </Checkbox>
+                            </Form.Item>
+                        </Col>
+                        <Col span={4}>
+                            <Button type="primary" disabled={opcionAddDatosPsicrometrico.get() === "todos"}
+                                onClick={() => {
+                                    series.merge([getSerie(opcionAddDatosPsicrometrico.get())])
+                                    airesSeleccionados.set([]);  // Limpiar selección tras añadir datos
+                                }}
+                            >{getTextoUI("bot_guardar_serie_aires")}</Button>
+                        </Col>
+                        <Col span={4}>
+                            <Button type="primary" disabled={opcionAddDatosPsicrometrico.get() === "todos"}
+                                onClick={() => { series.set([]); }}
+                            >{getTextoUI("bot_borrar_series_aires")}</Button>
                         </Col>
                     </Row>
 
@@ -251,8 +342,6 @@ const Psicrometrico = () => {
                                 }}
                             />
                         </Col>
-
-
                     </Row>
                 </Form>
             </Panel>
