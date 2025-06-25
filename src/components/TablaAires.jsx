@@ -6,11 +6,10 @@ import {
   PlusCircleOutlined,
   LineChartOutlined
 } from '@ant-design/icons';
-import { Button, Tooltip, Switch } from 'antd';
-import { Table, ExportTableButton } from 'ant-table-extensions';
+import { Button, Tooltip, Switch, Table } from 'antd';
 
 import { useHookstate } from '@hookstate/core';
-import { configuracion, getTextoUI } from '../configuracion';
+import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
 import { listaAires, nuevoAire, borrarAires, duplicarAires } from '../listaAires';
 import formatear from '../util/formatear';
 import ConfiguracionAires from './ConfiguracionAires';
@@ -184,15 +183,14 @@ const TablaAires = () => {
         />
       </Tooltip>
       <span>  </span>
-      <ExportTableButton
-        dataSource={datos}
-        columns={columnasCsv}
-        btnProps={{ icon: <FileExcelOutlined /> }}
-        fileName="fProperties"
-        showColumnPicker
+       <Button
+        icon={<FileExcelOutlined />}
+        onClick={() => {
+          descargarTablaCSV(columnasCsv, datos)
+        }}
       >
         {getTextoUI("btn_exportar_csv")}
-      </ExportTableButton>
+      </Button>
       <p> </p>
       <Table
         rowSelection={seleccionFilas}

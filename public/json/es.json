@@ -1,7 +1,7 @@
 {
     "lab_nombreApp": "fProperties",
     "lab_version": "Versión",
-    "lab_copyright": "ⓒ 2024-JFC ",
+    "lab_copyright": "ⓒ 2025-JFC ",
     "lab_idioma_es": "Español",
     "lab_idioma_en": "Inglés",
     "tab_fluidos": "Fluidos",
@@ -58,7 +58,7 @@
     "lab_ejeX_psicrometrico": "Temperaturas [°C]",
     "lab_ejeY_psicrometrico": "Humedades absolutas [g/kg a.s.]",
     "tooltip_diagrama": "Mostrar diagrama",
-    "titulo_diagrama": "Diagrama:",
+    "titulo_diagrama": "Diagrama de Fluidos:",
     "lab_tipo_diagrama": "Tipo de diagrama:",
     "lab_fluido_diagrama": "Fluido:",
     "coment_diagrama": "Sólo los puntos con este fluido mostrados.",
@@ -72,7 +72,10 @@
     "opcion_add_datos_seleccionados": "Seleccionados",
     "lab_color_datos": "Color",
     "lab_add_linea": "Añadir línea",
-    "bot_guardar_serie_aires": "Guardar la serie",
-    "bot_borrar_series_aires": "Borrar todas las series",
-    "lab_mostrar_nombre": "Mostrar nombre"
+    "bot_guardar_serie": "Guardar la serie",
+    "bot_borrar_series": "Borrar todas las series",
+    "lab_mostrar_nombre": "Mostrar nombre",
+    "bot_actualizar_ejes": "Ajustar a datos",
+    "lab_punto_triple": "Punto triple",
+    "lab_punto_critico": "Punto crítico"
 }

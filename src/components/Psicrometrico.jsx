@@ -10,10 +10,6 @@ import formatear from '../util/formatear';
 const { Option } = Select;
 const { Panel } = Collapse;
 
-
-
-
-
 const Psicrometrico = () => {
     const lista = useHookstate(listaAires);
     const { opcionPsicrometrico, valorOpcionPsicrometrico,
@@ -30,31 +26,31 @@ const Psicrometrico = () => {
 
     // 
     const mostrarNombres = {
-    id: 'mostrarNombres',
-    afterDatasetDraw: (chart, args, options) => {
-        const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
-        const datasets = chart.data.datasets;
+        id: 'mostrarNombres',
+        afterDatasetDraw: (chart, args, options) => {
+            const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
+            const datasets = chart.data.datasets;
 
-        datasets.forEach((dataset, i) => {
-            const meta = chart.getDatasetMeta(i);
-            if (!meta.hidden) {
-                meta.data.forEach((datapoint, index) => {
-                    // Solo mostrar si hay nombre
-                    if (options.showLabels && dataset.data[index] && dataset.data[index].nombre ) {
-                        const pos = datapoint.getProps(['x', 'y'], true); // <-- Cambia aquí
-                        ctx.save();
-                        ctx.fillStyle = dataset.borderColor || 'black';
-                        ctx.font = options.font || '12px Arial';
-                        ctx.textAlign = options.align || 'center';
-                        ctx.textBaseline = options.baseline || 'bottom';
-                        ctx.fillText(dataset.data[index].nombre, pos.x + 5, pos.y - 15);
-                        ctx.restore();
-                    }
-                });
-            }
-        });
-    }
-};
+            datasets.forEach((dataset, i) => {
+                const meta = chart.getDatasetMeta(i);
+                if (!meta.hidden) {
+                    meta.data.forEach((datapoint, index) => {
+                        // Solo mostrar si hay nombre
+                        if (options.showLabels && dataset.data[index] && dataset.data[index].nombre) {
+                            const pos = datapoint.getProps(['x', 'y'], true); // <-- Cambia aquí
+                            ctx.save();
+                            ctx.fillStyle = dataset.borderColor || 'black';
+                            ctx.font = options.font || '12px Arial';
+                            ctx.textAlign = options.align || 'center';
+                            ctx.textBaseline = options.baseline || 'bottom';
+                            ctx.fillText(dataset.data[index].nombre, pos.x + 5, pos.y - 15);
+                            ctx.restore();
+                        }
+                    });
+                }
+            });
+        }
+    };
 
     const getCurvaHRcte = (hr, grosor = 1) => {
         let datos = [];
@@ -261,7 +257,7 @@ const Psicrometrico = () => {
                                 />
                             </Form.Item>
                         </Col>
-                         <Col span={4}>
+                        <Col span={4}>
                             <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
                                 <Checkbox
                                     checked={nombreDatos.get()}
@@ -285,12 +281,12 @@ const Psicrometrico = () => {
                                     series.merge([getSerie(opcionAddDatosPsicrometrico.get())])
                                     airesSeleccionados.set([]);  // Limpiar selección tras añadir datos
                                 }}
-                            >{getTextoUI("bot_guardar_serie_aires")}</Button>
+                            >{getTextoUI("bot_guardar_serie")}</Button>
                         </Col>
                         <Col span={4}>
                             <Button type="primary" disabled={opcionAddDatosPsicrometrico.get() === "todos"}
                                 onClick={() => { series.set([]); }}
-                            >{getTextoUI("bot_borrar_series_aires")}</Button>
+                            >{getTextoUI("bot_borrar_series")}</Button>
                         </Col>
                     </Row>
 

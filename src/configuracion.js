@@ -2,7 +2,7 @@ import { hookstate } from '@hookstate/core';
 
 const configuracionInicial = {
   menuActual: "fluidos",
-  version: "1.3.0",
+  version: "1.4.0",
   iFluidoActual: -1,
   iAireActual: -1,
   columnasTablaFluidos: ["X", "RO", "H", "S", "CP", "NO", "NO"],
@@ -16,6 +16,7 @@ const configuracionInicial = {
   opcionPsicrometrico: "A",
   valorOpcionPsicrometrico: 0,
   opcionAddDatosPsicrometrico: "todos",
+  opcionAddDatosDiagrama: "todos",
   ejeXmaxPsicrometrico: 50,
   ejeXminPsicrometrico: 0,
   ejeYmaxPsicrometrico: 50,
@@ -32,7 +33,8 @@ const configuracionInicial = {
   colorDatos: "#0000FF",
   lineaDatos: false,
   nombreDatos: false,
-  airesSeleccionados: []
+  airesSeleccionados: [],
+  fluidosSeleccionados: []
 }
 
 export const configuracion = hookstate(configuracionInicial);
@@ -53,6 +55,37 @@ export function getTextoUI(key, textos = configuracion.textosUI) {
     return elemento.get()
   }
 }
+
+// Descargar tabla como CSV
+export async function descargarTablaCSV(columnas, valores) {
+  let contenidoCSV = "";
+  let fila = ""
+  columnas.forEach((objetoCol) => {
+    if (objetoCol.key !== "accion") {
+      fila += objetoCol.title.replace("<br>", "") + ",";
+    }
+  })
+  contenidoCSV += fila + "\r\n";
+  valores.forEach((objetoVal) => {
+    fila = ""
+    for (const key in objetoVal) {
+      if (key !== "key") {
+        fila += objetoVal[key] + ",";
+      }
+    }
+    contenidoCSV += fila + "\r\n";
+  })
+
+  // Escribirlos
+  let dataStr = "data:text/csv;charset=utf-8," + encodeURI(contenidoCSV);
+  let downloadAnchorNode = document.createElement('a');
+  downloadAnchorNode.setAttribute("href", dataStr);
+  downloadAnchorNode.setAttribute("download", "Tabla.csv");
+  document.body.appendChild(downloadAnchorNode); // required for firefox
+  downloadAnchorNode.click();
+  downloadAnchorNode.remove();
+}
+
 
 
 
