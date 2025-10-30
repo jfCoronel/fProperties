@@ -40,6 +40,14 @@ export const actualizarAire = (i, aire) => {
   listaAires[i].set(aireCompleto);
 }
 
+export const reordenarAires = (fromIndex, toIndex) => {
+  // Obtener una copia profunda de los valores actuales
+  const listaActual = JSON.parse(JSON.stringify(listaAires.get()));
+  const [elementoMovido] = listaActual.splice(fromIndex, 1);
+  listaActual.splice(toIndex, 0, elementoMovido);
+  listaAires.set(listaActual);
+}
+
 function nuevoNombreAire() {
   let i = 1;
   do {

@@ -4,15 +4,63 @@ import {
   SettingOutlined,
   FileExcelOutlined,
   PlusCircleOutlined,
-  LineChartOutlined
+  LineChartOutlined,
+  HolderOutlined
 } from '@ant-design/icons';
 import { Button, Tooltip, Switch, Table } from 'antd';
+import { DndContext } from '@dnd-kit/core';
+import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
-import { listaAires, nuevoAire, borrarAires, duplicarAires } from '../listaAires';
+import { listaAires, nuevoAire, borrarAires, duplicarAires, reordenarAires } from '../listaAires';
 import formatear from '../util/formatear';
 import ConfiguracionAires from './ConfiguracionAires';
+
+// Componente DragHandle que se renderiza en cada fila
+const DragHandle = ({ rowKey }) => {
+  const { attributes, listeners, setActivatorNodeRef } = useSortable({ id: rowKey });
+
+  return (
+    <HolderOutlined
+      ref={setActivatorNodeRef}
+      style={{ cursor: 'move', marginRight: 8, touchAction: 'none' }}
+      {...attributes}
+      {...listeners}
+    />
+  );
+};
+
+// Componente para fila arrastrable
+const FilaArrastrable = ({ children, ...props }) => {
+  const {
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: props['data-row-key'],
+  });
+
+  const style = {
+    ...props.style,
+    transform: CSS.Transform.toString(transform && { ...transform, scaleY: 1 }),
+    transition,
+    ...(isDragging ? { position: 'relative', zIndex: 9999 } : {}),
+  };
+
+  return (
+    <tr {...props} ref={setNodeRef} style={style}>
+      {children}
+    </tr>
+  );
+};
 
 const TITULO_COLUMNAS = {
   'RO': 'ρ [kg/m³]',
@@ -58,7 +106,12 @@ const TablaAires = () => {
       sortDirections: ['descend', 'ascend'],
       sorter: (a, b) => a.nombre.localeCompare(b.nombre),
       key: 'nombre',
-      render: (text, record) => <a onClick={(event) => { event.stopPropagation(); iAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>,
+      render: (text, record) => (
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <DragHandle rowKey={record.key} />
+          <a onClick={(event) => { event.stopPropagation(); iAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>
+        </div>
+      ),
     },
     {
       title: getTextoUI("tabla_altura"),
@@ -128,7 +181,7 @@ const TablaAires = () => {
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
 
-  let iInicial = 5;
+  let iInicial = 5; // 5 columnas fijas: nombre, altura, presión, temperatura, humedad absoluta
   columnasTablaAires.forEach((columna) => {
     if (columna.get() !== "NO") {
       columnasCsv[iInicial].title = TITULO_COLUMNAS_CSV[columna.get()];
@@ -136,6 +189,14 @@ const TablaAires = () => {
     }
   });
 
+
+  const onDragEnd = ({ active, over }) => {
+    if (active.id !== over?.id) {
+      const activeIndex = datos.findIndex((record) => record.key === active.id);
+      const overIndex = datos.findIndex((record) => record.key === over?.id);
+      reordenarAires(activeIndex, overIndex);
+    }
+  };
 
   return (
     <div>
@@ -192,22 +253,34 @@ const TablaAires = () => {
         {getTextoUI("btn_exportar_csv")}
       </Button>
       <p> </p>
-      <Table
-        rowSelection={seleccionFilas}
-        columns={columnas}
-        dataSource={datos}
-        rowClassName={rowClassName}
-        pagination={{
-          showSizeChanger: true,
-          defaultPageSize: 5,
-          pageSizeOptions: [5, 10, 100]
-        }}
-        onRow={(record, rowIndex) => {
-          return {
-            onDoubleClick: event => { iAireActual.set(record.key); verDialogoAire.set(true) } // click row            
-          };
-        }}
-      />
+      <DndContext modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+        <SortableContext
+          items={datos.map((d) => d.key)}
+          strategy={verticalListSortingStrategy}
+        >
+          <Table
+            rowSelection={seleccionFilas}
+            columns={columnas}
+            dataSource={datos}
+            rowClassName={rowClassName}
+            pagination={{
+              showSizeChanger: true,
+              defaultPageSize: 5,
+              pageSizeOptions: [5, 10, 100]
+            }}
+            components={{
+              body: {
+                row: FilaArrastrable,
+              },
+            }}
+            onRow={(record) => {
+              return {
+                onDoubleClick: () => { iAireActual.set(record.key); verDialogoAire.set(true) }
+              };
+            }}
+          />
+        </SortableContext>
+      </DndContext>
 
       {verConfiguracion.get() && <ConfiguracionAires />}
     </div >

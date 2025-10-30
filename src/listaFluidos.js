@@ -41,6 +41,14 @@ export const actualizarFluido = (i, fluido) => {
   listaFluidos[i].set(fluidoCompleto);
 }
 
+export const reordenarFluidos = (fromIndex, toIndex) => {
+  // Obtener una copia profunda de los valores actuales
+  const listaActual = JSON.parse(JSON.stringify(listaFluidos.get()));
+  const [elementoMovido] = listaActual.splice(fromIndex, 1);
+  listaActual.splice(toIndex, 0, elementoMovido);
+  listaFluidos.set(listaActual);
+}
+
 function nuevoNombreFluido() {
   let i = 1;
   do {
