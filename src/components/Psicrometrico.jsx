@@ -1,14 +1,15 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, InputNumber, Form, Collapse, ColorPicker, Checkbox, Button } from 'antd'
+import { Row, Col, Select, InputNumber, Form, Drawer, ColorPicker, Checkbox, Button } from 'antd'
+import { SettingOutlined } from '@ant-design/icons';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires } from '../listaAires';
 import { Chart as ChartJS } from 'chart.js/auto';
 import { Scatter } from 'react-chartjs-2';
 import { getPropAireHumedo } from '../propFluidos/aires'
 import formatear from '../util/formatear';
+import { useState } from 'react';
 
 const { Option } = Select;
-const { Panel } = Collapse;
 
 const Psicrometrico = () => {
     const lista = useHookstate(listaAires);
@@ -18,6 +19,7 @@ const Psicrometrico = () => {
         colorDatos, lineaDatos, airesSeleccionados, nombreDatos } = useHookstate(configuracion);
 
     let series = useHookstate([]);
+    const [drawerVisible, setDrawerVisible] = useState(false);
 
     // Tooltip
     const titleTooltip = (ctx) => {
@@ -146,7 +148,17 @@ const Psicrometrico = () => {
     }
 
     return (<div className="grafica">
-        <h3>{getTextoUI("titulo_psicrometrico")}</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0 }}>{getTextoUI("titulo_psicrometrico")}</h3>
+            <Button
+                type="primary"
+                icon={<SettingOutlined />}
+                onClick={() => setDrawerVisible(true)}
+            >
+                {getTextoUI("configuracion_psicrometrico")}
+            </Button>
+        </div>
+
         <Scatter
             options={{
                 locale: "es",
@@ -199,27 +211,31 @@ const Psicrometrico = () => {
             plugins={[mostrarNombres]}
         />
 
-        <Collapse >
-            <Panel header={getTextoUI("configuracion_psicrometrico")} key="configuracion_sicrometrico">
-                <Form name="selector_presión">
-                    <Row gutter={8}>
-                        <Col span={9}>
-                            <Form.Item
-                                label={getTextoUI("lab_opcion_psicrometrico")}
+        <Drawer
+            title={getTextoUI("configuracion_psicrometrico")}
+            placement="right"
+            onClose={() => setDrawerVisible(false)}
+            open={drawerVisible}
+            width={360}
+        >
+            <Form name="selector_presión" layout="vertical">
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Form.Item label={getTextoUI("lab_opcion_psicrometrico")}>
+                            <Select
+                                showSearch
+                                value={opcionPsicrometrico.get()}
+                                onChange={(value) => {
+                                    opcionPsicrometrico.set(value);
+                                }}
                             >
-                                <Select
-                                    showSearch
-                                    value={opcionPsicrometrico.get()}
-                                    onChange={(value) => {
-                                        opcionPsicrometrico.set(value);
-                                    }}
-                                >
-                                    <Option value="A">{getTextoUI("tabla_altura")}</Option>
-                                    <Option value="P">p [kPa]</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={3}>
+                                <Option value="A">{getTextoUI("tabla_altura")}</Option>
+                                <Option value="P">p [kPa]</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item label={getTextoUI("valor_altura_presion")}>
                             <InputNumber
                                 style={{ width: "100%" }}
                                 value={valorOpcionPsicrometrico.get()}
@@ -227,87 +243,110 @@ const Psicrometrico = () => {
                                     valorOpcionPsicrometrico.set(value);
                                 }}
                             />
-                        </Col>
-                        <Col span={10}>
-                            <span className='comentario'>{getTextoUI("coment_psicrometrico")}</span>
-                        </Col>
-                    </Row>
-                    <Row gutter={8}>
-                        <Col span={6}>
-                            <Form.Item label={getTextoUI("lab_add_puntos")}>
-                                <Select
-                                    showSearch
-                                    value={opcionAddDatosPsicrometrico.get()}
-                                    onChange={(value) => {
-                                        opcionAddDatosPsicrometrico.set(value);
-                                    }}
-                                >
-                                    <Option value="todos">{getTextoUI("opcion_add_datos_todos")}</Option>
-                                    <Option value="seleccionados">{getTextoUI("opcion_add_datos_seleccionados")}</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={2}>
-                            <Form.Item label={getTextoUI("lab_color_datos")}>
-                                <ColorPicker
-                                    value={colorDatos.get()}
-                                    onChange={(_, hex) => {
-                                        colorDatos.set(hex);
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
-                            <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
-                                <Checkbox
-                                    checked={nombreDatos.get()}
-                                    onChange={(e) => {
-                                        nombreDatos.set(e.target.checked);
-                                    }}> </Checkbox>
-                            </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                            <Form.Item label={getTextoUI("lab_add_linea")}>
-                                <Checkbox
-                                    checked={lineaDatos.get()}
-                                    onChange={(e) => {
-                                        lineaDatos.set(e.target.checked);
-                                    }}> </Checkbox>
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
-                            <Button type="primary" disabled={opcionAddDatosPsicrometrico.get() === "todos"}
-                                onClick={() => {
-                                    series.merge([getSerie(opcionAddDatosPsicrometrico.get())])
-                                    airesSeleccionados.set([]);  // Limpiar selección tras añadir datos
-                                }}
-                            >{getTextoUI("bot_guardar_serie")}</Button>
-                        </Col>
-                        <Col span={4}>
-                            <Button type="primary" disabled={opcionAddDatosPsicrometrico.get() === "todos"}
-                                onClick={() => { series.set([]); }}
-                            >{getTextoUI("bot_borrar_series")}</Button>
-                        </Col>
-                    </Row>
+                        </Form.Item>
+                    </Col>
+                </Row>
 
-                    <Row gutter={8}>
-                        <span> {getTextoUI("ejes_max_min")} </span>
-                    </Row>
-                    <Row gutter={8}>
-                        <Col span={8}>
-                            <Form.Item
-                                label={getTextoUI("lab_ejeX_psicrometrico")}
+                <Row gutter={8}>
+                    <Col span={24}>
+                        <span className='comentario'>{getTextoUI("coment_psicrometrico")}</span>
+                    </Col>
+                </Row>
+
+                <Row gutter={8} style={{ marginTop: 16 }}>
+                    <Col span={24}>
+                        <Form.Item label={getTextoUI("lab_add_puntos")}>
+                            <Select
+                                showSearch
+                                value={opcionAddDatosPsicrometrico.get()}
+                                onChange={(value) => {
+                                    opcionAddDatosPsicrometrico.set(value);
+                                }}
                             >
-                                <InputNumber
-                                    style={{ width: "100%" }}
-                                    value={ejeXminPsicrometrico.get()}
-                                    onChange={(value) => {
-                                        ejeXminPsicrometrico.set(value);
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
+                                <Option value="todos">{getTextoUI("opcion_add_datos_todos")}</Option>
+                                <Option value="seleccionados">{getTextoUI("opcion_add_datos_seleccionados")}</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={8}>
+                        <Form.Item label={getTextoUI("lab_color_datos")}>
+                            <ColorPicker
+                                value={colorDatos.get()}
+                                onChange={(_, hex) => {
+                                    colorDatos.set(hex);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
+                            <Checkbox
+                                checked={nombreDatos.get()}
+                                onChange={(e) => {
+                                    nombreDatos.set(e.target.checked);
+                                }}> </Checkbox>
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item label={getTextoUI("lab_add_linea")}>
+                            <Checkbox
+                                checked={lineaDatos.get()}
+                                onChange={(e) => {
+                                    lineaDatos.set(e.target.checked);
+                                }}> </Checkbox>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Button
+                            type="primary"
+                            disabled={opcionAddDatosPsicrometrico.get() === "todos"}
+                            onClick={() => {
+                                series.merge([getSerie(opcionAddDatosPsicrometrico.get())])
+                                airesSeleccionados.set([]);
+                            }}
+                            block
+                        >{getTextoUI("bot_guardar_serie")}</Button>
+                    </Col>
+                    <Col span={12}>
+                        <Button
+                            type="primary"
+                            disabled={opcionAddDatosPsicrometrico.get() === "todos"}
+                            onClick={() => { series.set([]); }}
+                            block
+                        >{getTextoUI("bot_borrar_series")}</Button>
+                    </Col>
+                </Row>
+
+                <Row gutter={8} style={{ marginTop: 24 }}>
+                    <Col span={24}>
+                        <h4>{getTextoUI("ejes_max_min")}</h4>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getTextoUI("lab_ejeX_psicrometrico") + " (min)"}
+                        >
+                            <InputNumber
+                                style={{ width: "100%" }}
+                                value={ejeXminPsicrometrico.get()}
+                                onChange={(value) => {
+                                    ejeXminPsicrometrico.set(value);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getTextoUI("lab_ejeX_psicrometrico") + " (max)"}
+                        >
                             <InputNumber
                                 style={{ width: "100%" }}
                                 value={ejeXmaxPsicrometrico.get()}
@@ -315,21 +354,28 @@ const Psicrometrico = () => {
                                     ejeXmaxPsicrometrico.set(value);
                                 }}
                             />
-                        </Col>
-                        <Col span={9}>
-                            <Form.Item
-                                label={getTextoUI("lab_ejeY_psicrometrico")}
-                            >
-                                <InputNumber
-                                    style={{ width: "100%" }}
-                                    value={ejeYminPsicrometrico.get()}
-                                    onChange={(value) => {
-                                        ejeYminPsicrometrico.set(value);
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={3}>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getTextoUI("lab_ejeY_psicrometrico") + " (min)"}
+                        >
+                            <InputNumber
+                                style={{ width: "100%" }}
+                                value={ejeYminPsicrometrico.get()}
+                                onChange={(value) => {
+                                    ejeYminPsicrometrico.set(value);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getTextoUI("lab_ejeY_psicrometrico") + " (max)"}
+                        >
                             <InputNumber
                                 style={{ width: "100%" }}
                                 value={ejeYmaxPsicrometrico.get()}
@@ -337,11 +383,11 @@ const Psicrometrico = () => {
                                     ejeYmaxPsicrometrico.set(value);
                                 }}
                             />
-                        </Col>
-                    </Row>
-                </Form>
-            </Panel>
-        </Collapse>
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Form>
+        </Drawer>
     </div >);
 
 }

@@ -1,14 +1,15 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, InputNumber, Form, Button, Collapse, ColorPicker, Checkbox } from 'antd'
+import { Row, Col, Select, InputNumber, Form, Button, Drawer, ColorPicker, Checkbox } from 'antd'
+import { SettingOutlined } from '@ant-design/icons';
 import { configuracion, getTextoUI } from '../configuracion';
 import { Chart as ChartJS } from 'chart.js/auto';
 import { Scatter } from 'react-chartjs-2';
 import formatear from '../util/formatear';
 import { listaFluidos } from '../listaFluidos';
 import { getListaFluidos, getPropFluido } from '../propFluidos/fluidos';
+import { useState } from 'react';
 
 const { Option } = Select;
-const { Panel } = Collapse;
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
@@ -17,6 +18,8 @@ const Diagrama = () => {
         ejeXmaxDiagrama, ejeXminDiagrama,
         ejeYmaxDiagrama, ejeYminDiagrama, opcionAddDatosDiagrama,
         colorDatos, lineaDatos, nombreDatos, fluidosSeleccionados } = useHookstate(configuracion);
+
+    const [drawerVisible, setDrawerVisible] = useState(false);
 
     // Tooltip
     const titleTooltip = (ctx) => {
@@ -168,15 +171,19 @@ const Diagrama = () => {
         };
     }
 
-    function getFluidInfo() {
+    function getPuntoTripleInfo() {
         const fluido = fluidoDiagrama.get();
         const pTriple = formatear(getPropFluido(fluido, "PTRIPLE", "T", 0, "X", 50), 3);
-        const pCritica = formatear(getPropFluido(fluido, "PCRIT", "T", 0, "X", 50), 3);
         const tTriple = formatear(getPropFluido(fluido, "TTRIPLE", "T", 0, "X", 50), 3);
-        const tCritica = formatear(getPropFluido(fluido, "TCRIT", "T", 0, "X", 50), 3);
-        return `${getTextoUI("lab_punto_triple")}: ${tTriple} ºC, ${pTriple} kPa; ${getTextoUI("lab_punto_critico")}: ${tCritica} ºC, ${pCritica} kPa`;
+        return `${getTextoUI("lab_punto_triple")}: ${tTriple} ºC, ${pTriple} kPa`;
     }
 
+    function getPuntoCriticoInfo() {
+        const fluido = fluidoDiagrama.get();
+        const pCritica = formatear(getPropFluido(fluido, "PCRIT", "T", 0, "X", 50), 3);
+        const tCritica = formatear(getPropFluido(fluido, "TCRIT", "T", 0, "X", 50), 3);
+        return `${getTextoUI("lab_punto_critico")}: ${tCritica} ºC, ${pCritica} kPa`;
+    }
 
 
     const getDato = (fluido) => {
@@ -245,7 +252,17 @@ const Diagrama = () => {
     }
 
     return (<div className="grafica">
-        <h3>{getTextoUI("titulo_diagrama")}</h3>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+            <h3 style={{ margin: 0 }}>{getTextoUI("titulo_diagrama")}</h3>
+            <Button
+                type="primary"
+                icon={<SettingOutlined />}
+                onClick={() => setDrawerVisible(true)}
+            >
+                {getTextoUI("configuracion_diagrama")}
+            </Button>
+        </div>
+
         <Scatter
             options={{
                 locale: "es",
@@ -299,126 +316,159 @@ const Diagrama = () => {
             plugins={[mostrarNombres]}
         />
 
-        <Collapse >
-            <Panel header={getTextoUI("configuracion_diagrama")} key="configuracion_diagrama">
-                <Form name="selector_diagrama">
-                    <Row gutter={8}>
-                        <Col span={8}>
-                            <Form.Item
-                                label={getTextoUI("lab_tipo_diagrama")}
-                            >
-                                <Select
-                                    showSearch
-                                    value={tipoDiagrama.get()}
-                                    onChange={(value) => {
-                                        tipoDiagrama.set(value);
-                                    }}
-                                >
-                                    <Option value="p-T">{getTextoUI("tipo_p-T")}</Option>
-                                    <Option value="p-h">{getTextoUI("tipo_p-h")}</Option>
-                                    <Option value="T-s">{getTextoUI("tipo_T-s")}</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item
-                                label={getTextoUI("lab_fluido_diagrama")}
-                            >
-                                <Select
-                                    showSearch
-                                    value={fluidoDiagrama.get()}
-                                    onChange={(value) => {
-                                        fluidoDiagrama.set(value);
-                                    }}
-                                >
-                                    {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={10}>
-                            <span className='comentario'>{getFluidInfo()}</span>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={8}>
-                        <Col span={6}>
-                            <Form.Item label={getTextoUI("lab_add_puntos")}>
-                                <Select
-                                    showSearch
-                                    value={opcionAddDatosDiagrama.get()}
-                                    onChange={(value) => {
-                                        opcionAddDatosDiagrama.set(value);
-                                    }}
-                                >
-                                    <Option value="todos">{getTextoUI("opcion_add_datos_todos")}</Option>
-                                    <Option value="seleccionados">{getTextoUI("opcion_add_datos_seleccionados")}</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col span={2}>
-                            <Form.Item label={getTextoUI("lab_color_datos")}>
-                                <ColorPicker
-                                    value={colorDatos.get()}
-                                    onChange={(_, hex) => {
-                                        colorDatos.set(hex);
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
-                            <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
-                                <Checkbox
-                                    checked={nombreDatos.get()}
-                                    onChange={(e) => {
-                                        nombreDatos.set(e.target.checked);
-                                    }}> </Checkbox>
-                            </Form.Item>
-                        </Col>
-                        <Col span={3}>
-                            <Form.Item label={getTextoUI("lab_add_linea")}>
-                                <Checkbox
-                                    checked={lineaDatos.get()}
-                                    onChange={(e) => {
-                                        lineaDatos.set(e.target.checked);
-                                    }}> </Checkbox>
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
-                            <Button type="primary" disabled={opcionAddDatosDiagrama.get() === "todos"}
-                                onClick={() => {
-                                    series.merge([getSerie(opcionAddDatosDiagrama.get())])
-                                    fluidosSeleccionados.set([]);  // Limpiar selección tras añadir datos
+        <Drawer
+            title={getTextoUI("configuracion_diagrama")}
+            placement="right"
+            onClose={() => setDrawerVisible(false)}
+            open={drawerVisible}
+            width={360}
+        >
+            <Form name="selector_diagrama" layout="vertical">
+                <Row gutter={8}>
+                    <Col span={24}>
+                        <Form.Item
+                            label={getTextoUI("lab_tipo_diagrama")}
+                        >
+                            <Select
+                                showSearch
+                                value={tipoDiagrama.get()}
+                                onChange={(value) => {
+                                    tipoDiagrama.set(value);
                                 }}
-                            >{getTextoUI("bot_guardar_serie")}</Button>
-                        </Col>
-                        <Col span={4}>
-                            <Button type="primary" disabled={opcionAddDatosDiagrama.get() === "todos"}
-                                onClick={() => {
-                                    series.set([]); 
-                                }}
-                            >{getTextoUI("bot_borrar_series")}</Button>
-                        </Col>
-                    </Row>
-
-                    <Row gutter={8}>
-                        <span> {getTextoUI("ejes_max_min")} </span>
-                    </Row>
-
-                    <Row gutter={8}>
-                        <Col span={6}>
-                            <Form.Item
-                                label={getLabelX()}
                             >
-                                <InputNumber
-                                    style={{ width: "100%" }}
-                                    value={ejeXminDiagrama.get()}
-                                    onChange={(value) => {
-                                        ejeXminDiagrama.set(value);
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
+                                <Option value="p-T">{getTextoUI("tipo_p-T")}</Option>
+                                <Option value="p-h">{getTextoUI("tipo_p-h")}</Option>
+                                <Option value="T-s">{getTextoUI("tipo_T-s")}</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={24}>
+                        <Form.Item
+                            label={getTextoUI("lab_fluido_diagrama")}
+                        >
+                            <Select
+                                showSearch
+                                value={fluidoDiagrama.get()}
+                                onChange={(value) => {
+                                    fluidoDiagrama.set(value);
+                                }}
+                            >
+                                {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={24}>
+                        <span className='comentario'>{getPuntoTripleInfo()}</span>
+                    </Col>
+                </Row>
+                <Row gutter={8}>
+                    <Col span={24}>
+                        <span className='comentario'>{getPuntoCriticoInfo()}</span>
+                    </Col>
+                </Row>
+
+                <Row gutter={8} style={{ marginTop: 16 }}>
+                    <Col span={24}>
+                        <Form.Item label={getTextoUI("lab_add_puntos")}>
+                            <Select
+                                showSearch
+                                value={opcionAddDatosDiagrama.get()}
+                                onChange={(value) => {
+                                    opcionAddDatosDiagrama.set(value);
+                                }}
+                            >
+                                <Option value="todos">{getTextoUI("opcion_add_datos_todos")}</Option>
+                                <Option value="seleccionados">{getTextoUI("opcion_add_datos_seleccionados")}</Option>
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={8}>
+                        <Form.Item label={getTextoUI("lab_color_datos")}>
+                            <ColorPicker
+                                value={colorDatos.get()}
+                                onChange={(_, hex) => {
+                                    colorDatos.set(hex);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
+                            <Checkbox
+                                checked={nombreDatos.get()}
+                                onChange={(e) => {
+                                    nombreDatos.set(e.target.checked);
+                                }}> </Checkbox>
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item label={getTextoUI("lab_add_linea")}>
+                            <Checkbox
+                                checked={lineaDatos.get()}
+                                onChange={(e) => {
+                                    lineaDatos.set(e.target.checked);
+                                }}> </Checkbox>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Button
+                            type="primary"
+                            disabled={opcionAddDatosDiagrama.get() === "todos"}
+                            onClick={() => {
+                                series.merge([getSerie(opcionAddDatosDiagrama.get())])
+                                fluidosSeleccionados.set([]);
+                            }}
+                            block
+                        >{getTextoUI("bot_guardar_serie")}</Button>
+                    </Col>
+                    <Col span={12}>
+                        <Button
+                            type="primary"
+                            disabled={opcionAddDatosDiagrama.get() === "todos"}
+                            onClick={() => {
+                                series.set([]);
+                            }}
+                            block
+                        >{getTextoUI("bot_borrar_series")}</Button>
+                    </Col>
+                </Row>
+
+                <Row gutter={8} style={{ marginTop: 24 }}>
+                    <Col span={24}>
+                        <h4>{getTextoUI("ejes_max_min")}</h4>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getLabelX() + " (min)"}
+                        >
+                            <InputNumber
+                                style={{ width: "100%" }}
+                                value={ejeXminDiagrama.get()}
+                                onChange={(value) => {
+                                    ejeXminDiagrama.set(value);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getLabelX() + " (max)"}
+                        >
                             <InputNumber
                                 style={{ width: "100%" }}
                                 value={ejeXmaxDiagrama.get()}
@@ -426,21 +476,28 @@ const Diagrama = () => {
                                     ejeXmaxDiagrama.set(value);
                                 }}
                             />
-                        </Col>
-                        <Col span={6}>
-                            <Form.Item
-                                label={getLabelY()}
-                            >
-                                <InputNumber
-                                    style={{ width: "100%" }}
-                                    value={ejeYminDiagrama.get()}
-                                    onChange={(value) => {
-                                        ejeYminDiagrama.set(value);
-                                    }}
-                                />
-                            </Form.Item>
-                        </Col>
-                        <Col span={4}>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getLabelY() + " (min)"}
+                        >
+                            <InputNumber
+                                style={{ width: "100%" }}
+                                value={ejeYminDiagrama.get()}
+                                onChange={(value) => {
+                                    ejeYminDiagrama.set(value);
+                                }}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item
+                            label={getLabelY() + " (max)"}
+                        >
                             <InputNumber
                                 style={{ width: "100%" }}
                                 value={ejeYmaxDiagrama.get()}
@@ -448,16 +505,21 @@ const Diagrama = () => {
                                     ejeYmaxDiagrama.set(value);
                                 }}
                             />
-                        </Col>
-                        <Col span={4}>
-                            <Button type="primary"
-                                onClick={() => { ajustarEjesDiagrama() }}
-                            >{getTextoUI("bot_actualizar_ejes")}</Button>
-                        </Col>
-                    </Row>
-                </Form>
-            </Panel>
-        </Collapse>
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={8}>
+                    <Col span={24}>
+                        <Button
+                            type="primary"
+                            onClick={() => { ajustarEjesDiagrama() }}
+                            block
+                        >{getTextoUI("bot_actualizar_ejes")}</Button>
+                    </Col>
+                </Row>
+            </Form>
+        </Drawer>
 
     </div >);
 
