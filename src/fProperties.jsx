@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useHookstate } from '@hookstate/core';
 import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
 import TablaFluidos from './components/TablaFluidos';
+import TablaProcesos from './components/TablaProcesos';
 import TablaAires from './components/TablaAires';
 import Psicrometrico from './components/Psicrometrico';
 import Diagrama from './components/Diagrama';
@@ -69,6 +70,7 @@ const FProperties = () => {
         </Menu>
 
         {(menuActual.get() === 'fluidos') && <TablaFluidos />}
+        {(menuActual.get() === 'fluidos') && <TablaProcesos />}
         {(menuActual.get() === 'aireHumedo') && <TablaAires />}
 
         <p>  </p>

@@ -3,8 +3,8 @@
 Plan de implementación derivado de la especificación `fproperties_objeto_proceso.md`,
 ajustado al código real de fProperties 1.6.0.
 
-**Estado:** decisiones de diseño cerradas el 2026-08-09 (§5). **Fase P0 completada.**
-Siguiente: F1.
+**Estado:** decisiones de diseño cerradas el 2026-08-09 (§5). **Fases P0 y F1 (p-h)
+completadas.** Siguiente: F1 psicrométrica + F2.
 
 ---
 
@@ -144,8 +144,8 @@ El Estado no cambia salvo por ganar un `id`.
       "aridad": { "origenes": 1 },
       "i18n": "proc_compresion_isentropica",
       "parametros": [
-        { "clave": "p_final", "unidad": "kPa", "requerido": true },
-        { "clave": "eta", "unidad": "-", "defecto": 0.8, "min": 0.01, "max": 1 }
+        { "clave": "p_final", "unidad": "kPa", "requerido": true, "soloCalculado": true },
+        { "clave": "eta", "unidad": "-", "defecto": 0.8, "min": 0.01, "max": 1, "soloCalculado": true }
       ],
       "restriccion": {
         "resolvedor": "compresionEta",
@@ -161,6 +161,12 @@ El Estado no cambia salvo por ganar un `id`.
 Ubicación: `src/procesos/definiciones.json`, importado por Vite (entra en el bundle,
 falla en build si tiene un error de sintaxis). Se puede copiar a `public/json/` si en el
 futuro interesa exponerlo como descarga para la versión Python.
+
+**`soloCalculado`** (añadido al implementar F1). En modo manual el usuario crea los dos
+estados y el proceso *deduce* las magnitudes: `p_final` y `eta` no son entradas, son
+resultados. Solo hacen falta cuando el proceso genera el estado destino. Marcarlos así
+deja el diálogo de F1 reducido a tipo + origen + destino + caudal + estilo, y hace que F6
+sea puramente aditiva: cambia `modoDestino` y los parámetros aparecen.
 
 ### 2.3 Interfaz de un resolvedor
 
@@ -233,19 +239,31 @@ borrar y tras reordenar, diagrama p-h y psicrométrico, sin errores de consola.
 - `Diagrama.jsx` y `Psicrometrico.jsx` siguen duplicados al ~70%. Conviene factorizarlos
   antes de F4, que es cuando ambos tendrían que aprender a dibujar procesos.
 
-### F1 — Objeto Proceso en modo manual
+### F1 — Objeto Proceso en modo manual — *p-h completada, psicrométrica pendiente*
 
-- `definiciones.json` con el conjunto mínimo de tipos.
-- `resolvedores.js` con `verificar()` y tolerancias por tipo.
-- `listaProcesos.js` (CRUD hookstate) y `DialogoProceso.jsx`.
-- Validación de coherencia: aviso en la fila, sin bloquear.
-- Validaciones estructurales: los dos estados deben ser del mismo fluido (p-h) o de la
-  misma presión/altitud (psicrométrico); un estado borrado deja el proceso en rojo, no lo
-  borra en cascada.
-- Claves i18n nuevas en `es.json` / `en.json`.
+- [x] `definiciones.json` con los cuatro tipos p-h: compresión con rendimiento
+  isentrópico, isobárico, isentálpico e isotermo.
+- [x] `resolvedores.js` con `verificar()` y tolerancias por tipo. La tolerancia es mixta
+  (`abs` + `rel`): h y s llevan desplazamiento de referencia y T va en ºC, así que una
+  tolerancia puramente relativa sería inservible cerca de cero.
+- [x] `proceso.js` (motor), `listaProcesos.js` (CRUD hookstate), `DialogoProceso.jsx` y
+  `TablaProcesos.jsx`.
+- [x] Dos niveles de diagnóstico: **errores** estructurales (fila roja, proceso inválido)
+  y **avisos** de coherencia (fila ámbar, no bloquea). El motor emite claves i18n con
+  datos; `mensajes.js` los interpola.
+- [x] Validaciones estructurales: aridad, referencias rotas, fluidos distintos y estados
+  fuera del rango de la EoS. Un estado borrado deja el proceso marcado, no lo borra en
+  cascada.
+- [x] Un proceso nuevo hereda los dos estados seleccionados en la tabla, si hay
+  exactamente dos.
+- [x] 17 tests del motor contra CoolProp real, incluido el redondeo del rendimiento
+  isentrópico y el caso de estado huérfano.
+- [x] Claves i18n en `es.json` / `en.json` (119 en cada uno, sin desfase).
+- [ ] Tipos psicrométricos sobre el mismo motor (mezcla adiabática, calentamiento
+  sensible, enfriamiento con deshumidificación, humectación adiabática y con vapor).
 
-*Se cierra primero con los tipos p-h; los psicrométricos entran después sobre el mismo
-motor, para no abrir tanta superficie de golpe.*
+**Lo que F1 deliberadamente no trae:** las columnas de resultado por tipo (Δh, Δs, w, SHR…)
+son F2, y el trazado en el diagrama es F4. La tabla de F1 muestra identidad y diagnóstico.
 
 ### F2 — Tabla de procesos
 
@@ -306,7 +324,7 @@ No requiere un tercer objeto de primera clase.
 | Versión | Contenido |
 |---|---|
 | 1.6.1 | P0 (refactor sin cambios visibles) — *publicada* |
-| 1.7.0 | F1 (procesos p-h en modo manual) |
+| 1.7.0 | F1 (procesos p-h en modo manual) — *publicada* |
 | 1.8.0 | F1 psicrométrica + F2 (tabla de procesos) |
 | 1.9.0 | F3 (permalink / exportación) |
 | 1.10.0 | F4 (trazado real) + F5 (selección sincronizada) |

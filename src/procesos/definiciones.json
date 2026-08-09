@@ -1,0 +1,126 @@
+{
+  "esquema": 1,
+  "_comentario": [
+    "Tabla de definiciones de tipos de proceso. Declara el CONTRATO de cada tipo:",
+    "qué parámetros pide, con qué unidades, qué columnas de resultado muestra y con",
+    "qué tolerancia valida. La FÍSICA vive en resolvedores.js, referenciada por",
+    "nombre desde 'restriccion.resolvedor' y 'trazado.resolvedor'. Añadir un tipo",
+    "nuevo es añadir una entrada aquí más su resolvedor.",
+    "Este fichero es portable: una versión Python leería el mismo JSON y",
+    "reimplementaría el mismo registro de resolvedores.",
+    "Ver PLAN-PROCESOS.md §1.2 y §2.2."
+  ],
+
+  "parametrosComunes": [
+    {
+      "clave": "m_punto",
+      "i18n": "param_m_punto",
+      "unidad": "kg/s",
+      "requerido": false,
+      "min": 0
+    }
+  ],
+
+  "tipos": [
+    {
+      "clave": "compresion_isentropica",
+      "dominio": "fluido",
+      "i18n": "proc_compresion_isentropica",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "p_final",
+          "i18n": "param_p_final",
+          "unidad": "kPa",
+          "requerido": true,
+          "soloCalculado": true
+        },
+        {
+          "clave": "eta",
+          "i18n": "param_eta",
+          "unidad": "-",
+          "defecto": 0.8,
+          "min": 0.01,
+          "max": 1,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "compresionEta",
+        "tolerancia": { "magnitud": "S", "rel": 0.002, "abs": 0.002 }
+      },
+      "trazado": { "resolvedor": "barridoP", "nPuntos": 25 },
+      "columnas": ["dh", "ds", "w_esp", "rel_compresion", "eta_real", "potencia"]
+    },
+
+    {
+      "clave": "isobarico",
+      "dominio": "fluido",
+      "i18n": "proc_isobarico",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "t_final",
+          "i18n": "param_t_final",
+          "unidad": "ºC",
+          "requerido": true,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "isobarico",
+        "tolerancia": { "magnitud": "P", "rel": 0.01, "abs": 0.05 }
+      },
+      "trazado": { "resolvedor": "barridoH", "nPuntos": 25 },
+      "columnas": ["dh", "ds", "q_esp", "potencia"]
+    },
+
+    {
+      "clave": "isentalpico",
+      "dominio": "fluido",
+      "i18n": "proc_isentalpico",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "p_final",
+          "i18n": "param_p_final",
+          "unidad": "kPa",
+          "requerido": true,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "isentalpico",
+        "tolerancia": { "magnitud": "H", "rel": 0.005, "abs": 0.5 }
+      },
+      "trazado": { "resolvedor": "barridoP", "nPuntos": 15 },
+      "columnas": ["ds", "dt", "rel_expansion"]
+    },
+
+    {
+      "clave": "isotermo",
+      "dominio": "fluido",
+      "i18n": "proc_isotermo",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "p_final",
+          "i18n": "param_p_final",
+          "unidad": "kPa",
+          "requerido": true,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "isotermo",
+        "tolerancia": { "magnitud": "T", "rel": 0, "abs": 0.05 }
+      },
+      "trazado": { "resolvedor": "barridoP", "nPuntos": 25 },
+      "columnas": ["dh", "ds", "q_esp", "potencia"]
+    }
+  ]
+}

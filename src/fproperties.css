@@ -57,3 +57,14 @@ a {
   font-size: 0.8rem;
   color: gray;
 }
+
+/* Un proceso cuya referencia a un estado se ha roto, o cuyos extremos son
+   incompatibles, se conserva marcado en vez de borrarse: el usuario puede
+   recrear el punto y continuar. */
+.fila-proceso-invalida>td {
+  background-color: #FFF1F0;
+}
+
+.fila-proceso-aviso>td {
+  background-color: #FFFBE6;
+}

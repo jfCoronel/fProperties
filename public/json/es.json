@@ -79,5 +79,49 @@
     "lab_mostrar_nombre": "Nombre",
     "bot_actualizar_ejes": "Ajustar a datos",
     "lab_punto_triple": "Punto triple",
-    "lab_punto_critico": "Punto crítico"
+    "lab_punto_critico": "Punto crítico",
+
+    "titulo_procesos": "Procesos",
+    "titulo_editor_proceso": "Editar Proceso:",
+    "tooltip_nuevo_proceso": "Nuevo proceso (con dos estados seleccionados, los conecta)",
+    "proc_ayuda_vacia": "Un proceso conecta dos estados y comprueba si la pareja es coherente con el tipo declarado. Selecciona dos estados y pulsa +, o crea uno vacío y elige los estados en el diálogo.",
+    "proc_columna_proceso": "Proceso",
+    "proc_columna_diagnostico": "Diagnóstico",
+    "proc_tipo": "Tipo",
+    "proc_origen": "Estado de origen",
+    "proc_destino": "Estado de destino",
+    "proc_sin_asignar": "(sin asignar)",
+    "proc_diag_coherente": "Coherente",
+    "proc_diag_revisar": "Revisar",
+    "proc_diag_invalido": "Inválido",
+
+    "proc_compresion_isentropica": "Compresión con rendimiento isentrópico",
+    "proc_isobarico": "Isobárico (condensación / evaporación)",
+    "proc_isentalpico": "Isentálpico (laminación)",
+    "proc_isotermo": "Isotermo",
+
+    "param_m_punto": "Caudal másico",
+    "param_p_final": "Presión final",
+    "param_t_final": "Temperatura final",
+    "param_eta": "Rendimiento isentrópico",
+
+    "lab_estilo_color": "Color",
+    "lab_estilo_grosor": "Grosor",
+    "lab_estilo_trazo": "Trazo",
+    "trazo_solid": "Continuo",
+    "trazo_dashed": "Discontinuo",
+
+    "error_tipo_desconocido": "Tipo de proceso desconocido: {tipo}",
+    "error_aridad": "Este tipo necesita {esperados} estado(s) de origen, y tiene {recibidos}",
+    "error_origen_inexistente": "El estado de origen {posicion} ya no existe",
+    "error_destino_inexistente": "El estado de destino ya no existe",
+    "error_fluidos_distintos": "Los estados son de fluidos distintos: {fluidos}",
+    "error_estado_no_resoluble": "El estado «{nombre}» está fuera del rango de la ecuación de estado",
+    "error_resolvedor_ausente": "Falta el resolvedor «{resolvedor}»",
+
+    "aviso_magnitud_no_constante": "{simbolo} debería mantenerse constante: {valorOrigen} → {valorDestino} {unidad}",
+    "aviso_compresion_sin_aumento_presion": "Una compresión tiene que aumentar la presión: {valorOrigen} → {valorDestino} kPa",
+    "aviso_entropia_decrece": "La entropía disminuye ({valorOrigen} → {valorDestino} kJ/(kg·K)): imposible en un proceso adiabático",
+    "aviso_rendimiento_fuera_rango": "Rendimiento isentrópico fuera de rango: {rendimiento}",
+    "aviso_rendimiento_no_calculable": "No se puede calcular el rendimiento isentrópico de esta pareja"
 }

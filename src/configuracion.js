@@ -34,7 +34,10 @@ const configuracionInicial = {
   lineaDatos: false,
   nombreDatos: false,
   airesSeleccionados: [],
-  fluidosSeleccionados: []
+  fluidosSeleccionados: [],
+  idProcesoActual: null,
+  verDialogoProceso: false,
+  procesosSeleccionados: []
 }
 
 export const configuracion = hookstate(configuracionInicial);
