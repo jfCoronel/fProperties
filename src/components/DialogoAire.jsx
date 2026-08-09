@@ -7,8 +7,9 @@ const { Option } = Select;
 
 const DialogoAire = () => {
     const lista = useHookstate(listaAires);
-    const { iAireActual, verDialogoAire } = useHookstate(configuracion);
-    const fila = iAireActual.get();
+    const { idAireActual, verDialogoAire } = useHookstate(configuracion);
+    const id = idAireActual.get();
+    const fila = lista.get({ noproxy: true }).findIndex((a) => a.id === id);
 
     let aire = undefined
     if (fila >= 0) {
@@ -53,7 +54,7 @@ const DialogoAire = () => {
                                 value={aire.nombre}
                                 onChange={(e) => {
                                     aire.nombre = e.target.value;
-                                    actualizarAire(fila, aire);
+                                    actualizarAire(id, aire);
                                 }}
                             />
                         </Form.Item>
@@ -70,7 +71,7 @@ const DialogoAire = () => {
                                 value={aire.in1Id}
                                 onChange={(value) => {
                                     aire.in1Id = value;
-                                    actualizarAire(fila, aire);
+                                    actualizarAire(id, aire);
                                 }}
                             >
                                 <Option value="A">{getTextoUI("tabla_altura")}</Option>
@@ -84,7 +85,7 @@ const DialogoAire = () => {
                             value={aire.in1Val}
                             onChange={(value) => {
                                 aire.in1Val = value;
-                                actualizarAire(fila, aire);
+                                actualizarAire(id, aire);
                             }}
                         />
                     </Col>
@@ -99,7 +100,7 @@ const DialogoAire = () => {
                                 value={aire.in2Id}
                                 onChange={(value) => {
                                     aire.in2Id = value;
-                                    actualizarAire(fila, aire);
+                                    actualizarAire(id, aire);
                                 }}
                             >
                                 <Option value="T">T [ºC]</Option>
@@ -114,7 +115,7 @@ const DialogoAire = () => {
                             value={aire.in2Val}
                             onChange={(value) => {
                                 aire.in2Val = value;
-                                actualizarAire(fila, aire);
+                                actualizarAire(id, aire);
                             }}
                         />
                     </Col>
@@ -129,7 +130,7 @@ const DialogoAire = () => {
                                 value={aire.in3Id}
                                 onChange={(value) => {
                                     aire.in3Id = value;
-                                    actualizarAire(fila, aire);
+                                    actualizarAire(id, aire);
                                 }}
                             >
                                 <Option value="T">T [ºC]</Option>
@@ -148,7 +149,7 @@ const DialogoAire = () => {
                             value={aire.in3Val}
                             onChange={(value) => {
                                 aire.in3Val = value;
-                                actualizarAire(fila, aire);
+                                actualizarAire(id, aire);
                             }}
                         />
                     </Col>

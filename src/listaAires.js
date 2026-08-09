@@ -4,9 +4,30 @@ import { getTextoUI } from './configuracion';
 
 export const listaAires = hookstate([]);
 
+const PREFIJO_ID = "a";
+
+// El id se deriva del máximo en uso, de modo que siga siendo único
+// tras cargar una lista completa (permalink, importación).
+function nuevoIdAire() {
+  let maximo = 0;
+  listaAires.get({ noproxy: true }).forEach(aire => {
+    const numero = parseInt(String(aire.id).slice(PREFIJO_ID.length), 10);
+    if (Number.isFinite(numero) && numero > maximo) {
+      maximo = numero;
+    }
+  });
+  return PREFIJO_ID + (maximo + 1);
+}
+
+// Devuelve -1 si el id ya no existe (estado borrado)
+export const indiceAire = (id) => {
+  return listaAires.get({ noproxy: true }).findIndex(aire => aire.id === id);
+}
+
 export const nuevoAire = () => {
   const objetoAire = getObjetoAireHumedo('A', 0, 'T', 25, 'HR', 50);
   const aireNuevo = {
+    id: nuevoIdAire(),
     nombre: nuevoNombreAire(),
     in1Id: "A",
     in2Id: "T",
@@ -19,24 +40,30 @@ export const nuevoAire = () => {
   listaAires.merge([aireNuevo])
 }
 
-export const borrarAires = (lista) => {
-  lista.sort(function (a, b) { // oredenarlos al reves
+export const borrarAires = (ids) => {
+  const indices = ids.map(indiceAire).filter(i => i >= 0);
+  indices.sort(function (a, b) { // ordenarlos al reves
     return b - a;
   });
-  lista.forEach(i => { listaAires[i].set(none); })
+  indices.forEach(i => { listaAires[i].set(none); })
 }
 
-export const duplicarAires = (lista) => {
-  lista.forEach(i => {
-    let nuevoAire = Object.assign({}, listaAires[i].get());
+export const duplicarAires = (ids) => {
+  ids.forEach(id => {
+    const i = indiceAire(id);
+    if (i < 0) return;
+    let nuevoAire = { ...listaAires[i].get({ noproxy: true }) };
+    nuevoAire.id = nuevoIdAire();
     nuevoAire.nombre = nuevoAire.nombre + getTextoUI("copia_de");
     listaAires.merge([nuevoAire]);
   })
 }
 
-export const actualizarAire = (i, aire) => {
+export const actualizarAire = (id, aire) => {
+  const i = indiceAire(id);
+  if (i < 0) return;
   const objetoAire = getObjetoAireHumedo(aire.in1Id, aire.in1Val, aire.in2Id, aire.in2Val, aire.in3Id, aire.in3Val);
-  const aireCompleto = { ...aire, ...objetoAire }
+  const aireCompleto = { ...aire, ...objetoAire, id }
   listaAires[i].set(aireCompleto);
 }
 
@@ -59,6 +86,3 @@ function nuevoNombreAire() {
     }
   } while (true);
 }
-
-
-

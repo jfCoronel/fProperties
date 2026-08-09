@@ -42,4 +42,9 @@ export default defineConfig({
       },
     }),
   ],
+  test: {
+    environment: 'node',
+    include: ['src/**/*.test.js'],
+    setupFiles: ['./src/test/setupCoolprop.js'],
+  },
 })

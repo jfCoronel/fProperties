@@ -7,7 +7,7 @@ import { Chart as ChartJS } from 'chart.js/auto';
 import { Scatter } from 'react-chartjs-2';
 import { getPropAireHumedo } from '../propFluidos/aires'
 import formatear from '../util/formatear';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 const { Option } = Select;
 
@@ -20,6 +20,13 @@ const Psicrometrico = () => {
 
     let series = useHookstate([]);
     const [drawerVisible, setDrawerVisible] = useState(false);
+
+    // Valores de los que dependen las curvas de HR constante, extraídos para poder
+    // memorizarlas (ver getCurvaHRcte / curvasHR más abajo).
+    const opcionActual = opcionPsicrometrico.get();
+    const valorOpcionActual = valorOpcionPsicrometrico.get();
+    const xMin = ejeXminPsicrometrico.get();
+    const xMax = ejeXmaxPsicrometrico.get();
 
     // Tooltip
     const titleTooltip = (ctx) => {
@@ -54,14 +61,14 @@ const Psicrometrico = () => {
         }
     };
 
-    const getCurvaHRcte = (hr, grosor = 1) => {
+    const getCurvaHRcte = useCallback((hr, grosor = 1) => {
         let datos = [];
         let w = 0
-        for (let t = ejeXminPsicrometrico.get(); t <= ejeXmaxPsicrometrico.get(); t++) {
-            if (opcionPsicrometrico.get() === "A") {
-                w = getPropAireHumedo("W", 'A', valorOpcionPsicrometrico.get(), 'T', t, 'HR', hr)
-            } else if (opcionPsicrometrico.get() === "P") {
-                w = getPropAireHumedo("W", 'P', valorOpcionPsicrometrico.get(), 'T', t, 'HR', hr)
+        for (let t = xMin; t <= xMax; t++) {
+            if (opcionActual === "A") {
+                w = getPropAireHumedo("W", 'A', valorOpcionActual, 'T', t, 'HR', hr)
+            } else if (opcionActual === "P") {
+                w = getPropAireHumedo("W", 'P', valorOpcionActual, 'T', t, 'HR', hr)
             }
 
             datos.push({ x: t, y: w })
@@ -74,7 +81,7 @@ const Psicrometrico = () => {
             pointRadius: 0,
             borderWidth: grosor
         };
-    }
+    }, [opcionActual, valorOpcionActual, xMin, xMax])
 
     const check_altura = (aire) => {
         if (opcionPsicrometrico.get() === "A") {
@@ -106,10 +113,10 @@ const Psicrometrico = () => {
                 }
             })
         } else if (incluirDatos === "seleccionados") {
-            const listaIndices = [...airesSeleccionados.get()]
-            listaIndices.forEach(i => {
-                const aire = lista[i];
-                if (check_altura(aire)) {
+            const ids = [...airesSeleccionados.get()]
+            ids.forEach(id => {
+                const aire = lista.find(a => a.id.get() === id);
+                if (aire && check_altura(aire)) {
                     let dato = {
                         x: aire.T.get(),
                         y: aire.W.get(),
@@ -128,13 +135,20 @@ const Psicrometrico = () => {
         };
     }
 
-    function getTodasSeries() {
-        let todasSeries = [
+    // Las curvas de HR constante son ~4·(rango de T) llamadas a CoolProp: se recalculan
+    // solo cuando cambia algo de lo que dependen, no en cada render.
+    const curvasHR = useMemo(
+        () => [
             getCurvaHRcte(100, 3),
             getCurvaHRcte(75),
             getCurvaHRcte(50),
             getCurvaHRcte(25)
-        ]
+        ],
+        [getCurvaHRcte]
+    );
+
+    function getTodasSeries() {
+        let todasSeries = [...curvasHR]
 
         if (opcionAddDatosPsicrometrico.get() === "todos") {
             todasSeries.push(getSerie("todos"));

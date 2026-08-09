@@ -8,8 +8,9 @@ const { Option } = Select;
 
 const DialogoFluido = () => {
     const lista = useHookstate(listaFluidos);
-    const { iFluidoActual, verDialogoFluido } = useHookstate(configuracion);
-    const fila = iFluidoActual.get();
+    const { idFluidoActual, verDialogoFluido } = useHookstate(configuracion);
+    const id = idFluidoActual.get();
+    const fila = lista.get({ noproxy: true }).findIndex((f) => f.id === id);
 
     let fluido = undefined
     if (fila >= 0) {
@@ -54,7 +55,7 @@ const DialogoFluido = () => {
                                 value={fluido.nombre}
                                 onChange={(e) => {
                                     fluido.nombre = e.target.value;
-                                    actualizarFluido(fila, fluido);
+                                    actualizarFluido(id, fluido);
                                 }}
                             />
                         </Form.Item>
@@ -70,7 +71,7 @@ const DialogoFluido = () => {
                                 value={fluido.fluido}
                                 onChange={(value) => {
                                     fluido.fluido = value;
-                                    actualizarFluido(fila, fluido);
+                                    actualizarFluido(id, fluido);
                                 }}
                             >
                                 {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
@@ -88,7 +89,7 @@ const DialogoFluido = () => {
                                 value={fluido.in1Id}
                                 onChange={(value) => {
                                     fluido.in1Id = value;
-                                    actualizarFluido(fila, fluido);
+                                    actualizarFluido(id, fluido);
                                 }}
                             >
                                 <Option value="T">T [ºC]</Option>
@@ -106,7 +107,7 @@ const DialogoFluido = () => {
                             value={fluido.in1Val}
                             onChange={(value) => {
                                 fluido.in1Val = value;
-                                actualizarFluido(fila, fluido);
+                                actualizarFluido(id, fluido);
                             }}
                         />
                     </Col>
@@ -121,7 +122,7 @@ const DialogoFluido = () => {
                                 value={fluido.in2Id}
                                 onChange={(value) => {
                                     fluido.in2Id = value;
-                                    actualizarFluido(fila, fluido);
+                                    actualizarFluido(id, fluido);
                                 }}
                             >
                                 <Option value="T">T [ºC]</Option>
@@ -139,7 +140,7 @@ const DialogoFluido = () => {
                             value={fluido.in2Val}
                             onChange={(value) => {
                                 fluido.in2Val = value;
-                                actualizarFluido(fila, fluido);
+                                actualizarFluido(id, fluido);
                             }}
                         />
                     </Col>

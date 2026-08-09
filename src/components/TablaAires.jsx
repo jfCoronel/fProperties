@@ -94,7 +94,7 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaAires = () => {
-  const { iAireActual, columnasTablaAires, nCifras, verConfiguracion, verPsicrometrico, verDialogoAire, airesSeleccionados } = useHookstate(configuracion);
+  const { idAireActual, columnasTablaAires, nCifras, verConfiguracion, verPsicrometrico, verDialogoAire, airesSeleccionados } = useHookstate(configuracion);
 
 
   const lista = useHookstate(listaAires);
@@ -109,7 +109,7 @@ const TablaAires = () => {
       render: (text, record) => (
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <DragHandle rowKey={record.key} />
-          <a onClick={(event) => { event.stopPropagation(); iAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>
+          <a onClick={(event) => { event.stopPropagation(); idAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>
         </div>
       ),
     },
@@ -146,9 +146,9 @@ const TablaAires = () => {
     }
   })
 
-  const datos = lista.map((aire, i) => {
+  const datos = lista.map((aire) => {
     let dato = {
-      key: i,
+      key: aire.id.get(),
       nombre: aire.nombre.get(),
       altura: formatear(aire.A.get(), nCifras.get()),
       presion: formatear(aire.P.get(), nCifras.get()),
@@ -170,13 +170,13 @@ const TablaAires = () => {
     onChange: (selectedRowKeys) => {
       airesSeleccionados.set(selectedRowKeys);
       if (selectedRowKeys.length > 0) {
-        iAireActual.set(-1);
+        idAireActual.set(null);
       }
     }
   }
 
   const rowClassName = (record) => {
-    return record.key === iAireActual.get() ? 'selected-row' : '';
+    return record.key === idAireActual.get() ? 'selected-row' : '';
   };
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
@@ -215,17 +215,17 @@ const TablaAires = () => {
           : <span>
             <Tooltip title={getTextoUI("tooltip_borrar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<DeleteOutlined />} size='large' onClick={() => {
-                const filas = [...airesSeleccionados.get()];
+                const ids = [...airesSeleccionados.get()];
                 airesSeleccionados.set([]);
-                borrarAires(filas);
+                borrarAires(ids);
               }}></Button>
             </Tooltip>
             <span>  </span>
             <Tooltip title={getTextoUI("tooltip_duplicar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<CopyOutlined />} size='large' onClick={() => {
-                const filas = [...airesSeleccionados.get()];
+                const ids = [...airesSeleccionados.get()];
                 airesSeleccionados.set([]);
-                duplicarAires(filas);
+                duplicarAires(ids);
               }}></Button>
             </Tooltip>
           </span>
@@ -275,7 +275,7 @@ const TablaAires = () => {
             }}
             onRow={(record) => {
               return {
-                onDoubleClick: () => { iAireActual.set(record.key); verDialogoAire.set(true) }
+                onDoubleClick: () => { idAireActual.set(record.key); verDialogoAire.set(true) }
               };
             }}
           />

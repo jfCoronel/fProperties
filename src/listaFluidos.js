@@ -4,10 +4,31 @@ import { getTextoUI } from './configuracion';
 
 export const listaFluidos = hookstate([]);
 
+const PREFIJO_ID = "f";
+
+// El id se deriva del máximo en uso, de modo que siga siendo único
+// tras cargar una lista completa (permalink, importación).
+function nuevoIdFluido() {
+  let maximo = 0;
+  listaFluidos.get({ noproxy: true }).forEach(fluido => {
+    const numero = parseInt(String(fluido.id).slice(PREFIJO_ID.length), 10);
+    if (Number.isFinite(numero) && numero > maximo) {
+      maximo = numero;
+    }
+  });
+  return PREFIJO_ID + (maximo + 1);
+}
+
+// Devuelve -1 si el id ya no existe (estado borrado)
+export const indiceFluido = (id) => {
+  return listaFluidos.get({ noproxy: true }).findIndex(fluido => fluido.id === id);
+}
+
 export const nuevoFluido = () => {
   const objetoFluido = getObjetoFluido('Agua', 'T', 25, 'P', 101.325);
 
   const fluidoNuevo = {
+    id: nuevoIdFluido(),
     nombre: nuevoNombreFluido(),
     fluido: "Agua",
     in1Id: "T",
@@ -19,25 +40,31 @@ export const nuevoFluido = () => {
   listaFluidos.merge([fluidoNuevo])
 }
 
-export const borrarFluidos = (lista) => {
-  lista.sort(function (a, b) { // oredenarlos al reves
+export const borrarFluidos = (ids) => {
+  const indices = ids.map(indiceFluido).filter(i => i >= 0);
+  indices.sort(function (a, b) { // ordenarlos al reves
     return b - a;
   });
-  lista.forEach(i => { listaFluidos[i].set(none); })
+  indices.forEach(i => { listaFluidos[i].set(none); })
 }
 
-export const duplicarFluidos = (lista) => {
-  lista.forEach(i => {
-    let nuevoFluido = Object.assign({}, listaFluidos[i].get());
+export const duplicarFluidos = (ids) => {
+  ids.forEach(id => {
+    const i = indiceFluido(id);
+    if (i < 0) return;
+    let nuevoFluido = { ...listaFluidos[i].get({ noproxy: true }) };
+    nuevoFluido.id = nuevoIdFluido();
     nuevoFluido.nombre = nuevoFluido.nombre + getTextoUI("copia_de");
     listaFluidos.merge([nuevoFluido]);
   })
 }
 
 
-export const actualizarFluido = (i, fluido) => {
+export const actualizarFluido = (id, fluido) => {
+  const i = indiceFluido(id);
+  if (i < 0) return;
   const objetoFluido = getObjetoFluido(fluido.fluido, fluido.in1Id, fluido.in1Val, fluido.in2Id, fluido.in2Val);
-  const fluidoCompleto = { ...fluido, ...objetoFluido }
+  const fluidoCompleto = { ...fluido, ...objetoFluido, id }
   listaFluidos[i].set(fluidoCompleto);
 }
 
@@ -60,6 +87,3 @@ function nuevoNombreFluido() {
     }
   } while (true);
 }
-
-
-

@@ -3,8 +3,8 @@ import { hookstate } from '@hookstate/core';
 const configuracionInicial = {
   menuActual: "fluidos",
   version: __APP_VERSION__,
-  iFluidoActual: -1,
-  iAireActual: -1,
+  idFluidoActual: null,
+  idAireActual: null,
   columnasTablaFluidos: ["X", "RO", "H", "S", "CP", "NO", "NO"],
   columnasTablaAires: ["RO", "HR", "TH", "TR", "H", "NO", "NO"],
   verConfiguracion: false,

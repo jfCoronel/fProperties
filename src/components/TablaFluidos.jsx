@@ -129,7 +129,7 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaFluidos = () => {
-  const { iFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido, verDiagrama, fluidosSeleccionados } = useHookstate(configuracion);
+  const { idFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido, verDiagrama, fluidosSeleccionados } = useHookstate(configuracion);
 
   const lista = useHookstate(listaFluidos);
 
@@ -143,7 +143,7 @@ const TablaFluidos = () => {
       render: (text, record) => (
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <DragHandle rowKey={record.key} />
-          <a onClick={(event) => { event.stopPropagation(); iFluidoActual.set(record.key); verDialogoFluido.set(true) }} >{text}</a>
+          <a onClick={(event) => { event.stopPropagation(); idFluidoActual.set(record.key); verDialogoFluido.set(true) }} >{text}</a>
         </div>
       ),
     },
@@ -182,9 +182,9 @@ const TablaFluidos = () => {
 
 
 
-  const datos = lista.map((fluido, i) => {
+  const datos = lista.map((fluido) => {
     let dato = {
-      key: i,
+      key: fluido.id.get(),
       nombre: fluido.nombre.get(),
       fluido: fluido.fluido.get(),
       fase: fluido.ESTADO.get(),
@@ -206,13 +206,13 @@ const TablaFluidos = () => {
     onChange: (selectedRowKeys) => {
       fluidosSeleccionados.set(selectedRowKeys);
       if (selectedRowKeys.length > 0) {
-        iFluidoActual.set(-1);
+        idFluidoActual.set(null);
       }
     }
   }
 
   const rowClassName = (record) => {
-    return record.key === iFluidoActual.get() ? 'selected-row' : '';
+    return record.key === idFluidoActual.get() ? 'selected-row' : '';
   };
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
@@ -250,17 +250,17 @@ const TablaFluidos = () => {
           : <span>
             <Tooltip title={getTextoUI("tooltip_borrar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<DeleteOutlined />} size='large' onClick={() => {
-                const filas = [...fluidosSeleccionados.get()];
+                const ids = [...fluidosSeleccionados.get()];
                 fluidosSeleccionados.set([]);
-                borrarFluidos(filas);
+                borrarFluidos(ids);
               }}></Button>
             </Tooltip>
             <span>  </span>
             <Tooltip title={getTextoUI("tooltip_duplicar_seleccionados")} mouseEnterDelay={1}>
               <Button type='link' icon={<CopyOutlined />} size='large' onClick={() => {
-                const filas = [...fluidosSeleccionados.get()];
+                const ids = [...fluidosSeleccionados.get()];
                 fluidosSeleccionados.set([]);
-                duplicarFluidos(filas);
+                duplicarFluidos(ids);
               }}></Button>
             </Tooltip>
           </span>
@@ -310,7 +310,7 @@ const TablaFluidos = () => {
             }}
             onRow={(record) => {
               return {
-                onDoubleClick: () => { iFluidoActual.set(record.key); verDialogoFluido.set(true) }
+                onDoubleClick: () => { idFluidoActual.set(record.key); verDialogoFluido.set(true) }
               };
             }}
           />

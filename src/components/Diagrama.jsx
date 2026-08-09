@@ -7,7 +7,7 @@ import { Scatter } from 'react-chartjs-2';
 import formatear from '../util/formatear';
 import { listaFluidos } from '../listaFluidos';
 import { getListaFluidos, getPropFluido } from '../propFluidos/fluidos';
-import { useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 const { Option } = Select;
 
@@ -20,6 +20,13 @@ const Diagrama = () => {
         colorDatos, lineaDatos, nombreDatos, fluidosSeleccionados } = useHookstate(configuracion);
 
     const [drawerVisible, setDrawerVisible] = useState(false);
+
+    // Valores de los que depende la curva de saturación, extraídos para poder
+    // memorizarla (ver getCurvaSat / curvaSaturacion más abajo).
+    const fluidoActual = fluidoDiagrama.get();
+    const tipoActual = tipoDiagrama.get();
+    const xMin = ejeXminDiagrama.get();
+    const xMax = ejeXmaxDiagrama.get();
 
     // Tooltip
     const titleTooltip = (ctx) => {
@@ -126,16 +133,16 @@ const Diagrama = () => {
         return valor;
     }
 
-    const getCurvaSat = (grosor = 1) => {
+    const getCurvaSat = useCallback((grosor = 1) => {
         let datos = [];
-        const fluido = fluidoDiagrama.get()
-        if (tipoDiagrama.get() === "p-T") {
-            const deltaT = (ejeXmaxDiagrama.get() - ejeXminDiagrama.get()) / 100
-            for (let t = ejeXminDiagrama.get(); t <= ejeXmaxDiagrama.get(); t += deltaT) {
+        const fluido = fluidoActual
+        if (tipoActual === "p-T") {
+            const deltaT = (xMax - xMin) / 100
+            for (let t = xMin; t <= xMax; t += deltaT) {
                 let p = getPropFluido(fluido, "P", "T", t, "X", 50);
                 datos.push({ x: t, y: p })
             }
-        } else if (tipoDiagrama.get() === "p-h") {
+        } else if (tipoActual === "p-h") {
             const pTriple = getPropFluido(fluido, "PTRIPLE", "T", 0, "X", 50);
             const pCritica = getPropFluido(fluido, "PCRIT", "T", 0, "X", 50);
 
@@ -148,7 +155,7 @@ const Diagrama = () => {
                 let h = getPropFluido(fluido, "H", "P", p, "X", 100);
                 datos.push({ x: h, y: p })
             }
-        } else if (tipoDiagrama.get() === "T-s") {
+        } else if (tipoActual === "T-s") {
             const tTriple = getPropFluido(fluido, "TTRIPLE", "T", 0, "X", 50);
             const tCritica = getPropFluido(fluido, "TCRIT", "T", 0, "X", 50);
 
@@ -169,7 +176,7 @@ const Diagrama = () => {
             pointRadius: 0,
             borderWidth: grosor
         };
-    }
+    }, [fluidoActual, tipoActual, xMin, xMax])
 
     function getPuntoTripleInfo() {
         const fluido = fluidoDiagrama.get();
@@ -220,10 +227,10 @@ const Diagrama = () => {
                 }
             })
         } else if (incluirDatos === "seleccionados") {
-            const listaIndices = [...fluidosSeleccionados.get()]
-            listaIndices.forEach(i => {
-                const fluido = lista[i];
-               if (fluido.fluido.get() == fluidoDiagrama.get()) {
+            const ids = [...fluidosSeleccionados.get()]
+            ids.forEach(id => {
+                const fluido = lista.find(f => f.id.get() === id);
+                if (fluido && fluido.fluido.get() == fluidoDiagrama.get()) {
                     datos.push(getDato(fluido));
                 }
             })
@@ -238,8 +245,12 @@ const Diagrama = () => {
 
 
 
+    // La curva de saturación son ~200 llamadas a CoolProp: se recalcula solo cuando
+    // cambia algo de lo que depende, no en cada render.
+    const curvaSaturacion = useMemo(() => getCurvaSat(3), [getCurvaSat]);
+
     function getTodasSeries() {
-        let todasSeries = [getCurvaSat(3)]
+        let todasSeries = [curvaSaturacion]
         if (opcionAddDatosDiagrama.get() === "todos") {
             todasSeries.push(getSerie("todos"));
         } else if (opcionAddDatosDiagrama.get() === "seleccionados") {

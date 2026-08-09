@@ -1,6 +1,7 @@
 import { Divider, Menu, Select } from 'antd';
 import { ExperimentOutlined, CloudOutlined } from '@ant-design/icons';
 
+import { useEffect } from 'react';
 import { useHookstate } from '@hookstate/core';
 import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
 import TablaFluidos from './components/TablaFluidos';
@@ -13,7 +14,7 @@ import DialogoAire from './components/DialogoAire';
 const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, iFluidoActual, iAireActual, version, idioma, textosCargados, verPsicrometrico, verDiagrama } = useHookstate(configuracion);
+  const { menuActual, idFluidoActual, idAireActual, version, idioma, textosCargados, verPsicrometrico, verDiagrama } = useHookstate(configuracion);
 
   const menuTabItems = [
     {
@@ -28,8 +29,12 @@ const FProperties = () => {
     }
   ]
 
-  // Cargar textos json
-  cargarTextosUI();
+  // Cargar textos json: solo al montar y al cambiar de idioma.
+  // Llamarlo en el cuerpo del render encadenaba un fetch por render.
+  const idiomaActual = idioma.get();
+  useEffect(() => {
+    cargarTextosUI();
+  }, [idiomaActual]);
 
   function jsxSelectorIdioma() {
     if (textosCargados.get()) {
@@ -39,7 +44,6 @@ const FProperties = () => {
           onChange={value => {
             textosCargados.set(false);
             idioma.set(value);
-            cargarTextosUI();
           }}
         >
           <Option key="es" value="es"><img src="./img/es.svg" width="24" /> {" " + getTextoUI("lab_idioma_es")}</Option>
@@ -55,7 +59,7 @@ const FProperties = () => {
   return (
     <div className="contenido" >
       <div className='tablas'
-        onClick={() => { iFluidoActual.set(-1); iAireActual.set(-1); }} >
+        onClick={() => { idFluidoActual.set(null); idAireActual.set(null); }} >
         <p> </p>
         <span className='titulo'> <a href="http://fproperties.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
         <span style={{ float: "right" }}>
