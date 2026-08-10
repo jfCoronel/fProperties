@@ -24,6 +24,8 @@ export const indiceFluido = (id) => {
   return listaFluidos.get({ noproxy: true }).findIndex(fluido => fluido.id === id);
 }
 
+// Devuelve el id del estado creado: el modo calculado necesita apuntar a él
+// nada más crearlo.
 export const nuevoFluido = () => {
   const objetoFluido = getObjetoFluido('Agua', 'T', 25, 'P', 101.325);
 
@@ -38,6 +40,7 @@ export const nuevoFluido = () => {
     ...objetoFluido
   };
   listaFluidos.merge([fluidoNuevo])
+  return fluidoNuevo.id;
 }
 
 export const borrarFluidos = (ids) => {

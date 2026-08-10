@@ -1,9 +1,11 @@
-import { Divider, Menu, Select } from 'antd';
+import { Divider, Menu, Select, message } from 'antd';
 import { ExperimentOutlined, CloudOutlined } from '@ant-design/icons';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useHookstate } from '@hookstate/core';
 import { configuracion, cargarTextosUI, getTextoUI } from './configuracion';
+import { cargarDesdePermalink } from './permalink/problema';
+import Compartir from './components/Compartir';
 import TablaFluidos from './components/TablaFluidos';
 import TablaProcesos from './components/TablaProcesos';
 import TablaAires from './components/TablaAires';
@@ -37,6 +39,29 @@ const FProperties = () => {
     cargarTextosUI();
   }, [idiomaActual]);
 
+  // Un permalink trae el problema entero, incluido el idioma, así que se resuelve
+  // una sola vez y en cuanto hay textos con los que informar del resultado.
+  const permalinkResuelto = useRef(false);
+  const hayTextos = textosCargados.get();
+  useEffect(() => {
+    if (!hayTextos || permalinkResuelto.current) return;
+    permalinkResuelto.current = true;
+
+    cargarDesdePermalink()
+      .then((problema) => {
+        if (problema === null) return;
+        message.success(
+          getTextoUI("msg_problema_cargado")
+            .split('{estados}').join(problema.estados.length + problema.aires.length)
+            .split('{procesos}').join(problema.procesos.length)
+        );
+      })
+      .catch((error) => {
+        const traducido = getTextoUI(error.message);
+        message.error(traducido === '__' ? error.message : traducido);
+      });
+  }, [hayTextos]);
+
   function jsxSelectorIdioma() {
     if (textosCargados.get()) {
       return (
@@ -64,6 +89,8 @@ const FProperties = () => {
         <p> </p>
         <span className='titulo'> <a href="http://fproperties.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
         <span style={{ float: "right" }}>
+          {textosCargados.get() && <Compartir />}
+          {" "}
           {jsxSelectorIdioma()}
         </span>
         <Menu onClick={(e) => menuActual.set(e.key.toString())} selectedKeys={[menuActual.get()]} mode="horizontal" items={menuTabItems}>

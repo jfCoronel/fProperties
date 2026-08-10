@@ -1,7 +1,8 @@
 import { useHookstate } from '@hookstate/core';
-import { Modal, Button, Row, Col, Select, Input, InputNumber, Form } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, InputNumber, Form, message } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaFluidos, actualizarFluido } from '../listaFluidos';
+import { propagarProcesos, romperVinculo } from '../procesos/propagacion';
 import { getListaFluidos } from '../propFluidos/fluidos';
 
 const { Option } = Select;
@@ -23,6 +24,18 @@ const DialogoFluido = () => {
             in2Val: lista[fila].in2Val.get()
         }
     }
+    // Editar a mano un estado calculado no se bloquea: rompe el vínculo, devuelve
+    // el proceso a modo manual y avisa (decisión 4 del plan). Cambiar solo el
+    // nombre no toca la física y no rompe nada.
+    const guardar = (tocaLaFisica = true) => {
+        const roto = tocaLaFisica ? romperVinculo(id) : null;
+        actualizarFluido(id, fluido);
+        propagarProcesos();
+        if (roto !== null) {
+            message.warning(getTextoUI("aviso_vinculo_roto"));
+        }
+    };
+
     const handleOk = () => {
         verDialogoFluido.set(false);
     };
@@ -55,7 +68,7 @@ const DialogoFluido = () => {
                                 value={fluido.nombre}
                                 onChange={(e) => {
                                     fluido.nombre = e.target.value;
-                                    actualizarFluido(id, fluido);
+                                    guardar(false);
                                 }}
                             />
                         </Form.Item>
@@ -71,7 +84,7 @@ const DialogoFluido = () => {
                                 value={fluido.fluido}
                                 onChange={(value) => {
                                     fluido.fluido = value;
-                                    actualizarFluido(id, fluido);
+                                    guardar();
                                 }}
                             >
                                 {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
@@ -89,7 +102,7 @@ const DialogoFluido = () => {
                                 value={fluido.in1Id}
                                 onChange={(value) => {
                                     fluido.in1Id = value;
-                                    actualizarFluido(id, fluido);
+                                    guardar();
                                 }}
                             >
                                 <Option value="T">T [ºC]</Option>
@@ -107,7 +120,7 @@ const DialogoFluido = () => {
                             value={fluido.in1Val}
                             onChange={(value) => {
                                 fluido.in1Val = value;
-                                actualizarFluido(id, fluido);
+                                guardar();
                             }}
                         />
                     </Col>
@@ -122,7 +135,7 @@ const DialogoFluido = () => {
                                 value={fluido.in2Id}
                                 onChange={(value) => {
                                     fluido.in2Id = value;
-                                    actualizarFluido(id, fluido);
+                                    guardar();
                                 }}
                             >
                                 <Option value="T">T [ºC]</Option>
@@ -140,7 +153,7 @@ const DialogoFluido = () => {
                             value={fluido.in2Val}
                             onChange={(value) => {
                                 fluido.in2Val = value;
-                                actualizarFluido(id, fluido);
+                                guardar();
                             }}
                         />
                     </Col>

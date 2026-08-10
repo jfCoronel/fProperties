@@ -60,7 +60,7 @@ export function getTextoUI(key, textos = configuracion.textosUI) {
 }
 
 // Descargar tabla como CSV
-export async function descargarTablaCSV(columnas, valores) {
+export async function descargarTablaCSV(columnas, valores, nombreFichero = "Tabla.csv") {
   let contenidoCSV = "";
   let fila = ""
   columnas.forEach((objetoCol) => {
@@ -83,7 +83,7 @@ export async function descargarTablaCSV(columnas, valores) {
   let dataStr = "data:text/csv;charset=utf-8," + encodeURI(contenidoCSV);
   let downloadAnchorNode = document.createElement('a');
   downloadAnchorNode.setAttribute("href", dataStr);
-  downloadAnchorNode.setAttribute("download", "Tabla.csv");
+  downloadAnchorNode.setAttribute("download", nombreFichero);
   document.body.appendChild(downloadAnchorNode); // required for firefox
   downloadAnchorNode.click();
   downloadAnchorNode.remove();

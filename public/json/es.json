@@ -100,10 +100,28 @@
     "proc_isentalpico": "Isentálpico (laminación)",
     "proc_isotermo": "Isotermo",
 
+    "col_dh": "Variación de entalpía específica",
+    "col_ds": "Variación de entropía específica",
+    "col_dt": "Variación de temperatura",
+    "col_w_esp": "Trabajo específico (positivo: absorbido por el fluido)",
+    "col_q_esp": "Calor específico (positivo: absorbido por el fluido)",
+    "col_rel_compresion": "Relación de compresión",
+    "col_rel_expansion": "Relación de expansión",
+    "col_eta_real": "Rendimiento isentrópico real de la pareja de estados",
+    "col_potencia": "Potencia (caudal × magnitud específica)",
+
     "param_m_punto": "Caudal másico",
     "param_p_final": "Presión final",
     "param_t_final": "Temperatura final",
+    "param_x_final": "Título final",
     "param_eta": "Rendimiento isentrópico",
+
+    "proc_modo": "Estado destino",
+    "proc_modo_manual": "Dado por mí",
+    "proc_modo_calculado": "Calculado",
+    "proc_destino_calculado": "Lo calcula el proceso: se sobrescribe al cambiar el origen o los parámetros",
+    "tooltip_estado_derivado": "Estado calculado por un proceso",
+    "aviso_vinculo_roto": "Este estado lo calculaba un proceso; al editarlo a mano, ese proceso vuelve a modo manual",
 
     "lab_estilo_color": "Color",
     "lab_estilo_grosor": "Grosor",
@@ -118,10 +136,25 @@
     "error_fluidos_distintos": "Los estados son de fluidos distintos: {fluidos}",
     "error_estado_no_resoluble": "El estado «{nombre}» está fuera del rango de la ecuación de estado",
     "error_resolvedor_ausente": "Falta el resolvedor «{resolvedor}»",
+    "error_parametro_requerido": "Para calcular el estado destino falta el dato: {parametro}",
+    "error_parametro_alguno": "Para calcular el estado destino hace falta uno de estos datos: {parametros}",
 
     "aviso_magnitud_no_constante": "{simbolo} debería mantenerse constante: {valorOrigen} → {valorDestino} {unidad}",
     "aviso_compresion_sin_aumento_presion": "Una compresión tiene que aumentar la presión: {valorOrigen} → {valorDestino} kPa",
     "aviso_entropia_decrece": "La entropía disminuye ({valorOrigen} → {valorDestino} kJ/(kg·K)): imposible en un proceso adiabático",
     "aviso_rendimiento_fuera_rango": "Rendimiento isentrópico fuera de rango: {rendimiento}",
-    "aviso_rendimiento_no_calculable": "No se puede calcular el rendimiento isentrópico de esta pareja"
+    "aviso_rendimiento_no_calculable": "No se puede calcular el rendimiento isentrópico de esta pareja",
+    "aviso_cierre_discrepancia": "El estado destino no cierra con el calculado: h = {valorCalculado} frente a {valorActual} kJ/kg",
+    "aviso_destino_no_calculable": "Con estos parámetros no se puede calcular el estado destino",
+
+    "tooltip_compartir": "Copiar un enlace con todo el problema (estados, procesos y configuración)",
+    "tooltip_descargar_problema": "Descargar el problema como fichero JSON",
+    "tooltip_importar_problema": "Cargar un problema desde un fichero JSON",
+    "titulo_enlace": "Enlace al problema",
+    "msg_enlace_copiado": "Enlace copiado al portapapeles",
+    "msg_enlace_largo": "El enlace ha salido muy largo: si no funciona al pegarlo, descarga el problema como fichero",
+    "msg_problema_cargado": "Problema cargado: {estados} estados y {procesos} procesos",
+    "error_problema_ilegible": "El enlace o el fichero no se pueden leer",
+    "error_problema_version": "Este enlace lo generó otra versión del formato de fProperties",
+    "error_coolprop_no_listo": "La biblioteca de propiedades no terminó de cargar"
 }

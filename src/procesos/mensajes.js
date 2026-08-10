@@ -14,6 +14,15 @@ export function textoMensaje(mensaje, nCifras = 4) {
     datos.unidad = UNIDADES_FLUIDOS[datos.magnitud] ?? '';
   }
 
+  // Los errores de parámetros traen claves i18n, no nombres: el motor no sabe
+  // en qué idioma se le está leyendo.
+  if (datos.parametro) {
+    datos.parametro = getTextoUI(datos.parametro);
+  }
+  if (Array.isArray(datos.parametros)) {
+    datos.parametros = datos.parametros.map((clave) => getTextoUI(clave)).join(' / ');
+  }
+
   let texto = getTextoUI(mensaje.clave);
   Object.entries(datos).forEach(([clave, valor]) => {
     const representacion = typeof valor === 'number' ? formatear(valor, nCifras) : String(valor);

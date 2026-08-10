@@ -5,7 +5,8 @@ import {
   FileExcelOutlined,
   PlusCircleOutlined,
   LineChartOutlined,
-  HolderOutlined
+  HolderOutlined,
+  CalculatorOutlined
 } from '@ant-design/icons';
 import { Button, Tooltip, Switch, Table } from 'antd';
 import { DndContext } from '@dnd-kit/core';
@@ -20,6 +21,8 @@ import { CSS } from '@dnd-kit/utilities';
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
 import { listaFluidos, nuevoFluido, borrarFluidos, duplicarFluidos, reordenarFluidos } from '../listaFluidos';
+import { listaProcesos, idsEstadosDeProcesos } from '../procesos/listaProcesos';
+import { esDerivado } from '../procesos/propagacion';
 import formatear from '../util/formatear';
 import ConfiguracionFluidos from './ConfiguracionFluidos';
 
@@ -129,9 +132,17 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaFluidos = () => {
-  const { idFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido, verDiagrama, fluidosSeleccionados } = useHookstate(configuracion);
+  const { idFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido,
+    verDiagrama, fluidosSeleccionados, procesosSeleccionados } = useHookstate(configuracion);
 
   const lista = useHookstate(listaFluidos);
+  useHookstate(listaProcesos); // la incidencia estado ↔ proceso cambia con la lista
+
+  // Estados generados por un proceso en modo calculado. Va aparte de las filas
+  // para no colarse como una columna más en el CSV.
+  const derivados = new Set(
+    lista.get({ noproxy: true }).filter(esDerivado).map((estado) => estado.id)
+  );
 
   let columnas = [
     {
@@ -144,6 +155,9 @@ const TablaFluidos = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <DragHandle rowKey={record.key} />
           <a onClick={(event) => { event.stopPropagation(); idFluidoActual.set(record.key); verDialogoFluido.set(true) }} >{text}</a>
+          {derivados.has(record.key) && <Tooltip title={getTextoUI("tooltip_estado_derivado")}>
+            <CalculatorOutlined style={{ marginLeft: 6, color: '#1890FF' }} />
+          </Tooltip>}
         </div>
       ),
     },
@@ -211,8 +225,15 @@ const TablaFluidos = () => {
     }
   }
 
+  // Estados implicados en los procesos seleccionados: el otro sentido de la
+  // sincronización que hace la tabla de procesos con los estados.
+  const estadosResaltados = new Set(idsEstadosDeProcesos([...procesosSeleccionados.get()]));
+
   const rowClassName = (record) => {
-    return record.key === idFluidoActual.get() ? 'selected-row' : '';
+    const clases = [];
+    if (record.key === idFluidoActual.get()) clases.push('selected-row');
+    if (estadosResaltados.has(record.key)) clases.push('fila-resaltada');
+    return clases.join(' ');
   };
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
@@ -274,7 +295,7 @@ const TablaFluidos = () => {
         <Switch
           checkedChildren={<LineChartOutlined />}
           unCheckedChildren={<LineChartOutlined />}
-          defaultChecked={verDiagrama.get()}
+          checked={verDiagrama.get()}
           onClick={() => { verDiagrama.set(!verDiagrama.get()); }}
         />
       </Tooltip>

@@ -1,7 +1,7 @@
 import { useHookstate } from '@hookstate/core';
 import { Modal, Button, Row, Col, Select, InputNumber, Form, ColorPicker, Alert } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
-import { listaFluidos } from '../listaFluidos';
+import { listaFluidos, nuevoFluido } from '../listaFluidos';
 import { listaProcesos, actualizarProceso } from '../procesos/listaProcesos';
 import {
     getDefiniciones,
@@ -10,7 +10,10 @@ import {
     getParametrosPorDefecto,
     evaluarProceso
 } from '../procesos/proceso';
+import { propagarProcesos } from '../procesos/propagacion';
+import { getRendimientoIsentropico } from '../procesos/resolvedores';
 import { textoMensaje } from '../procesos/mensajes';
+import formatear from '../util/formatear';
 
 const { Option } = Select;
 
@@ -33,6 +36,8 @@ const DialogoProceso = () => {
 
     const guardar = (cambios) => {
         actualizarProceso(id, { ...proceso, ...cambios });
+        // Cualquier cambio puede alterar la cadena de estados generados
+        propagarProcesos();
     };
 
     // Cambiar de tipo puede dejar parámetros huérfanos o faltar los del tipo nuevo
@@ -42,6 +47,48 @@ const DialogoProceso = () => {
             tipo: clave,
             parametros: { ...getParametrosPorDefecto(nueva, proceso.modoDestino), ...proceso.parametros }
         });
+    };
+
+    const redondear = (valor) => Number(formatear(valor, nCifras.get()));
+
+    // Al pasar a calculado, los parámetros que hasta ahora eran resultado se
+    // convierten en entrada: se rellenan con lo que ya describía la pareja de
+    // estados, de modo que el punto no salte al cambiar de modo.
+    const sugerirParametros = () => {
+        const origen = listaEstados.find((estado) => estado.id === proceso.origenes[0]);
+        const estadoDestino = listaEstados.find((estado) => estado.id === proceso.destino);
+        if (!origen || !estadoDestino) return {};
+
+        const claves = definicion.parametros.map((parametro) => parametro.clave);
+        const sugerencias = {};
+        if (claves.includes("p_final")) sugerencias.p_final = redondear(estadoDestino.P);
+        if (claves.includes("t_final")) sugerencias.t_final = redondear(estadoDestino.T);
+        if (claves.includes("eta")) {
+            const rendimiento = getRendimientoIsentropico(origen, estadoDestino);
+            if (rendimiento !== null && rendimiento > 0 && rendimiento <= 1) {
+                sugerencias.eta = redondear(rendimiento);
+            }
+        }
+        return sugerencias;
+    };
+
+    const cambiarModo = (modo) => {
+        if (modo === "manual") {
+            guardar({ modoDestino: "manual" });
+            return;
+        }
+
+        // Sin estado destino no hay dónde dejar el resultado: se crea uno.
+        const cambios = { modoDestino: "calculado" };
+        if (proceso.destino === null) {
+            cambios.destino = nuevoFluido();
+        }
+        cambios.parametros = {
+            ...getParametrosPorDefecto(definicion, "calculado"),
+            ...sugerirParametros(),
+            ...proceso.parametros
+        };
+        guardar(cambios);
     };
 
     const selectorEstado = (valor, alCambiar) => (
@@ -79,7 +126,7 @@ const DialogoProceso = () => {
 
         <Form name="dialogo_proceso" layout="vertical">
             <Row gutter={8}>
-                <Col span={24}>
+                <Col span={14}>
                     <Form.Item label={getTextoUI("proc_tipo")}>
                         <Select
                             showSearch
@@ -93,6 +140,14 @@ const DialogoProceso = () => {
                         </Select>
                     </Form.Item>
                 </Col>
+                <Col span={10}>
+                    <Form.Item label={getTextoUI("proc_modo")}>
+                        <Select value={proceso.modoDestino} onChange={cambiarModo}>
+                            <Option value="manual">{getTextoUI("proc_modo_manual")}</Option>
+                            <Option value="calculado">{getTextoUI("proc_modo_calculado")}</Option>
+                        </Select>
+                    </Form.Item>
+                </Col>
             </Row>
 
             <Row gutter={8}>
@@ -102,7 +157,12 @@ const DialogoProceso = () => {
                     </Form.Item>
                 </Col>
                 <Col span={12}>
-                    <Form.Item label={getTextoUI("proc_destino")}>
+                    <Form.Item
+                        label={getTextoUI("proc_destino")}
+                        extra={proceso.modoDestino === "calculado"
+                            ? <span className='comentario'>{getTextoUI("proc_destino_calculado")}</span>
+                            : null}
+                    >
                         {selectorEstado(proceso.destino, (nuevo) => guardar({ destino: nuevo }))}
                     </Form.Item>
                 </Col>

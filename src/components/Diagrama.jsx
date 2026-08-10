@@ -6,10 +6,33 @@ import { Chart as ChartJS } from 'chart.js/auto';
 import { Scatter } from 'react-chartjs-2';
 import formatear from '../util/formatear';
 import { listaFluidos } from '../listaFluidos';
+import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
+import { evaluarProceso, trazarProceso } from '../procesos/proceso';
 import { getListaFluidos, getPropFluido } from '../propFluidos/fluidos';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
+
+// Radio en píxeles dentro del cual un clic se considera hecho sobre una curva.
+// Sin él, "el elemento más cercano" acaba seleccionando algo desde cualquier
+// punto del lienzo.
+const RADIO_CLIC = 30;
 
 const { Option } = Select;
+
+// Proyección de un estado a los ejes del diagrama. Un mismo estado cae en un
+// punto distinto según el tipo, y por aquí pasan tanto los puntos de la tabla
+// como las curvas de los procesos: por eso un solo trazado sirve para los tres
+// diagramas (PLAN-PROCESOS.md §1.3).
+const proyectar = (estado, tipo, conNombre = true) => {
+    let punto;
+    if (tipo === "p-T") {
+        punto = { x: estado.T, y: estado.P };
+    } else if (tipo === "p-h") {
+        punto = { x: estado.H, y: estado.P };
+    } else {
+        punto = { x: estado.S, y: estado.T };
+    }
+    return conNombre ? { ...punto, nombre: estado.nombre } : punto;
+};
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
@@ -17,7 +40,10 @@ const Diagrama = () => {
     const { tipoDiagrama, fluidoDiagrama,
         ejeXmaxDiagrama, ejeXminDiagrama,
         ejeYmaxDiagrama, ejeYminDiagrama, opcionAddDatosDiagrama,
-        colorDatos, lineaDatos, nombreDatos, fluidosSeleccionados } = useHookstate(configuracion);
+        colorDatos, lineaDatos, nombreDatos, fluidosSeleccionados,
+        procesosSeleccionados, idProcesoActual } = useHookstate(configuracion);
+
+    const procesos = useHookstate(listaProcesos);
 
     const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -27,6 +53,9 @@ const Diagrama = () => {
     const tipoActual = tipoDiagrama.get();
     const xMin = ejeXminDiagrama.get();
     const xMax = ejeXmaxDiagrama.get();
+
+    const estadosActuales = lista.get({ noproxy: true });
+    const procesosActuales = procesos.get({ noproxy: true });
 
     // Tooltip
     const titleTooltip = (ctx) => {
@@ -193,45 +222,22 @@ const Diagrama = () => {
     }
 
 
-    const getDato = (fluido) => {
-        let dato = {};
-        if (tipoDiagrama.get() === "p-T") {
-            dato = {
-                x: fluido.T.get(),
-                y: fluido.P.get(),
-                nombre: fluido.nombre.get()
-            }
-
-        } else if (tipoDiagrama.get() === "p-h") {
-            dato = {
-                x: fluido.H.get(),
-                y: fluido.P.get(),
-                nombre: fluido.nombre.get()
-            }
-        } else if (tipoDiagrama.get() === "T-s") {
-            dato = {
-                x: fluido.S.get(),
-                y: fluido.T.get(),
-                nombre: fluido.nombre.get()
-            }
-        }
-        return dato;
-    }
+    const getDato = (estado) => proyectar(estado, tipoActual);
 
     const getSerie = (incluirDatos = "todos") => {
         let datos = [];
         if (incluirDatos === "todos") {
-            lista.forEach(fluido => {
-                if (fluido.fluido.get() == fluidoDiagrama.get()) {
-                    datos.push(getDato(fluido));
+            estadosActuales.forEach(estado => {
+                if (estado.fluido === fluidoActual) {
+                    datos.push(getDato(estado));
                 }
             })
         } else if (incluirDatos === "seleccionados") {
             const ids = [...fluidosSeleccionados.get()]
             ids.forEach(id => {
-                const fluido = lista.find(f => f.id.get() === id);
-                if (fluido && fluido.fluido.get() == fluidoDiagrama.get()) {
-                    datos.push(getDato(fluido));
+                const estado = estadosActuales.find(e => e.id === id);
+                if (estado && estado.fluido === fluidoActual) {
+                    datos.push(getDato(estado));
                 }
             })
         }
@@ -249,8 +255,82 @@ const Diagrama = () => {
     // cambia algo de lo que depende, no en cada render.
     const curvaSaturacion = useMemo(() => getCurvaSat(3), [getCurvaSat]);
 
+    // Firmas de lo que cambia una curva de proceso: los procesos en sí y las
+    // propiedades de los estados que enlazan. Sin esto, cada render rehace 25
+    // llamadas a CoolProp por proceso.
+    const firmaProcesos = JSON.stringify(procesosActuales);
+    const firmaEstados = JSON.stringify(
+        estadosActuales.map((estado) => [estado.id, estado.fluido, estado.T, estado.P, estado.H, estado.S])
+    );
+
+    const curvasProcesos = useMemo(() => {
+        return procesosActuales.flatMap((proceso) => {
+            const evaluacion = evaluarProceso(proceso, estadosActuales);
+            // Un proceso de otro fluido no pinta nada en este diagrama
+            if (!evaluacion.valido || evaluacion.destino.fluido !== fluidoActual) return [];
+
+            const puntos = trazarProceso(proceso, evaluacion)
+                .map((estado) => proyectar(estado, tipoActual, false));
+            if (puntos.length < 2) return [];
+
+            return [{
+                data: puntos,
+                borderColor: proceso.estilo.color,
+                borderWidth: proceso.estilo.grosor,
+                borderDash: proceso.estilo.trazo === "dashed" ? [8, 4] : [],
+                showLine: true,
+                pointRadius: 0,
+                // El id viaja dentro del dataset: es lo que permite volver de un
+                // clic en la curva a la fila de la tabla (F5).
+                idProceso: proceso.id
+            }];
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [firmaProcesos, firmaEstados, tipoActual, fluidoActual]);
+
+    // Un proceso se resalta si está seleccionado en su tabla o si incide en alguno
+    // de los estados seleccionados. El resaltado va fuera del useMemo: cambia con
+    // cada clic y no debe invalidar las curvas, que sí cuestan CoolProp.
+    const idsResaltados = new Set([
+        ...procesosSeleccionados.get(),
+        ...idsProcesosDeEstados([...fluidosSeleccionados.get()])
+    ]);
+
+    const referenciaGrafico = useRef(null);
+
+    // Clic sobre una curva → selecciona su fila. El id del proceso viaja dentro
+    // del dataset, así que no hace falta reconstruir a qué corresponde cada uno.
+    const alHacerClic = (evento) => {
+        const grafico = referenciaGrafico.current;
+        if (!grafico) return;
+
+        const elementos = grafico.getElementsAtEventForMode(
+            evento.nativeEvent, 'nearest', { intersect: false }, true
+        );
+        let idPulsado = null;
+        if (elementos.length > 0) {
+            const { datasetIndex, index } = elementos[0];
+            const punto = grafico.getDatasetMeta(datasetIndex).data[index];
+            const distancia = Math.hypot(
+                punto.x - evento.nativeEvent.offsetX, punto.y - evento.nativeEvent.offsetY
+            );
+            const idProceso = grafico.data.datasets[datasetIndex].idProceso;
+            if (idProceso !== undefined && distancia <= RADIO_CLIC) {
+                idPulsado = idProceso;
+            }
+        }
+
+        procesosSeleccionados.set(idPulsado === null ? [] : [idPulsado]);
+        idProcesoActual.set(null);
+    };
+
     function getTodasSeries() {
-        let todasSeries = [curvaSaturacion]
+        const seriesProcesos = curvasProcesos.map((curva) => (
+            idsResaltados.has(curva.idProceso)
+                ? { ...curva, borderWidth: curva.borderWidth + 3 }
+                : curva
+        ));
+        let todasSeries = [curvaSaturacion, ...seriesProcesos]
         if (opcionAddDatosDiagrama.get() === "todos") {
             todasSeries.push(getSerie("todos"));
         } else if (opcionAddDatosDiagrama.get() === "seleccionados") {
@@ -275,6 +355,8 @@ const Diagrama = () => {
         </div>
 
         <Scatter
+            ref={referenciaGrafico}
+            onClick={alHacerClic}
             options={{
                 locale: "es",
                 scales: {

@@ -189,6 +189,25 @@ export function getUnidadPropFluido(propiedad) {
   return UNIDADES_FLUIDOS[propiedad];
 }
 
+// El wasm se instancia de forma asíncrona: PropsSI no existe hasta que termina.
+// La interacción normal ocurre mucho después de la carga, pero un permalink se
+// resuelve al montar la aplicación y sí puede adelantarse al módulo.
+export function esperarCoolprop(msLimite = 20000) {
+  return new Promise((resolver, rechazar) => {
+    const t0 = Date.now();
+    const comprobar = () => {
+      if (typeof Module.PropsSI === 'function') {
+        resolver();
+      } else if (Date.now() - t0 > msLimite) {
+        rechazar(new Error('error_coolprop_no_listo'));
+      } else {
+        setTimeout(comprobar, 25);
+      }
+    };
+    comprobar();
+  });
+}
+
 // Si se produce un error devuelve NaN
 export function getPropFluido(fluidoSpain, propiedadPedida, propiedad1, valor1, propiedad2, valor2) {
   const fluido = cambiarNombreFluido(fluidoSpain);

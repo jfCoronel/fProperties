@@ -34,6 +34,26 @@ export const procesosDeEstado = (idEstado) => {
   );
 }
 
+// Las dos direcciones de la incidencia estado ↔ proceso, que es lo que sostiene
+// la selección sincronizada de F5.
+export const idsProcesosDeEstados = (idsEstados) => {
+  const buscados = new Set(idsEstados);
+  return listaProcesos.get({ noproxy: true })
+    .filter(proceso => proceso.origenes.some(id => buscados.has(id)) || buscados.has(proceso.destino))
+    .map(proceso => proceso.id);
+}
+
+export const idsEstadosDeProcesos = (idsProcesos) => {
+  const buscados = new Set(idsProcesos);
+  const estados = new Set();
+  listaProcesos.get({ noproxy: true }).forEach(proceso => {
+    if (!buscados.has(proceso.id)) return;
+    proceso.origenes.forEach(id => { if (id !== null) estados.add(id); });
+    if (proceso.destino !== null) estados.add(proceso.destino);
+  });
+  return [...estados];
+}
+
 export const nuevoProceso = (idOrigen = null, idDestino = null) => {
   const definicion = getDefiniciones('fluido')[0];
   const nProcesos = listaProcesos.get({ noproxy: true }).length;

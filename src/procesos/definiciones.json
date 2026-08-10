@@ -4,8 +4,10 @@
     "Tabla de definiciones de tipos de proceso. Declara el CONTRATO de cada tipo:",
     "qué parámetros pide, con qué unidades, qué columnas de resultado muestra y con",
     "qué tolerancia valida. La FÍSICA vive en resolvedores.js, referenciada por",
-    "nombre desde 'restriccion.resolvedor' y 'trazado.resolvedor'. Añadir un tipo",
-    "nuevo es añadir una entrada aquí más su resolvedor.",
+    "nombre desde 'restriccion.resolvedor'; ese mismo resolvedor implementa el",
+    "trazado y el cálculo del estado destino, y aquí solo se declara cuántos",
+    "puntos tiene la curva y si el barrido es logarítmico. Añadir un tipo nuevo",
+    "es añadir una entrada aquí más su resolvedor.",
     "Este fichero es portable: una versión Python leería el mismo JSON y",
     "reimplementaría el mismo registro de resolvedores.",
     "Ver PLAN-PROCESOS.md §1.2 y §2.2."
@@ -18,6 +20,41 @@
       "unidad": "kg/s",
       "requerido": false,
       "min": 0
+    }
+  ],
+
+  "_comentarioColumnas": [
+    "Catálogo de columnas de resultado. Cada tipo elige las suyas en 'columnas';",
+    "el orden de la tabla es el de este catálogo, no el de cada tipo, para que",
+    "una columna compartida por varios tipos caiga siempre en el mismo sitio.",
+    "'requiereCaudal' oculta la columna mientras ningún proceso declare m_punto."
+  ],
+
+  "columnasResultado": [
+    { "clave": "dh", "i18n": "col_dh", "simbolo": "Δh", "unidad": "kJ/kg" },
+    { "clave": "ds", "i18n": "col_ds", "simbolo": "Δs", "unidad": "kJ/(kg·K)" },
+    { "clave": "dt", "i18n": "col_dt", "simbolo": "ΔT", "unidad": "K" },
+    { "clave": "w_esp", "i18n": "col_w_esp", "simbolo": "w", "unidad": "kJ/kg" },
+    { "clave": "q_esp", "i18n": "col_q_esp", "simbolo": "q", "unidad": "kJ/kg" },
+    {
+      "clave": "rel_compresion",
+      "i18n": "col_rel_compresion",
+      "simbolo": "p<sub>2</sub>/p<sub>1</sub>",
+      "unidad": "-"
+    },
+    {
+      "clave": "rel_expansion",
+      "i18n": "col_rel_expansion",
+      "simbolo": "p<sub>1</sub>/p<sub>2</sub>",
+      "unidad": "-"
+    },
+    { "clave": "eta_real", "i18n": "col_eta_real", "simbolo": "η<sub>s</sub>", "unidad": "-" },
+    {
+      "clave": "potencia",
+      "i18n": "col_potencia",
+      "simbolo": "P",
+      "unidad": "kW",
+      "requiereCaudal": true
     }
   ],
 
@@ -50,7 +87,7 @@
         "resolvedor": "compresionEta",
         "tolerancia": { "magnitud": "S", "rel": 0.002, "abs": 0.002 }
       },
-      "trazado": { "resolvedor": "barridoP", "nPuntos": 25 },
+      "trazado": { "nPuntos": 25, "escala": "log" },
       "columnas": ["dh", "ds", "w_esp", "rel_compresion", "eta_real", "potencia"]
     },
 
@@ -65,15 +102,28 @@
           "clave": "t_final",
           "i18n": "param_t_final",
           "unidad": "ºC",
-          "requerido": true,
+          "soloCalculado": true
+        },
+        {
+          "clave": "x_final",
+          "i18n": "param_x_final",
+          "unidad": "%",
+          "min": 0,
+          "max": 100,
           "soloCalculado": true
         }
       ],
+      "_comentarioRequiereAlguno": [
+        "Condensar hasta líquido saturado no se puede pedir con la temperatura:",
+        "dentro de la campana T no distingue el título. De ahí el título como",
+        "alternativa, y la exigencia de dar uno de los dos."
+      ],
+      "requiereAlguno": ["t_final", "x_final"],
       "restriccion": {
         "resolvedor": "isobarico",
         "tolerancia": { "magnitud": "P", "rel": 0.01, "abs": 0.05 }
       },
-      "trazado": { "resolvedor": "barridoH", "nPuntos": 25 },
+      "trazado": { "nPuntos": 25, "escala": "lineal" },
       "columnas": ["dh", "ds", "q_esp", "potencia"]
     },
 
@@ -96,7 +146,7 @@
         "resolvedor": "isentalpico",
         "tolerancia": { "magnitud": "H", "rel": 0.005, "abs": 0.5 }
       },
-      "trazado": { "resolvedor": "barridoP", "nPuntos": 15 },
+      "trazado": { "nPuntos": 15, "escala": "log" },
       "columnas": ["ds", "dt", "rel_expansion"]
     },
 
@@ -119,7 +169,7 @@
         "resolvedor": "isotermo",
         "tolerancia": { "magnitud": "T", "rel": 0, "abs": 0.05 }
       },
-      "trazado": { "resolvedor": "barridoP", "nPuntos": 25 },
+      "trazado": { "nPuntos": 25, "escala": "log" },
       "columnas": ["dh", "ds", "q_esp", "potencia"]
     }
   ]

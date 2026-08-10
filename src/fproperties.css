@@ -68,3 +68,14 @@ a {
 .fila-proceso-aviso>td {
   background-color: #FFFBE6;
 }
+
+/* Selección sincronizada (F5): una fila implicada en lo que hay seleccionado al
+   otro lado. Se marca con una barra lateral en vez de con fondo para que no
+   tape el color del diagnóstico. */
+.fila-resaltada>td:first-child {
+  box-shadow: inset 4px 0 0 #1890FF;
+}
+
+.fila-resaltada>td {
+  font-weight: 500;
+}
