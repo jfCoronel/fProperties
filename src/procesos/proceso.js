@@ -1,7 +1,7 @@
 // Motor de procesos: lee la tabla de definiciones, resuelve las referencias a
 // estados y evalúa la coherencia de cada proceso. Sin dependencias de React,
 // para que sea testeable y reutilizable.
-// Ver PLAN-PROCESOS.md §2.
+// Ver DOCUMENTACION.md §3.4.
 import definiciones from './definiciones.json';
 import { RESOLVEDORES, dentroDeTolerancia } from './resolvedores';
 import { getPropFluido } from '../propFluidos/fluidos';
@@ -23,7 +23,7 @@ export function getDefinicion(clave) {
 
 // En modo manual el usuario crea los dos estados y el proceso deduce las
 // magnitudes: los parámetros marcados como soloCalculado son entradas que
-// únicamente hacen falta cuando el proceso genera el estado destino (F6).
+// únicamente hacen falta cuando el proceso genera el estado destino (modo calculado).
 export function getParametrosVisibles(definicion, modoDestino = 'manual') {
   if (!definicion) return [];
   const propios = modoDestino === 'calculado'
@@ -130,7 +130,7 @@ function erroresParametros(definicion, proceso) {
 
 /**
  * Pareja de propiedades que define el estado destino, o null si no se puede
- * calcular. Es la operación que hace posible el modo calculado (F6).
+ * calcular. Es la operación que hace posible el modo calculado.
  */
 export function parejaDestino(proceso, origenes) {
   const definicion = getDefinicion(proceso.tipo);
@@ -151,7 +151,7 @@ export function parejaDestino(proceso, origenes) {
 const TOLERANCIA_CIERRE = { H: { rel: 0.005, abs: 0.5 }, P: { rel: 0.01, abs: 0.05 } };
 
 /**
- * Comprobación de cierre (§1.4).
+ * Comprobación de cierre (DOCUMENTACION.md §3.4, regla d).
  *
  * Un proceso calculado cuyo destino generó otro proceso —o él mismo antes de
  * que la propagación cerrara el ciclo— no puede volver a generarlo sin entrar en
@@ -192,7 +192,7 @@ function avisosCierre(proceso, origenes, destino) {
  * Devuelve los procesos que sí generan su destino, en orden topológico, y los
  * que quedan como aristas de cierre. Un ciclo cerrado no necesita detección
  * especial: cuando ningún generador puede avanzar, se descarta el último de la
- * lista —el que vuelve al estado de partida— y se reintenta (§1.4). Así el
+ * lista —el que vuelve al estado de partida— y se reintenta. Así el
  * bucle infinito no llega a existir en vez de tener que romperse.
  */
 export function planificarPropagacion(procesos) {
@@ -237,7 +237,7 @@ export function planificarPropagacion(procesos) {
  *
  * Devuelve estados termodinámicos completos, no puntos (x, y): la proyección a
  * los ejes la hace el diagrama, así que la misma curva vale para el p-h, el T-s
- * y el p-T y sale correcta en los tres (PLAN-PROCESOS.md §1.3).
+ * y el p-T y sale correcta en los tres (DOCUMENTACION.md §3.4).
  *
  * Los extremos son los propios estados de la tabla, de modo que la curva toque
  * exactamente los dos puntos dibujados aunque el modelo intermedio sea

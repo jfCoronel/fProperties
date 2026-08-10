@@ -1,6 +1,6 @@
 // Puente entre el formato serializado (formato.js) y el estado vivo de la
 // aplicación: lee las tres listas hookstate para construir el problema, y las
-// reemplaza al cargar uno. Ver PLAN-PROCESOS.md §F3.
+// reemplaza al cargar uno. Ver DOCUMENTACION.md §2.
 import { configuracion } from '../configuracion';
 import { listaFluidos } from '../listaFluidos';
 import { listaAires } from '../listaAires';

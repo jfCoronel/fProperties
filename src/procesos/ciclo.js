@@ -1,6 +1,6 @@
-// Ciclos (F7): un ciclo no es un objeto más, es un camino cerrado en el grafo
+// Ciclos: un ciclo no es un objeto más, es un camino cerrado en el grafo
 // que ya forman los procesos. Este módulo lo detecta y hace el balance global.
-// Ver PLAN-PROCESOS.md §F7.
+// Ver DOCUMENTACION.md §1.6.
 import { evaluarProceso, derivadosProceso } from './proceso';
 
 // Topes de seguridad: el grafo de un problema docente es diminuto, pero un

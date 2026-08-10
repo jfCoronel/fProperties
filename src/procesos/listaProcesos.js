@@ -27,7 +27,7 @@ export const indiceProceso = (id) => {
 }
 
 // Procesos que referencian un estado dado. La especificación pide NO borrar en
-// cascada: esto sirve para avisar y, en F5, para la selección sincronizada.
+// cascada: esto sirve para avisar y para la selección sincronizada.
 export const procesosDeEstado = (idEstado) => {
   return listaProcesos.get({ noproxy: true }).filter(
     proceso => proceso.origenes.includes(idEstado) || proceso.destino === idEstado
@@ -35,7 +35,7 @@ export const procesosDeEstado = (idEstado) => {
 }
 
 // Las dos direcciones de la incidencia estado ↔ proceso, que es lo que sostiene
-// la selección sincronizada de F5.
+// la selección sincronizada.
 export const idsProcesosDeEstados = (idsEstados) => {
   const buscados = new Set(idsEstados);
   return listaProcesos.get({ noproxy: true })

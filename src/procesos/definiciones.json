@@ -10,7 +10,7 @@
     "es añadir una entrada aquí más su resolvedor.",
     "Este fichero es portable: una versión Python leería el mismo JSON y",
     "reimplementaría el mismo registro de resolvedores.",
-    "Ver PLAN-PROCESOS.md §1.2 y §2.2."
+    "Ver DOCUMENTACION.md §3.4."
   ],
 
   "parametrosComunes": [

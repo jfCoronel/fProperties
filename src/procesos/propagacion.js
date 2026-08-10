@@ -1,7 +1,7 @@
-// Modo calculado (F6): los procesos que generan su estado destino lo recalculan
+// Modo calculado: los procesos que generan su estado destino lo recalculan
 // aquí, en orden topológico. El orden y la física viven en proceso.js y en los
 // resolvedores; este módulo solo los aplica sobre el estado vivo.
-// Ver PLAN-PROCESOS.md §1.4 y §F6.
+// Ver DOCUMENTACION.md §1.5 y §3.4.
 import { none } from '@hookstate/core';
 import { listaFluidos, indiceFluido } from '../listaFluidos';
 import { listaProcesos, indiceProceso } from './listaProcesos';
@@ -70,7 +70,7 @@ export function esDerivado(estado) {
 /**
  * Rompe el vínculo de un estado calculado con el proceso que lo generó.
  *
- * Decisión 4 del plan: editar a mano un estado calculado no se bloquea, devuelve
+ * Editar a mano un estado calculado no se bloquea, devuelve
  * el proceso a modo manual y avisa. Bloquear la edición es más simple, pero deja
  * al usuario sin salida delante de un valor que quiere tocar.
  *

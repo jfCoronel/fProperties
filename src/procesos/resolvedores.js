@@ -1,13 +1,13 @@
 // Registro de resolvedores: aquí vive la FÍSICA de cada tipo de proceso.
 // definiciones.json referencia cada entrada por su clave; el JSON declara el
 // contrato (parámetros, unidades, tolerancias, columnas) y este fichero lo cumple.
-// Ver PLAN-PROCESOS.md §1.2 y §2.3.
+// Ver DOCUMENTACION.md §3.4.
 //
 // Cada resolvedor puede implementar hasta cuatro operaciones, independientes entre sí:
-//   verificar(origenes, destino, parametros, definicion) -> [avisos]   (F1)
-//   derivados(origenes, destino, parametros, definicion) -> { ... }    (F2)
-//   trazar(origenes, destino, parametros, definicion)    -> [estados]  (F4)
-//   destino(origenes, parametros, definicion)            -> pareja     (F6, esta fase)
+//   verificar(origenes, destino, parametros, definicion) -> [avisos]   (validación)
+//   derivados(origenes, destino, parametros, definicion) -> { ... }    (tabla de procesos)
+//   trazar(origenes, destino, parametros, definicion)    -> [estados]  (curva del diagrama)
+//   destino(origenes, parametros, definicion)            -> pareja     (modo calculado)
 // El motor tolera la ausencia de cualquiera de ellas.
 //
 // destino() no construye el estado: devuelve la pareja de propiedades que lo
@@ -226,7 +226,7 @@ export const RESOLVEDORES = {
     },
 
     // Recta vertical en el p-h, pero no en el T-s ni en el p-T: por eso el
-    // trazado devuelve estados y no puntos del plano (PLAN-PROCESOS.md §1.3).
+    // trazado devuelve estados y no puntos del plano (DOCUMENTACION.md §3.4).
     trazar(origenes, destino, parametros, definicion) {
       const origen = origenes[0];
       return barridoPresion(origen, destino, definicion, () => ['H', origen.H]);

@@ -69,7 +69,7 @@ a {
   background-color: #FFFBE6;
 }
 
-/* Selección sincronizada (F5): una fila implicada en lo que hay seleccionado al
+/* Selección sincronizada: una fila implicada en lo que hay seleccionado al
    otro lado. Se marca con una barra lateral en vez de con fondo para que no
    tape el color del diagnóstico. */
 .fila-resaltada>td:first-child {

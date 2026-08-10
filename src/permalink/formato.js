@@ -1,7 +1,7 @@
 // Formato serializado del problema: la misma unidad viaja en el permalink, en el
 // JSON descargado y en la importación. Versionado desde el primer enlace
 // publicado, porque un enlace compartido sobrevive a la versión que lo generó
-// (PLAN-PROCESOS.md §F3).
+// (DOCUMENTACION.md §2).
 //
 // Este fichero es puro: no toca hookstate, ni el DOM, ni CoolProp. Solo convierte
 // entre el objeto problema y su representación textual, y normaliza lo que llega

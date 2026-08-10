@@ -21,7 +21,7 @@ const { Option } = Select;
 // Proyección de un estado a los ejes del diagrama. Un mismo estado cae en un
 // punto distinto según el tipo, y por aquí pasan tanto los puntos de la tabla
 // como las curvas de los procesos: por eso un solo trazado sirve para los tres
-// diagramas (PLAN-PROCESOS.md §1.3).
+// diagramas (DOCUMENTACION.md §3.4).
 const proyectar = (estado, tipo, conNombre = true) => {
     let punto;
     if (tipo === "p-T") {
@@ -281,7 +281,7 @@ const Diagrama = () => {
                 showLine: true,
                 pointRadius: 0,
                 // El id viaja dentro del dataset: es lo que permite volver de un
-                // clic en la curva a la fila de la tabla (F5).
+                // clic en la curva a la fila de la tabla.
                 idProceso: proceso.id
             }];
         });

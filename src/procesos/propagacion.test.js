@@ -1,6 +1,6 @@
 // El modo calculado sobre un ciclo frigorífico completo: es el caso que reúne
-// todo lo delicado de F6 —cadena de dependencias, arista de cierre y ruptura del
-// vínculo al editar a mano.
+// todo lo delicado —cadena de dependencias, arista de cierre y ruptura del
+// vínculo al editar a mano—.
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { esperarCoolprop } from '../test/setupCoolprop';
 import { Module } from '../propFluidos/coolprop';

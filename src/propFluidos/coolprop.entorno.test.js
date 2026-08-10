@@ -1,7 +1,7 @@
 // Sonda: ¿arranca el módulo emscripten de CoolProp fuera del navegador?
-// De la respuesta depende si los tests del motor de procesos (F1 en adelante)
+// De la respuesta depende si los tests del motor de procesos
 // pueden llamar a CoolProp de verdad o tienen que ir contra estados tabulados.
-// Ver PLAN-PROCESOS.md, decisión 3.
+// La respuesta fue que sí; ver DOCUMENTACION.md §4.
 import { describe, it, expect, beforeAll } from 'vitest';
 import { esperarCoolprop } from '../test/setupCoolprop';
 import { Module } from './coolprop';

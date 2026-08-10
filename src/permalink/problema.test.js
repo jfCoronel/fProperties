@@ -1,6 +1,6 @@
 // Ida y vuelta contra el estado vivo: comprueba que lo que se serializa basta
-// para reconstruir el problema. Es el riesgo real de F3 — un campo de entrada
-// que se olvide aquí no rompe nada hasta que alguien abre el enlace.
+// para reconstruir el problema. Es el riesgo real del permalink: un campo de
+// entrada que se olvide aquí no rompe nada hasta que alguien abre el enlace.
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest';
 import { esperarCoolprop } from '../test/setupCoolprop';
 import { Module } from '../propFluidos/coolprop';

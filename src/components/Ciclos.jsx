@@ -9,7 +9,7 @@ import { getCiclos } from '../procesos/ciclo';
 import formatear from '../util/formatear';
 
 // El balance de un ciclo no necesita un objeto nuevo: sale de los procesos que
-// ya hay, en cuanto forman un camino cerrado (PLAN-PROCESOS.md §F7). El panel
+// ya hay, en cuanto forman un camino cerrado (DOCUMENTACION.md §1.6). El panel
 // solo aparece cuando existe ese camino.
 const Ciclos = () => {
     const { nCifras, procesosSeleccionados } = useHookstate(configuracion);
