@@ -31,9 +31,14 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 
 ### 1.1 Acceso, idioma e instalación
 
-La aplicación se sirve con **GitHub Pages desde la carpeta `docs/`**, bajo el dominio que
-declara `docs/CNAME` (`fproperties.jfcoronel.org`; la cabecera de la aplicación enlaza además
-a `fproperties.org`). No hace falta registrarse ni instalar nada: basta abrir la página.
+La aplicación vive en **[fproperties.jfcoronel.org](https://fproperties.jfcoronel.org)**,
+servida por GitHub Pages desde la carpeta `docs/`. No hace falta registrarse ni instalar
+nada: basta abrir la página.
+
+El dominio lo declara un fichero `CNAME` en la raíz de lo publicado. Está en **`public/`**,
+que es de donde Vite lo copia a cada build, de modo que cualquier salida de `npm run build`
+lo lleva dentro; `docs/CNAME` es esa misma copia ya publicada. Tenerlo solo en `docs/` era
+una trampa: bastaba sobrescribir la carpeta con una build nueva para tumbar el dominio.
 
 > **Ojo:** publicar no es automático. `npm run build` deja la aplicación en `dist/`, y lo que
 > se sirve es `docs/`, que se actualiza copiando esa salida. Ahora mismo `docs/` contiene la
@@ -447,7 +452,10 @@ Lo que falta o conviene arreglar, en orden de importancia:
    curvas, permalink, modo calculado y ciclos— está en el repositorio y probado, pero no en
    línea hasta que se copie la salida de `npm run build` a `docs/`. Merece la pena
    automatizar ese paso con un script de npm o una acción de GitHub, en vez de dejarlo como
-   una copia manual que es fácil olvidar.
+   una copia manual que es fácil olvidar. Ahora la copia es segura —el `CNAME` viaja dentro
+   de la build—, pero conviene que sea un reemplazo limpio de `docs/`, no una fusión sobre
+   los ficheros antiguos: los `assets` llevan hash en el nombre y los de versiones viejas se
+   quedarían acumulados.
 2. **Procesos psicrométricos.** El aire húmedo tiene tablas y diagrama, pero no procesos.
    Faltan la mezcla adiabática de dos caudales —el único tipo con **dos** estados de origen,
    razón por la que el modelo guarda `origenes` como array desde el primer día—, el

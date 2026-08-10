@@ -87,7 +87,7 @@ const FProperties = () => {
       <div className='tablas'
         onClick={() => { idFluidoActual.set(null); idAireActual.set(null); }} >
         <p> </p>
-        <span className='titulo'> <a href="http://fproperties.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
+        <span className='titulo'> <a href="https://fproperties.jfcoronel.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
         <span style={{ float: "right" }}>
           {textosCargados.get() && <Compartir />}
           {" "}
