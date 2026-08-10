@@ -29,6 +29,7 @@ import { propagarProcesos } from '../procesos/propagacion';
 import { textoMensaje } from '../procesos/mensajes';
 import formatear from '../util/formatear';
 import DialogoProceso from './DialogoProceso';
+import Ciclos from './Ciclos';
 
 const TablaProcesos = () => {
   const {
@@ -263,6 +264,8 @@ const TablaProcesos = () => {
             onDoubleClick: () => { idProcesoActual.set(fila.key); verDialogoProceso.set(true); }
           })}
         />}
+
+      <Ciclos />
 
       <DialogoProceso />
     </div>

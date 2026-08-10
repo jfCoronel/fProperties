@@ -3,9 +3,9 @@
 Plan de implementación derivado de la especificación `fproperties_objeto_proceso.md`,
 ajustado al código real de fProperties 1.6.0.
 
-**Estado:** decisiones de diseño cerradas el 2026-08-09 (§5). **Fases P0, F1 (p-h) y F2 a
-F6 completadas.** Siguiente: F7 (ciclos). Queda pendiente de F1 la familia psicrométrica,
-que no bloquea a ninguna otra fase.
+**Estado:** decisiones de diseño cerradas el 2026-08-09 (§5). **Plan completo: P0 y F1 a F7
+implementadas.** Queda pendiente, de F1, la familia psicrométrica, que no bloquea nada y
+entra sobre el mismo motor.
 
 ---
 
@@ -104,6 +104,7 @@ src/procesos/
   proceso.js            Motor: valida, calcula derivados, traza y ordena la propagación
   propagacion.js        Aplica el modo calculado sobre la lista de estados
   listaProcesos.js      Estado hookstate + operaciones CRUD
+  ciclo.js              Detección de ciclos y balance global
   mensajes.js           Interpola las claves i18n que emite el motor
 ```
 
@@ -121,6 +122,7 @@ Y en componentes:
 src/components/
   TablaProcesos.jsx     Tabla con columnas declaradas por tipo
   DialogoProceso.jsx    Alta/edición de un proceso
+  Ciclos.jsx            Balance de los ciclos detectados
   Compartir.jsx         Enlace, descarga e importación del problema
 ```
 
@@ -397,10 +399,30 @@ Barato una vez P0 hizo que todo se referencie por `id`: son dos funciones de inc
 - [x] La marca de derivado no viaja en el permalink: se vuelve a deducir propagando al
   cargar, que es la única fuente de verdad.
 
-### F7 — Ciclos
+### F7 — Ciclos ✅
 
-Lista ordenada de procesos + comprobación de cierre + balance global (ΣW, ΣQ, COP o η).
-No requiere un tercer objeto de primera clase.
+Confirmado que no requiere un tercer objeto de primera clase: un ciclo es un camino cerrado
+en el grafo que ya forman los procesos.
+
+- [x] `detectarCiclos()` enumera los ciclos elementales y deduplica por conjunto de
+  procesos, porque el mismo ciclo se puede recorrer empezando por cualquier arista. Con
+  topes de longitud y de número de ciclos: el grafo de un problema docente es diminuto, pero
+  un enunciado raro no debe poder colgar la interfaz.
+- [x] **El trabajo no se le pide a cada tipo, se deduce**: `w = Δh − q`, con la `q` que dé
+  el resolvedor (Δh en el isobárico, T·Δs en el isotermo, cero en los adiabáticos). Así el
+  balance es coherente por construcción y ΣΔh = 0 alrededor del ciclo sale solo, en vez de
+  ser una comprobación que puede fallar por un signo mal puesto en un tipo.
+- [x] Balance global: trabajo neto, calor absorbido y cedido, y el indicador que
+  corresponda —COP frigorífico y de bomba de calor si el ciclo consume trabajo, rendimiento
+  térmico si lo produce—. Con caudal común a todo el ciclo, además las potencias en kW.
+- [x] El panel solo aparece cuando hay ciclo, y pulsar la secuencia de estados resalta el
+  ciclo entero en el diagrama (reutiliza F5).
+- [x] La comprobación de cierre la hacen los propios procesos (§1.4, implementada en F6): un
+  proceso calculado que no genera su destino compara y marca la discrepancia. El panel
+  señala si alguno de los procesos del ciclo está marcado, sin ocultar el balance.
+
+Verificado con el ciclo frigorífico de R134a de referencia (−10 ºC / 1000 kPa, η = 0,75):
+COP frigorífico 3,074, COP de bomba 4,074 —que difieren exactamente en uno— y w + q = 0.
 
 ---
 

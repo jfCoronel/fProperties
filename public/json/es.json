@@ -156,5 +156,15 @@
     "msg_problema_cargado": "Problema cargado: {estados} estados y {procesos} procesos",
     "error_problema_ilegible": "El enlace o el fichero no se pueden leer",
     "error_problema_version": "Este enlace lo generó otra versión del formato de fProperties",
-    "error_coolprop_no_listo": "La biblioteca de propiedades no terminó de cargar"
+    "error_coolprop_no_listo": "La biblioteca de propiedades no terminó de cargar",
+
+    "titulo_ciclos": "Ciclos",
+    "ciclo_w_neto": "Trabajo neto",
+    "ciclo_q_absorbido": "Calor absorbido",
+    "ciclo_q_cedido": "Calor cedido",
+    "ciclo_cop_frigorifico": "COP frigorífico",
+    "ciclo_cop_bomba": "COP bomba de calor",
+    "ciclo_rendimiento_termico": "Rendimiento térmico",
+    "ciclo_con_avisos": "Alguno de los procesos del ciclo está marcado para revisar",
+    "ciclo_convenio": "Por unidad de masa, con el convenio del propio fluido: positivo lo que absorbe, negativo lo que cede. Pulsa la secuencia de estados para resaltar el ciclo en el diagrama."
 }
