@@ -267,5 +267,90 @@ export const RESOLVEDORES = {
         in2Id: 'T', in2Val: origenes[0].T
       };
     }
+  },
+
+  // Conducto, intercambiador, tubería: sin trabajo de eje, el primer principio en
+  // régimen estacionario deja q = Δh aunque la presión caiga. Es el hueco que no
+  // cubría el isobárico, que exige p constante.
+  sinTrabajo: {
+    verificar(origenes, destino, parametros, definicion) {
+      const origen = origenes[0];
+      const tolerancia = definicion.restriccion.tolerancia;
+      // Sin trabajo de eje la presión no sube: si lo hace, falta una bomba o el
+      // tipo está mal elegido.
+      if (destino.P > origen.P && !dentroDeTolerancia(origen.P, destino.P, tolerancia)) {
+        return [{
+          clave: 'aviso_presion_sube_sin_trabajo',
+          datos: { magnitud: 'P', valorOrigen: origen.P, valorDestino: destino.P }
+        }];
+      }
+      return [];
+    },
+
+    derivados(origenes, destino, parametros) {
+      const origen = origenes[0];
+      const { dh, ds } = saltos(origen, destino);
+      return {
+        ds,
+        dp: destino.P - origen.P,
+        q_esp: dh,
+        potencia: potencia(parametros, dh)
+      };
+    },
+
+    // El camino real por el conducto no se conoce. Se supone lo único razonable,
+    // que h avanza a la par que p, lo que da una recta en el p-h y una curva que
+    // toca los dos extremos en los otros dos diagramas.
+    trazar(origenes, destino, parametros, definicion) {
+      const origen = origenes[0];
+      const saltoP = destino.P - origen.P;
+
+      if (Math.abs(saltoP) < 1e-9) {
+        // Sin caída de presión el barrido natural es el de entalpía, como en el
+        // isobárico: atraviesa el cambio de fase sin atascarse.
+        const { nPuntos } = definicion.trazado;
+        return interiores(origen.H, destino.H, nPuntos, 'lineal').map((h) => ({
+          fluido: origen.fluido,
+          ...getObjetoFluido(origen.fluido, 'P', origen.P, 'H', h)
+        }));
+      }
+
+      return barridoPresion(origen, destino, definicion, (p) => {
+        const fraccion = (p - origen.P) / saltoP;
+        return ['H', origen.H + (destino.H - origen.H) * fraccion];
+      });
+    },
+
+    // Los dos datos del enunciado típico: cuánto calor entra (o sale, negativo) y
+    // cuánta presión se pierde por el camino.
+    destino(origenes, parametros) {
+      const origen = origenes[0];
+      const caida = Number.isFinite(parametros.dp_dato) ? parametros.dp_dato : 0;
+      return {
+        in1Id: 'P', in1Val: origen.P - caida,
+        in2Id: 'H', in2Val: origen.H + parametros.q_dato
+      };
+    }
+  },
+
+  // El comodín. No supone nada, luego no puede contradecir nada: solo mide.
+  generico: {
+    verificar() {
+      return [];
+    },
+
+    derivados(origenes, destino) {
+      const origen = origenes[0];
+      const { dh, ds, dt } = saltos(origen, destino);
+      return { dh, ds, dt, dp: destino.P - origen.P };
+    },
+
+    // Sin puntos intermedios queda el segmento entre los dos extremos, que es
+    // justo lo que se puede afirmar de un camino desconocido.
+    trazar() {
+      return [];
+    }
+
+    // Sin destino() no hay modo calculado: no hay hipótesis con la que calcularlo.
   }
 };

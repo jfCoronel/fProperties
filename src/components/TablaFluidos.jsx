@@ -4,11 +4,10 @@ import {
   SettingOutlined,
   FileExcelOutlined,
   PlusCircleOutlined,
-  LineChartOutlined,
   HolderOutlined,
   CalculatorOutlined
 } from '@ant-design/icons';
-import { Button, Tooltip, Switch, Table } from 'antd';
+import { Button, Tooltip, Table } from 'antd';
 import { DndContext } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
@@ -20,11 +19,15 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
-import { listaFluidos, nuevoFluido, borrarFluidos, duplicarFluidos, reordenarFluidos } from '../listaFluidos';
+import {
+  listaFluidos, nuevoFluido, borrarFluidos, duplicarFluidos, reordenarFluidos,
+  verFluidosEnDiagrama
+} from '../listaFluidos';
 import { listaProcesos, idsEstadosDeProcesos } from '../procesos/listaProcesos';
 import { esDerivado } from '../procesos/propagacion';
 import formatear from '../util/formatear';
 import ConfiguracionFluidos from './ConfiguracionFluidos';
+import { columnaDiagrama } from './columnaDiagrama';
 
 
 
@@ -133,15 +136,20 @@ const NOMBRE_COLUMNAS = {
 
 const TablaFluidos = () => {
   const { idFluidoActual, columnasTablaFluidos, nCifras, verConfiguracion, verDialogoFluido,
-    verDiagrama, fluidosSeleccionados, procesosSeleccionados } = useHookstate(configuracion);
+    fluidosSeleccionados, procesosSeleccionados, tipoDiagrama } = useHookstate(configuracion);
 
   const lista = useHookstate(listaFluidos);
   useHookstate(listaProcesos); // la incidencia estado ↔ proceso cambia con la lista
 
+  const estadosActuales = lista.get({ noproxy: true });
+
   // Estados generados por un proceso en modo calculado. Va aparte de las filas
   // para no colarse como una columna más en el CSV.
-  const derivados = new Set(
-    lista.get({ noproxy: true }).filter(esDerivado).map((estado) => estado.id)
+  const derivados = new Set(estadosActuales.filter(esDerivado).map((estado) => estado.id));
+
+  // Lo mismo con la visibilidad en el diagrama, y por la misma razón.
+  const ocultos = new Set(
+    estadosActuales.filter((estado) => estado.enDiagrama === false).map((estado) => estado.id)
   );
 
   let columnas = [
@@ -246,6 +254,16 @@ const TablaFluidos = () => {
     }
   });
 
+  // La columna del ojo se añade después de copiar las del CSV (no es un dato del
+  // estado) y solo si hay diagrama que mirar.
+  if (tipoDiagrama.get() !== "ninguno") {
+    columnas.push(columnaDiagrama({
+      ids: estadosActuales.map((estado) => estado.id),
+      ocultos,
+      cambiar: verFluidosEnDiagrama
+    }));
+  }
+
   const onDragEnd = ({ active, over }) => {
     if (active.id !== over?.id) {
       const activeIndex = datos.findIndex((record) => record.key === active.id);
@@ -255,8 +273,8 @@ const TablaFluidos = () => {
   };
 
   return (
-    <div>
-      <p>  </p>
+    <div className='panel'>
+      <h3>{getTextoUI("titulo_estados")}</h3>
       <Tooltip title={getTextoUI("tooltip_nuevo_fluido")} mouseEnterDelay={1}>
         <Button type='link' icon={<PlusCircleOutlined />} size='large' onClick={() => nuevoFluido()}></Button>
       </Tooltip>
@@ -291,16 +309,7 @@ const TablaFluidos = () => {
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
       </Tooltip>
       <span>  </span>
-      <Tooltip title={getTextoUI("tooltip_diagrama")} mouseEnterDelay={1}>
-        <Switch
-          checkedChildren={<LineChartOutlined />}
-          unCheckedChildren={<LineChartOutlined />}
-          checked={verDiagrama.get()}
-          onClick={() => { verDiagrama.set(!verDiagrama.get()); }}
-        />
-      </Tooltip>
-      <span> </span>
-       <Button
+      <Button
         icon={<FileExcelOutlined />}
         onClick={() => {
           descargarTablaCSV(columnasCsv, datos)

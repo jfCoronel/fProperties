@@ -32,6 +32,22 @@ a {
   padding-bottom: 40px;
 }
 
+/* Cada zona del programa —estados, procesos, diagrama— en su propia caja, para
+   que se vea de un vistazo dónde empieza una y acaba la anterior. */
+.panel {
+  border: 1px solid #D9D9D9;
+  border-radius: 8px;
+  padding: 8px 20px 20px 20px;
+  margin-bottom: 20px;
+  background-color: #FFFFFF;
+}
+
+/* El lienzo llena el ancho de su caja y la altura la fija el envoltorio, no la
+   proporción del gráfico: así el diagrama no crece sin fin en pantallas anchas. */
+.lienzo-diagrama {
+  height: 440px;
+}
+
 .editor-fila {
   padding-left: 60px;
   padding-right: 60px;

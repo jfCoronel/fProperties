@@ -32,7 +32,8 @@ export function serializarProblema() {
     in1Id: estado.in1Id,
     in1Val: estado.in1Val,
     in2Id: estado.in2Id,
-    in2Val: estado.in2Val
+    in2Val: estado.in2Val,
+    enDiagrama: estado.enDiagrama !== false
   }));
 
   const aires = listaAires.get({ noproxy: true }).map((estado) => ({

@@ -73,12 +73,17 @@ export function balanceCiclo(procesos, estados) {
   let qAbsorbido = 0;
   let qCedido = 0;
   let hayAvisos = false;
+  // Un tipo que no supone nada no dice cuánto de su Δh es calor y cuánto trabajo.
+  // El reparto w = Δh − q daría entonces todo a trabajo, que es una respuesta
+  // inventada: mejor declarar el balance indeterminado y no dar cifras.
+  let indeterminado = false;
   const caudales = new Set();
 
   for (const proceso of procesos) {
     const evaluacion = evaluarProceso(proceso, estados);
     if (!evaluacion.valido) return null;
     if (evaluacion.avisos.length > 0) hayAvisos = true;
+    if (evaluacion.definicion?.balance === 'indeterminado') indeterminado = true;
 
     const derivados = derivadosProceso(proceso, evaluacion);
     const dh = evaluacion.destino.H - evaluacion.origenes[0].H;
@@ -101,8 +106,11 @@ export function balanceCiclo(procesos, estados) {
     q_cedido: qCedido,
     caudal,
     hayAvisos,
+    indeterminado,
     indicador: null
   };
+
+  if (indeterminado) return balance;
 
   if (w > CASI_CERO && qAbsorbido > CASI_CERO) {
     // Consume trabajo: máquina frigorífica o bomba de calor

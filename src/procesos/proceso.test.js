@@ -12,6 +12,7 @@ import {
   getDefiniciones,
   getDefinicion,
   getParametrosVisibles,
+  puedeCalcular,
   COLUMNAS_RESULTADO
 } from './proceso';
 import { RESOLVEDORES, getRendimientoIsentropico, dentroDeTolerancia } from './resolvedores';
@@ -30,15 +31,21 @@ function proceso(tipo, origen, destino, parametros = {}) {
 }
 
 describe('tabla de definiciones', () => {
-  it('declara los cuatro tipos p-h y todos tienen resolvedor', () => {
+  it('declara los seis tipos de fluido y todos tienen resolvedor', () => {
     const tipos = getDefiniciones('fluido');
     expect(tipos.map((t) => t.clave)).toEqual([
-      'compresion_isentropica', 'isobarico', 'isentalpico', 'isotermo'
+      'compresion_isentropica', 'isobarico', 'isentalpico', 'isotermo',
+      'sin_trabajo', 'generico'
     ]);
     tipos.forEach((tipo) => {
       expect(RESOLVEDORES[tipo.restriccion.resolvedor]).toBeDefined();
       expect(typeof RESOLVEDORES[tipo.restriccion.resolvedor].verificar).toBe('function');
     });
+  });
+
+  it('solo ofrece modo calculado el tipo que sabe generar su destino', () => {
+    expect(puedeCalcular(getDefinicion('sin_trabajo'))).toBe(true);
+    expect(puedeCalcular(getDefinicion('generico'))).toBe(false);
   });
 
   it('oculta en modo manual los parámetros que solo sirven para calcular el destino', () => {

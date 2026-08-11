@@ -199,8 +199,8 @@ const TablaAires = () => {
   };
 
   return (
-    <div>
-      <p>  </p>
+    <div className='panel'>
+      <h3>{getTextoUI("titulo_estados")}</h3>
       <Tooltip title={getTextoUI("tooltip_nuevo_aire")} mouseEnterDelay={1}>
         <Button type='link' icon={<PlusCircleOutlined />} size='large' onClick={() => nuevoAire()}></Button>
       </Tooltip>

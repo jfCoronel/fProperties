@@ -9,8 +9,8 @@ import {
 const problema = {
   v: ESQUEMA_PROBLEMA,
   estados: [
-    { id: 'f1', nombre: 'Aspiración', fluido: 'R134a', in1Id: 'T', in1Val: -10, in2Id: 'X', in2Val: 100 },
-    { id: 'f2', nombre: 'Descarga', fluido: 'R134a', in1Id: 'P', in1Val: 1000, in2Id: 'T', in2Val: 60 }
+    { id: 'f1', nombre: 'Aspiración', fluido: 'R134a', in1Id: 'T', in1Val: -10, in2Id: 'X', in2Val: 100, enDiagrama: true },
+    { id: 'f2', nombre: 'Descarga', fluido: 'R134a', in1Id: 'P', in1Val: 1000, in2Id: 'T', in2Val: 60, enDiagrama: false }
   ],
   aires: [],
   procesos: [
@@ -21,6 +21,7 @@ const problema = {
       tipo: 'compresion_isentropica',
       modoDestino: 'manual',
       parametros: { m_punto: 0.05 },
+      enDiagrama: true,
       estilo: { color: '#1890FF', grosor: 2, trazo: 'solid' }
     }
   ],
@@ -92,6 +93,21 @@ describe('normalización', () => {
     expect(limpio.procesos[0].parametros).toEqual({ m_punto: 0.05 });
     expect(limpio.procesos[0].modoDestino).toBe('manual');
     expect(limpio.procesos[0].estilo.trazo).toBe('solid');
+  });
+
+  it('da por visible en el diagrama lo que no lleva la marca (enlaces de la 2.1.0)', () => {
+    const limpio = normalizarProblema({
+      ...problema,
+      estados: [{ id: 'f1', fluido: 'Agua', in1Id: 'T', in1Val: 20, in2Id: 'P', in2Val: 101.325 }],
+      procesos: [{ id: 'p1', origenes: ['f1'], destino: 'f2', tipo: 'isobarico' }]
+    });
+    expect(limpio.estados[0].enDiagrama).toBe(true);
+    expect(limpio.procesos[0].enDiagrama).toBe(true);
+  });
+
+  it('conserva lo que se ha ocultado a mano', () => {
+    const limpio = normalizarProblema(problema);
+    expect(limpio.estados.map((e) => e.enDiagrama)).toEqual([true, false]);
   });
 
   it('tolera las listas ausentes', () => {

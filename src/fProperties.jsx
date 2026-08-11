@@ -1,4 +1,4 @@
-import { Divider, Menu, Select, message } from 'antd';
+import { Divider, Select, message } from 'antd';
 import { ExperimentOutlined, CloudOutlined } from '@ant-design/icons';
 
 import { useEffect, useRef } from 'react';
@@ -17,20 +17,21 @@ import DialogoAire from './components/DialogoAire';
 const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, idFluidoActual, idAireActual, version, idioma, textosCargados, verPsicrometrico, verDiagrama } = useHookstate(configuracion);
+  const { menuActual, idFluidoActual, idAireActual, version, idioma, textosCargados, verPsicrometrico } = useHookstate(configuracion);
 
-  const menuTabItems = [
-    {
-      label: getTextoUI("tab_fluidos"),
-      key: 'fluidos',
-      icon: <ExperimentOutlined />,
-    },
-    {
-      label: getTextoUI("tab_airehumedo"),
-      key: 'aireHumedo',
-      icon: <CloudOutlined />,
-    }
-  ]
+  // Fluidos y aire húmedo son dos calculadoras distintas, no dos vistas de lo
+  // mismo: un desplegable junto al título lo dice mejor que unas pestañas, y deja
+  // la cabecera en una sola línea.
+  const selectorMenu = (
+    <Select
+      value={menuActual.get()}
+      onChange={(valor) => { menuActual.set(valor); }}
+      style={{ minWidth: 160 }}
+    >
+      <Option key="fluidos" value="fluidos"><ExperimentOutlined /> {getTextoUI("tab_fluidos")}</Option>
+      <Option key="aireHumedo" value="aireHumedo"><CloudOutlined /> {getTextoUI("tab_airehumedo")}</Option>
+    </Select>
+  );
 
   // Cargar textos json: solo al montar y al cambiar de idioma.
   // Llamarlo en el cuerpo del render encadenaba un fetch por render.
@@ -87,24 +88,29 @@ const FProperties = () => {
       <div className='tablas'
         onClick={() => { idFluidoActual.set(null); idAireActual.set(null); }} >
         <p> </p>
-        <span className='titulo'> <a href="https://fproperties.jfcoronel.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a> </span>
-        <span style={{ float: "right" }}>
-          {textosCargados.get() && <Compartir />}
-          {" "}
-          {jsxSelectorIdioma()}
-        </span>
-        <Menu onClick={(e) => menuActual.set(e.key.toString())} selectedKeys={[menuActual.get()]} mode="horizontal" items={menuTabItems}>
-        </Menu>
+        {/* Cabecera en una línea: título, selector de calculadora y, al otro
+            extremo, compartir e idioma. */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          <span className='titulo'><a href="https://fproperties.jfcoronel.org" target="blank"><ExperimentOutlined /> {getTextoUI("lab_nombreApp")}</a></span>
+          {textosCargados.get() && selectorMenu}
+          <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8 }}>
+            {textosCargados.get() && <Compartir />}
+            {jsxSelectorIdioma()}
+          </span>
+        </div>
+        <Divider style={{ margin: "12px 0" }} />
 
         {(menuActual.get() === 'fluidos') && <TablaFluidos />}
         {(menuActual.get() === 'fluidos') && <TablaProcesos />}
+        {/* El diagrama va dentro del mismo contenedor que las tablas: es la única
+            forma de que las tres cajas compartan ancho y márgenes. */}
+        {(menuActual.get() === 'fluidos') && <Diagrama />}
         {(menuActual.get() === 'aireHumedo') && <TablaAires />}
 
         <p>  </p>
       </div>
 
       {(verPsicrometrico.get() && (menuActual.get() === 'aireHumedo')) && <Psicrometrico />}
-      {(verDiagrama.get() && (menuActual.get() === 'fluidos')) && <Diagrama />}
       <Divider />
       <div className='pie'>
         <span className='etiqueta'> {getTextoUI("lab_version")}: {version.get()},  <a href="http://jfc.us.es" target="blank">{getTextoUI("lab_copyright")} </a></span>

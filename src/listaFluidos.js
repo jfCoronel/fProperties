@@ -37,6 +37,8 @@ export const nuevoFluido = () => {
     in2Id: "P",
     in1Val: 25.0,
     in2Val: 101.325,
+    // Un estado nuevo se dibuja: ocultarlo es la excepción, no la norma.
+    enDiagrama: true,
     ...objetoFluido
   };
   listaFluidos.merge([fluidoNuevo])
@@ -67,8 +69,22 @@ export const actualizarFluido = (id, fluido) => {
   const i = indiceFluido(id);
   if (i < 0) return;
   const objetoFluido = getObjetoFluido(fluido.fluido, fluido.in1Id, fluido.in1Val, fluido.in2Id, fluido.in2Val);
-  const fluidoCompleto = { ...fluido, ...objetoFluido, id }
+  // El diálogo solo trae las entradas del estado, así que se escribe encima del
+  // anterior: lo que no edita (la visibilidad en el diagrama) se conserva.
+  const anterior = listaFluidos[i].get({ noproxy: true });
+  const fluidoCompleto = { ...anterior, ...fluido, ...objetoFluido, id }
   listaFluidos[i].set(fluidoCompleto);
+}
+
+// Visibilidad en el diagrama. Es una propiedad del estado, no de la sesión: se
+// duplica con él, se borra con él y viaja en el enlace compartido.
+export const verFluidosEnDiagrama = (ids, valor) => {
+  ids.forEach(id => {
+    const i = indiceFluido(id);
+    if (i >= 0) {
+      listaFluidos[i].merge({ enDiagrama: valor });
+    }
+  })
 }
 
 export const reordenarFluidos = (fromIndex, toIndex) => {

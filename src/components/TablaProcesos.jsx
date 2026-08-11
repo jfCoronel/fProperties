@@ -17,24 +17,29 @@ import {
   nuevoProceso,
   borrarProcesos,
   duplicarProcesos,
-  idsProcesosDeEstados
+  idsProcesosDeEstados,
+  verProcesosEnDiagrama,
+  cambiarTipoProceso
 } from '../procesos/listaProcesos';
 import {
   evaluarProceso,
   derivadosProceso,
   getColumnasVisibles,
+  getDefinicion,
   tieneCaudal
 } from '../procesos/proceso';
+import { sugerirTipo } from '../procesos/deteccion';
 import { propagarProcesos } from '../procesos/propagacion';
 import { textoMensaje } from '../procesos/mensajes';
 import formatear from '../util/formatear';
 import DialogoProceso from './DialogoProceso';
 import Ciclos from './Ciclos';
+import { columnaDiagrama } from './columnaDiagrama';
 
 const TablaProcesos = () => {
   const {
     idProcesoActual, verDialogoProceso, procesosSeleccionados,
-    fluidosSeleccionados, nCifras
+    fluidosSeleccionados, nCifras, tipoDiagrama
   } = useHookstate(configuracion);
 
   const procesos = useHookstate(listaProcesos);
@@ -99,7 +104,25 @@ const TablaProcesos = () => {
     return getTextoUI("proc_diag_coherente");
   };
 
-  const celdaDiagnostico = (evaluacion) => {
+  // Cuando la pareja no cumple lo declarado pero sí encaja con otro tipo, el
+  // aviso ofrece el cambio. El desacuerdo se conserva —es lo que enseña—, pero
+  // resolverlo cuesta un clic.
+  const enlaceSugerencia = (proceso, evaluacion) => {
+    if (!proceso) return null;
+    const clave = sugerirTipo(proceso, evaluacion);
+    if (clave === null) return null;
+    const texto = getTextoUI("proc_encaja_con")
+      .split('{tipo}').join(getTextoUI(getDefinicion(clave).i18n));
+    return (
+      <a onClick={(evento) => {
+        evento.stopPropagation();
+        cambiarTipoProceso(proceso.id, clave);
+        propagarProcesos();
+      }}> · {texto}</a>
+    );
+  };
+
+  const celdaDiagnostico = (proceso, evaluacion) => {
     const mensajes = [...evaluacion.errores, ...evaluacion.avisos]
       .map((mensaje) => textoMensaje(mensaje, cifras));
 
@@ -115,9 +138,12 @@ const TablaProcesos = () => {
       return <span>{icono} {resumen}</span>;
     }
     return (
-      <Tooltip title={mensajes.map((m, i) => <div key={i}>{m}</div>)}>
-        <span>{icono} {mensajes[0]}</span>
-      </Tooltip>
+      <span>
+        <Tooltip title={mensajes.map((m, i) => <div key={i}>{m}</div>)}>
+          <span>{icono} {mensajes[0]}</span>
+        </Tooltip>
+        {enlaceSugerencia(proceso, evaluacion)}
+      </span>
     );
   };
 
@@ -163,8 +189,20 @@ const TablaProcesos = () => {
     {
       title: getTextoUI("proc_columna_diagnostico"),
       key: 'diagnostico',
-      render: (_, fila) => celdaDiagnostico(fila.evaluacion)
-    }
+      render: (_, fila) => celdaDiagnostico(
+        listaProcesosActual.find((proceso) => proceso.id === fila.key), fila.evaluacion
+      )
+    },
+    // El ojo solo aparece si hay diagrama que mirar, y nunca en el CSV: no es un
+    // resultado del proceso.
+    ...(tipoDiagrama.get() === "ninguno" ? [] : [columnaDiagrama({
+      ids: listaProcesosActual.map((proceso) => proceso.id),
+      ocultos: new Set(
+        listaProcesosActual.filter((proceso) => proceso.enDiagrama === false)
+          .map((proceso) => proceso.id)
+      ),
+      cambiar: verProcesosEnDiagrama
+    })])
   ];
 
   // El CSV necesita títulos y filas planos: descargarTablaCSV recorre las claves
@@ -210,7 +248,7 @@ const TablaProcesos = () => {
   };
 
   return (
-    <div>
+    <div className='panel'>
       <h3>{getTextoUI("titulo_procesos")}</h3>
 
       <Tooltip title={getTextoUI("tooltip_nuevo_proceso")} mouseEnterDelay={1}>

@@ -102,6 +102,22 @@ describe('balance del ciclo', () => {
     expect(getCiclos(procesos, estados)).toEqual([]);
   });
 
+  it('no cierra el balance si el ciclo lleva un proceso indeterminado', () => {
+    const { estados, procesos } = cicloFrigorifico();
+    // La condensación pasa a declararse de tipo indeterminado: sin saber cuánto
+    // de su Δh es calor, el reparto entre w y q dejaría de significar nada.
+    procesos[1] = { ...procesos[1], tipo: 'generico' };
+
+    const balance = balanceCiclo(procesos, estados);
+    expect(balance.indeterminado).toBe(true);
+    expect(balance.indicador).toBeNull();
+  });
+
+  it('el balance normal no se declara indeterminado', () => {
+    const { estados, procesos } = cicloFrigorifico();
+    expect(balanceCiclo(procesos, estados).indeterminado).toBe(false);
+  });
+
   it('avisa de que hay procesos marcados sin ocultar el balance', () => {
     const { estados, procesos } = cicloFrigorifico();
     // La condensación deja de ser isobárica: el proceso avisa, el ciclo sigue

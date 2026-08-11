@@ -77,24 +77,34 @@ const Ciclos = () => {
                             {magnitud(ciclo.caudal, 'kg/s')}
                         </Tag>}
                     </span>}
-                    items={[
-                        {
-                            key: 'w',
-                            label: getTextoUI("ciclo_w_neto"),
-                            children: conPotencia(ciclo.w_neto, ciclo.caudal)
-                        },
-                        {
-                            key: 'qa',
-                            label: getTextoUI("ciclo_q_absorbido"),
-                            children: conPotencia(ciclo.q_absorbido, ciclo.caudal)
-                        },
-                        {
-                            key: 'qc',
-                            label: getTextoUI("ciclo_q_cedido"),
-                            children: conPotencia(ciclo.q_cedido, ciclo.caudal)
-                        },
-                        ...indicadores(ciclo)
-                    ]}
+                    // Con un proceso de tipo indeterminado no se puede repartir Δh
+                    // entre calor y trabajo: en vez de dar cifras inventadas, se
+                    // dice por qué no las hay.
+                    items={ciclo.indeterminado
+                        ? [{
+                            key: 'indeterminado',
+                            label: getTextoUI("ciclo_balance"),
+                            span: 3,
+                            children: getTextoUI("ciclo_indeterminado")
+                        }]
+                        : [
+                            {
+                                key: 'w',
+                                label: getTextoUI("ciclo_w_neto"),
+                                children: conPotencia(ciclo.w_neto, ciclo.caudal)
+                            },
+                            {
+                                key: 'qa',
+                                label: getTextoUI("ciclo_q_absorbido"),
+                                children: conPotencia(ciclo.q_absorbido, ciclo.caudal)
+                            },
+                            {
+                                key: 'qc',
+                                label: getTextoUI("ciclo_q_cedido"),
+                                children: conPotencia(ciclo.q_cedido, ciclo.caudal)
+                            },
+                            ...indicadores(ciclo)
+                        ]}
                     // El índice solo entra en juego si dos ciclos comparten procesos
                     data-ciclo={i}
                 />

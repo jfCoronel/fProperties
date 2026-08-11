@@ -2,14 +2,16 @@ import { useHookstate } from '@hookstate/core';
 import { Modal, Button, Row, Col, Select, InputNumber, Form, ColorPicker, Alert } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaFluidos, nuevoFluido } from '../listaFluidos';
-import { listaProcesos, actualizarProceso } from '../procesos/listaProcesos';
+import { listaProcesos, actualizarProceso, cambiarTipoProceso } from '../procesos/listaProcesos';
 import {
     getDefiniciones,
     getDefinicion,
     getParametrosVisibles,
     getParametrosPorDefecto,
-    evaluarProceso
+    evaluarProceso,
+    puedeCalcular
 } from '../procesos/proceso';
+import { detectarTipo } from '../procesos/deteccion';
 import { propagarProcesos } from '../procesos/propagacion';
 import { getRendimientoIsentropico } from '../procesos/resolvedores';
 import { textoMensaje } from '../procesos/mensajes';
@@ -40,14 +42,19 @@ const DialogoProceso = () => {
         propagarProcesos();
     };
 
-    // Cambiar de tipo puede dejar parámetros huérfanos o faltar los del tipo nuevo
+    // Cambiar de tipo puede dejar parámetros huérfanos, faltar los del tipo nuevo
+    // o dejar en calculado un tipo que no sabe calcular: de todo eso se ocupa
+    // cambiarTipoProceso, que es el mismo camino que usa el aviso de la tabla.
     const cambiarTipo = (clave) => {
-        const nueva = getDefinicion(clave);
-        guardar({
-            tipo: clave,
-            parametros: { ...getParametrosPorDefecto(nueva, proceso.modoDestino), ...proceso.parametros }
-        });
+        cambiarTipoProceso(id, clave);
+        propagarProcesos();
     };
+
+    // El tipo lo declara el usuario; esto solo dice cuál encajaría, y ofrece
+    // adoptarlo de un clic si no es el declarado.
+    const tipoDetectado = evaluacion.valido
+        ? detectarTipo(evaluacion.origenes[0], evaluacion.destino)
+        : null;
 
     const redondear = (valor) => Number(formatear(valor, nCifras.get()));
 
@@ -63,6 +70,10 @@ const DialogoProceso = () => {
         const sugerencias = {};
         if (claves.includes("p_final")) sugerencias.p_final = redondear(estadoDestino.P);
         if (claves.includes("t_final")) sugerencias.t_final = redondear(estadoDestino.T);
+        if (claves.includes("q_dato")) sugerencias.q_dato = redondear(estadoDestino.H - origen.H);
+        if (claves.includes("dp_dato")) {
+            sugerencias.dp_dato = redondear(Math.max(0, origen.P - estadoDestino.P));
+        }
         if (claves.includes("eta")) {
             const rendimiento = getRendimientoIsentropico(origen, estadoDestino);
             if (rendimiento !== null && rendimiento > 0 && rendimiento <= 1) {
@@ -127,7 +138,15 @@ const DialogoProceso = () => {
         <Form name="dialogo_proceso" layout="vertical">
             <Row gutter={8}>
                 <Col span={14}>
-                    <Form.Item label={getTextoUI("proc_tipo")}>
+                    <Form.Item
+                        label={getTextoUI("proc_tipo")}
+                        extra={tipoDetectado && <span className='comentario'>
+                            {getTextoUI("proc_detectado")}: {getTextoUI(getDefinicion(tipoDetectado).i18n)}
+                            {tipoDetectado !== proceso.tipo && <>
+                                {" "}<a onClick={() => cambiarTipo(tipoDetectado)}>{getTextoUI("proc_usar_detectado")}</a>
+                            </>}
+                        </span>}
+                    >
                         <Select
                             showSearch
                             optionFilterProp="children"
@@ -141,10 +160,19 @@ const DialogoProceso = () => {
                     </Form.Item>
                 </Col>
                 <Col span={10}>
-                    <Form.Item label={getTextoUI("proc_modo")}>
+                    <Form.Item
+                        label={getTextoUI("proc_modo")}
+                        extra={!puedeCalcular(definicion) && <span className='comentario'>
+                            {getTextoUI("proc_sin_modo_calculado")}
+                        </span>}
+                    >
                         <Select value={proceso.modoDestino} onChange={cambiarModo}>
                             <Option value="manual">{getTextoUI("proc_modo_manual")}</Option>
-                            <Option value="calculado">{getTextoUI("proc_modo_calculado")}</Option>
+                            {/* Un tipo que no sabe generar su destino no ofrece la
+                                opción: elegirla no haría nada. */}
+                            <Option value="calculado" disabled={!puedeCalcular(definicion)}>
+                                {getTextoUI("proc_modo_calculado")}
+                            </Option>
                         </Select>
                     </Form.Item>
                 </Col>

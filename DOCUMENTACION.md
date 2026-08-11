@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.1.0**.
+Estado del proyecto en la **versión 2.2.0**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -15,14 +15,22 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 |---|---|
 | Interfaz | React 18 + Ant Design 5, sin router (navegación por estado) |
 | Estado | @hookstate/core 4 |
-| Gráficas | Chart.js 4 con react-chartjs-2 |
+| Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
 | Tests | Vitest (77 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
-Índice: [1. Cómo se usa](#1-cómo-se-usa) · [2. El permalink](#2-el-permalink) ·
-[3. Arquitectura](#3-arquitectura) · [4. Tests](#4-tests) ·
+Índice:
+
+ [1. Cómo se usa](#1-cómo-se-usa) 
+
+[2. El permalink](#2-el-permalink) 
+
+[3. Arquitectura](#3-arquitectura)
+
+[4. Tests](#4-tests) 
+
 [5. Estado y deuda conocida](#5-estado-y-deuda-conocida)
 
 ---
@@ -53,8 +61,16 @@ la interfaz en el acto.
 Es una **PWA**: el navegador ofrece instalarla como aplicación y, una vez visitada, funciona
 **sin conexión**, porque el binario de CoolProp y los textos quedan precacheados.
 
-Debajo del título hay dos pestañas, que son los dos mundos de la aplicación:
-**Fluidos** y **Aire Húmedo**.
+Junto al título hay un desplegable con los dos mundos de la aplicación, **Fluidos** y **Aire
+Húmedo**, y al otro extremo de la misma línea los botones de compartir y el idioma. Son dos
+calculadoras distintas, no dos vistas de lo mismo, y el desplegable lo dice mejor que unas
+pestañas: además deja la cabecera en una sola línea.
+
+Cada zona —estados, procesos, diagrama— va en su propia caja de esquinas redondeadas
+(la clase `.panel`), de modo que se vea de un vistazo dónde acaba una y empieza la siguiente.
+Las tres comparten contenedor, y por eso el mismo ancho y los mismos márgenes; el lienzo del
+diagrama lleva altura fija y `maintainAspectRatio: false`, para que no crezca sin fin en
+pantallas anchas.
 
 ### 1.2 Fluidos: la tabla de estados
 
@@ -78,17 +94,37 @@ estado queda fuera del rango de la ecuación de estado, y los procesos que lo us
 
 ### 1.3 Diagramas
 
-El interruptor con el icono de gráfica muestra el **diagrama de fluidos**, con la curva de
-saturación del fluido elegido y los puntos de la tabla que sean de ese fluido.
+Bajo la tabla de procesos hay dos desplegables, y son toda la configuración del **diagrama de
+fluidos**:
 
-El botón *Configuración diagrama* abre un panel lateral con:
+- **Tipo**: *ninguno*, `log p – h`, `T – s` o `p – T`. *Ninguno* hace de interruptor: no hay
+  un botón aparte para mostrar u ocultar el diagrama, y con él no se dibuja nada.
+- **Fluido** del diagrama; debajo se recuerdan sus puntos triple y crítico.
 
-- **Tipo**: `log p – h`, `T – s` o `p – T`.
-- **Fluido** del diagrama, con los datos de sus puntos crítico y triple.
-- **Qué puntos añadir**: todos los del fluido, o solo los seleccionados en la tabla; en este
-  segundo caso se pueden **guardar series** para comparar varias familias de puntos.
-- **Color, nombre y línea** de los puntos.
-- **Límites de los ejes**, con un botón de *ajustar a los datos*.
+El diagrama muestra la curva de saturación del fluido elegido, los **estados de la tabla**
+que sean de ese fluido —círculo hueco de borde azul, con su nombre al lado, y más grandes los
+que estén seleccionados— y las **curvas de los procesos** de ese mismo fluido. El punto va
+hueco para que no tape la curva sobre la que cae.
+
+El encuadre se maneja sobre el propio lienzo: la **rueda** (o el pellizco, en táctil) acerca
+y aleja, **arrastrar** mueve, **Mayús+arrastrar** amplía el rectángulo que dibujes, y el botón
+*Reencuadrar* —o un doble clic— vuelve al ajuste automático. Solo cabe un gesto de arrastre, y
+mover es el que se busca sin pensar; por eso el rectángulo va con Mayús. Cambiar de tipo de
+diagrama o de fluido también reencuadra: el encuadre anterior no significa nada en otros ejes.
+El zoom es estado de sesión y no viaja en el enlace compartido.
+
+Qué entra y qué no lo decide la columna **Diagrama**, que aparece en la tabla de estados y en
+la de procesos en cuanto hay un diagrama elegido: un ojo por fila, encendido por defecto, y
+otro en la cabecera que las cambia todas de golpe. Es un ojo y no una casilla porque la
+columna de selección de la tabla ya son casillas y dos columnas de casillas con significados
+distintos se confunden. La visibilidad es una propiedad del estado o del proceso, no de la
+sesión: se duplica con la fila, se borra con ella y viaja en el enlace compartido, al
+contrario que la selección. Ocultar un estado no oculta los procesos que lo tocan —la curva
+sigue terminando ahí— y ocultar un proceso no oculta sus extremos. Los ejes se ajustan
+solos a lo dibujado, y la curva de saturación se recorre siempre entre el punto triple y el
+crítico. Todo lo que antes se elegía en un panel lateral (color de los puntos, series
+guardadas a mano, límites de los ejes) es ahora una decisión fija: el diagrama sirve para
+ver los estados y los procesos, y no pide nada más al usuario.
 
 ### 1.4 Procesos
 
@@ -101,11 +137,21 @@ origen con uno de destino y declara **de qué tipo es**:
 | Isobárico | p constante | Condensadores, evaporadores, calentadores |
 | Isentálpico | h constante | Válvulas de laminación |
 | Isotermo | T constante | Compresión o expansión isoterma |
+| Conducto / intercambiador | Sin trabajo de eje → q = Δh; la presión puede caer | Intercambiadores y tuberías con pérdida de carga, con o sin calor |
+| Otro (indeterminado) | Ninguna | Lo que no encaje en los anteriores |
+
+Los dos últimos son los comodines, y no son el mismo comodín. El **conducto** supone una sola
+cosa —que no hay trabajo de eje—, y con esa hipótesis el primer principio en régimen
+estacionario da `q = Δh` aunque la presión caiga: la caída deja de ser un incumplimiento y
+pasa a ser un resultado (Δp), que es justo lo que el isobárico no sabía expresar. El
+**indeterminado** no supone nada: nunca puede ser incoherente, solo mide los saltos (Δh, Δs,
+ΔT, Δp), su curva es el segmento entre los extremos —lo único afirmable de un camino
+desconocido— y no ofrece modo calculado, porque no hay hipótesis con la que calcular.
 
 Formas de crearlo: seleccionando **exactamente dos estados** y pulsando `+`, con lo que el
-proceso nace ya conectado; o pulsando `+` sin selección y eligiendo los estados en el
-diálogo, donde además se ajusta el **caudal másico** y el **estilo** de la curva (color,
-grosor, continua o discontinua).
+proceso nace ya conectado y **con el tipo que encaja con esa pareja**; o pulsando `+` sin
+selección y eligiendo los estados en el diálogo, donde además se ajusta el **caudal másico** y
+el **estilo** de la curva (color, grosor, continua o discontinua).
 
 Cada fila muestra, además de la identidad y el tipo, **las columnas de resultado propias de
 ese tipo**: Δh, Δs, ΔT, trabajo o calor específicos, relación de compresión o de expansión,
@@ -122,6 +168,15 @@ La última columna es el **diagnóstico**, en tres niveles:
   un estado fuera del rango de la ecuación de estado—. El proceso **no se borra**: se marca,
   para poder recrear el punto y seguir.
 
+Cuando la pareja no cumple lo declarado pero sí encaja con otro tipo, el aviso lo dice y
+ofrece el cambio de un clic (*encaja con isentálpico*). El editor, por su parte, muestra
+siempre bajo el desplegable qué tipo se ha detectado. Son **sugerencias**: el tipo lo sigue
+declarando el usuario, porque es de esa declaración de la que vive el diagnóstico —deducir el
+tipo automáticamente haría imposible el desacuerdo, y con él se iría lo que la herramienta
+enseña— y porque la deducción no siempre tiene respuesta única: una evaporación dentro de la
+campana es isobárica e isoterma a la vez, y cualquier pareja con p₂ > p₁ tiene un rendimiento
+isentrópico.
+
 Los procesos válidos se **dibujan en el diagrama** con su estilo. La curva se calcula en el
 espacio de estados y se proyecta después, de modo que sale correcta en los tres diagramas:
 una laminación es una recta vertical en p-h pero **no** en T-s, y ahí se dibuja curva.
@@ -136,8 +191,9 @@ Cada proceso decide quién pone el estado de destino:
 
 - **Dado por mí** (modo manual): el usuario crea los dos estados y el proceso los *comprueba*.
 - **Calculado**: el usuario da los **parámetros** —presión final, temperatura final, título
-  final, rendimiento isentrópico— y el proceso **genera** el estado de destino. Si no había
-  estado de destino, se crea uno.
+  final, rendimiento isentrópico, o el calor aportado y la pérdida de carga del conducto— y el
+  proceso **genera** el estado de destino. Si no había estado de destino, se crea uno. Los
+  tipos que no saben generarlo (el indeterminado) no ofrecen esta opción.
 
 Al cambiar de manual a calculado, los parámetros se rellenan con lo que ya describía la
 pareja de estados (la presión y la temperatura del destino, el rendimiento real medido), de
@@ -168,10 +224,15 @@ El convenio de signos es el del propio fluido: positivo lo que absorbe, negativo
 Pulsando la secuencia de estados se resalta el ciclo entero en el diagrama. Si alguno de sus
 procesos está marcado para revisar, el panel lo señala pero **no oculta el balance**.
 
+Hay un caso en que sí lo oculta: si el ciclo contiene un proceso de tipo **indeterminado**. El
+balance reparte con `w = Δh − q`, y de un tipo que no supone nada no se sabe cuánto de su Δh
+es calor; darle todo a trabajo sería inventarse la respuesta. El panel dice entonces que el
+balance no se puede cerrar, y por qué.
+
 ### 1.7 Aire húmedo
 
-La segunda pestaña es la tabla de **estados de aire húmedo**, con el mismo manejo que la de
-fluidos (crear, editar, duplicar, borrar, columnas configurables, CSV).
+La segunda opción del desplegable es la tabla de **estados de aire húmedo**, con el mismo
+manejo que la de fluidos (crear, editar, duplicar, borrar, columnas configurables, CSV).
 
 Un estado de aire se define con **tres datos**: la altitud o la presión, y dos propiedades
 entre temperatura seca T, húmeda T_H, de rocío T_R, humedad absoluta w, humedad relativa HR,
@@ -215,12 +276,18 @@ columna nueva a la tabla.
 | Viaja en el enlace | Se queda fuera |
 |---|---|
 | Versión del formato | Propiedades calculadas (se recalculan) |
-| Estados de fluido y de aire (solo sus entradas) | Filas seleccionadas y diálogos abiertos |
-| Procesos completos: tipo, extremos, modo, parámetros y estilo | La marca de "estado calculado" (se vuelve a deducir) |
-| Configuración: idioma, cifras, columnas, tipo de diagrama, fluido, ejes… | Series guardadas a mano en el diagrama |
+| Estados de fluido y de aire (solo sus entradas, más su visibilidad en el diagrama) | Filas seleccionadas y diálogos abiertos |
+| Procesos completos: tipo, extremos, modo, parámetros, estilo y visibilidad | La marca de "estado calculado" (se vuelve a deducir) |
+| Configuración: idioma, cifras, columnas, tipo de diagrama, fluido, ejes del psicrométrico… | Series guardadas a mano en el psicrométrico |
 
 La lista de claves de configuración que viajan es **explícita**: lo que no está en ella se
 considera estado de sesión y no se comparte.
+
+Los campos nuevos no suben la versión del esquema si se pueden leer con un valor por defecto
+seguro. `enDiagrama` es el primer caso: se normaliza como *visible salvo que diga que no*, de
+modo que un enlace de la 2.1.0 —que no lo lleva— sigue abriéndose con todo dibujado. Subir
+`ESQUEMA_PROBLEMA` habría roto todos los enlaces anteriores, porque el cargador rechaza lo que
+no coincide con su versión.
 
 ### 2.2 Cómo se codifica
 
@@ -311,8 +378,8 @@ src/
 | Fichero | Función |
 |---|---|
 | `main.jsx` | Monta `<FProperties/>` en el DOM y carga los estilos de Ant Design. |
-| `fProperties.jsx` | Raíz de la interfaz: cabecera, selector de idioma, botones de compartir, menú de pestañas y montaje de tablas y diagramas. Carga los textos al arrancar y al cambiar de idioma, y **resuelve el permalink una sola vez**, cuando ya hay textos con los que informar del resultado. |
-| `configuracion.js` | El objeto de configuración global (hookstate): pestaña activa, idioma, cifras significativas, columnas, ajustes de los dos diagramas, selecciones y diálogos abiertos. Aquí viven también `cargarTextosUI`/`getTextoUI` (i18n por clave) y `descargarTablaCSV`. |
+| `fProperties.jsx` | Raíz de la interfaz: cabecera, selector de calculadora, selector de idioma, botones de compartir y montaje de tablas y diagramas. Carga los textos al arrancar y al cambiar de idioma, y **resuelve el permalink una sola vez**, cuando ya hay textos con los que informar del resultado. |
+| `configuracion.js` | El objeto de configuración global (hookstate): calculadora activa, idioma, cifras significativas, columnas, ajustes de los dos diagramas, selecciones y diálogos abiertos. Aquí viven también `cargarTextosUI`/`getTextoUI` (i18n por clave) y `descargarTablaCSV`. |
 | `fproperties.css` | Estilos propios: fila seleccionada, fila de proceso inválida o con aviso, y la barra lateral del resaltado sincronizado. |
 
 Los textos de la interfaz están en `public/json/es.json` y `public/json/en.json`, con las
@@ -356,6 +423,16 @@ trazar(origenes, destino, parametros, definicion)    -> [estados]  // curva del 
 destino(origenes, parametros, definicion)            -> pareja     // modo calculado
 ```
 
+**b bis) El tipo lo declara el usuario; el programa solo sugiere.** `deteccion.js` sabe qué
+tipo encaja con una pareja de estados, y ese conocimiento se usa en tres sitios: el tipo
+inicial de un proceso creado desde dos estados, la pista *detectado: X* del editor y el enlace
+*encaja con X* del aviso. Nunca sobrescribe lo declarado. Deducir el tipo en vez de
+declararlo parece más cómodo, pero elimina la posibilidad misma del desacuerdo, que es de
+donde sale el valor didáctico de la columna de diagnóstico; y además no tiene respuesta única
+(isobárico e isotermo coinciden en la campana). Cada tipo se comprueba con **su** tolerancia
+declarada en el JSON, y el orden va del criterio más estricto al más flojo, para que gane el
+que menos se equivoca.
+
 **c) El trazado se genera en el espacio de estados, no en el plano del diagrama.**
 `trazar()` devuelve **estados termodinámicos completos**, y la proyección a los ejes la hace
 el diagrama. Un solo trazado sirve así para el p-h, el T-s y el p-T y sale correcto en los
@@ -372,7 +449,8 @@ llega a existir en vez de tener que romperse.
 | Fichero | Función |
 |---|---|
 | `procesos/definiciones.json` | La tabla de tipos: parámetros (con unidad, obligatoriedad, valor por defecto y rango), tolerancias de validación, número de puntos y escala del trazado, y columnas de resultado. Incluye el **catálogo de columnas** —símbolo, unidad, si exige caudal—, que además fija el orden en que se muestran, para que una columna compartida por varios tipos no salte de sitio. Añadir un tipo nuevo es añadir una entrada aquí y su resolvedor. |
-| `procesos/resolvedores.js` | La física de los cuatro tipos p-h. Incluye la tolerancia mixta (absoluta más relativa, porque h y s llevan desplazamiento de referencia y T va en ºC) y el cálculo del rendimiento isentrópico real de una pareja de estados. |
+| `procesos/resolvedores.js` | La física de los seis tipos de fluido. Incluye la tolerancia mixta (absoluta más relativa, porque h y s llevan desplazamiento de referencia y T va en ºC) y el cálculo del rendimiento isentrópico real de una pareja de estados. |
+| `procesos/deteccion.js` | Qué tipo encaja con una pareja de estados. Puro y sin estado: lo usan la creación de procesos, el editor y el aviso de la tabla, siempre como sugerencia. |
 | `procesos/proceso.js` | El motor, sin dependencias de React: resuelve las referencias a estados, valida (aridad, referencias rotas, fluidos distintos, estados fuera de rango, parámetros que faltan), calcula las magnitudes derivadas, genera el trazado, comprueba el cierre de los procesos calculados y ordena topológicamente la propagación. Distingue **errores** estructurales de **avisos** de coherencia. |
 | `procesos/propagacion.js` | Aplica el modo calculado sobre la lista de estados: recalcula en orden, marca los estados generados, quita la marca a los que dejan de serlo y rompe el vínculo cuando el usuario edita a mano un estado calculado. Solo escribe si algo ha cambiado, así que volver a propagar no dispara otro render. |
 | `procesos/listaProcesos.js` | La lista de procesos (ids `p1`, `p2`…, alta, baja, duplicado) y las dos funciones de incidencia estado ↔ proceso que sostienen la selección sincronizada. |
@@ -390,14 +468,15 @@ llega a existir en vez de tener que romperse.
 
 | Componente | Función |
 |---|---|
-| `TablaFluidos.jsx` | La tabla de estados de fluido: columnas configurables, selección, borrado y duplicado en bloque, reordenación por arrastre, exportación CSV, marca de estado calculado y resaltado de los estados implicados en el proceso seleccionado. |
+| `TablaFluidos.jsx` | La tabla de estados de fluido: columnas configurables, selección, borrado y duplicado en bloque, reordenación por arrastre, exportación CSV, marca de estado calculado, ojo de visibilidad en el diagrama y resaltado de los estados implicados en el proceso seleccionado. |
 | `DialogoFluido.jsx` | Alta y edición de un estado: nombre, fluido y las dos propiedades que lo definen. Es el único sitio donde un estado se edita a mano, y por eso es donde se rompe el vínculo de un estado calculado. |
 | `ConfiguracionFluidos.jsx` | Panel lateral de columnas de la tabla de fluidos y cifras significativas. |
 | `TablaAires.jsx`, `DialogoAire.jsx`, `ConfiguracionAires.jsx` | Los tres equivalentes para el aire húmedo. |
-| `TablaProcesos.jsx` | La tabla de procesos: columnas de resultado por tipo, diagnóstico con sus mensajes, selección sincronizada, CSV y disparo de la propagación al crear, borrar o duplicar. |
+| `TablaProcesos.jsx` | La tabla de procesos: columnas de resultado por tipo, diagnóstico con sus mensajes, selección sincronizada, ojo de visibilidad, CSV y disparo de la propagación al crear, borrar o duplicar. |
 | `DialogoProceso.jsx` | Alta y edición de un proceso: tipo, modo del estado destino, extremos, parámetros y estilo. Rellena los parámetros al pasar a modo calculado y crea el estado destino si no lo hay. |
-| `Ciclos.jsx` | El panel de balance de los ciclos detectados. Solo se dibuja si hay ciclo. |
-| `Diagrama.jsx` | El diagrama de fluidos: curva de saturación, puntos, curvas de los procesos y su panel de configuración. Contiene la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los tres tipos de diagrama, y la traducción de un clic sobre el lienzo a la fila del proceso. La curva de saturación y las de los procesos están memorizadas: son cientos de llamadas a CoolProp que no deben rehacerse en cada render. |
+| `Ciclos.jsx` | El panel de balance de los ciclos detectados. Solo se dibuja si hay ciclo, y declara el balance incompleto si alguno de sus procesos es de tipo indeterminado. |
+| `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
+| `Diagrama.jsx` | El diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación, los puntos, las curvas de los procesos y el encuadre. Contiene la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los tres tipos de diagrama, y la traducción de un clic sobre el lienzo a la fila del proceso. Tres cosas van memorizadas y ninguna por capricho: la curva de saturación y las de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |
 | `Psicrometrico.jsx` | El diagrama psicrométrico: curvas de humedad relativa constante, puntos filtrados por altitud o presión y su panel de configuración. |
 | `Compartir.jsx` | Los tres botones de la cabecera: copiar enlace, descargar JSON e importar JSON. |
 
@@ -425,10 +504,11 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
 | `propFluidos/coolprop.entorno.test.js` | 3 | Que CoolProp arranca en Node y que un estado irresoluble devuelve `NaN`. Es la sonda de la que depende todo lo demás. |
-| `procesos/proceso.test.js` | 43 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. |
+| `procesos/proceso.test.js` | 44 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. |
 | `procesos/propagacion.test.js` | 8 | El modo calculado sobre un ciclo frigorífico completo: la cadena se genera entera, el ciclo se cierra sin bucle, propagar dos veces no cambia nada, mover el estado de partida arrastra la cadena y editar a mano rompe el vínculo. |
-| `procesos/ciclo.test.js` | 10 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno— y potencias solo con caudal común. |
-| `permalink/formato.test.js` | 9 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera. |
+| `procesos/ciclo.test.js` | 12 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. |
+| `procesos/deteccion.test.js` | 13 | La detección del tipo que encaja con una pareja de estados, y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
+| `permalink/formato.test.js` | 11 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera. |
 | `permalink/problema.test.js` | 4 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. |
 
 Qué buscan estos tests, en una frase: fijar **el comportamiento del motor**, que es puro y
@@ -456,17 +536,32 @@ Lo que falta o conviene arreglar, en orden de importancia:
    de la build—, pero conviene que sea un reemplazo limpio de `docs/`, no una fusión sobre
    los ficheros antiguos: los `assets` llevan hash en el nombre y los de versiones viejas se
    quedarían acumulados.
-2. **Procesos psicrométricos.** El aire húmedo tiene tablas y diagrama, pero no procesos.
-   Faltan la mezcla adiabática de dos caudales —el único tipo con **dos** estados de origen,
-   razón por la que el modelo guarda `origenes` como array desde el primer día—, el
-   calentamiento sensible, el enfriamiento con deshumidificación y las humectaciones. Entran
-   sobre el mismo motor, con sus columnas propias (calor sensible y latente, SHR, caudal de
-   condensados, factor de by-pass).
-3. **`Diagrama.jsx` y `Psicrometrico.jsx` están duplicados en un ~70 %.** Conviene
-   factorizarlos antes de que el psicrométrico también tenga que dibujar procesos.
-4. **27 errores de ESLint preexistentes** (`react/prop-types` en las filas arrastrables,
+2. **Llevar al aire húmedo todo lo que ya tiene la parte de fluidos, refactorizando en vez
+   de duplicar.** Es la línea de trabajo de la próxima versión, y conviene hacerla en este
+   orden, porque cada paso le quita trabajo al siguiente:
+
+   1. **Unificar los dos diagramas.** `Diagrama.jsx` y `Psicrometrico.jsx` comparten el
+      andamiaje (el plugin que rotula los puntos, el tooltip, el armado de series, el
+      encuadre) y solo se diferencian en qué curvas de fondo dibujan y cómo se proyecta un
+      estado a los ejes. Lo que cambió en la 2.2.0 —selectores mínimos en vez de panel
+      lateral, ejes automáticos, zoom, caja— está solo en el de fluidos; hacerlo dos veces
+      sería el error. Sale un componente de gráfica con dos configuraciones: proyección,
+      curvas de fondo y etiquetas de eje.
+   2. **Procesos psicrométricos** sobre el mismo motor, que ya está preparado: la mezcla
+      adiabática de dos caudales es el único tipo con **dos** estados de origen, y por eso el
+      modelo guarda `origenes` como array desde el primer día. Faltan también el
+      calentamiento sensible, el enfriamiento con deshumidificación y las humectaciones, con
+      sus columnas propias (calor sensible y latente, SHR, caudal de condensados, factor de
+      by-pass). El motor ya filtra los tipos por dominio, así que los del aire entran como
+      entradas nuevas del JSON sin tocarlo.
+   3. **Paridad de la tabla de aires**: columna del ojo (`columnaDiagrama.jsx` ya es
+      compartible tal cual), tabla de procesos y ciclos.
+
+   La regla al hacerlo: si algo se necesita en los dos lados, se extrae antes de escribirlo
+   por segunda vez.
+3. **21 errores de ESLint preexistentes** (`react/prop-types` en las filas arrastrables,
    `__APP_VERSION__` sin declarar como global, un `while (true)`). Como `npm run lint` corre
    con `--max-warnings 0`, sigue en rojo pese a no haber ningún error nuevo: limpiarlos es
    una tarea aparte, y hasta entonces la puerta de calidad no sirve de puerta.
-5. **El bundle pasa de 1,5 MB** (460 kB comprimido), casi todo CoolProp y Ant Design. Con la
+4. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.

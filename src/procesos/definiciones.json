@@ -34,6 +34,7 @@
     { "clave": "dh", "i18n": "col_dh", "simbolo": "Δh", "unidad": "kJ/kg" },
     { "clave": "ds", "i18n": "col_ds", "simbolo": "Δs", "unidad": "kJ/(kg·K)" },
     { "clave": "dt", "i18n": "col_dt", "simbolo": "ΔT", "unidad": "K" },
+    { "clave": "dp", "i18n": "col_dp", "simbolo": "Δp", "unidad": "kPa" },
     { "clave": "w_esp", "i18n": "col_w_esp", "simbolo": "w", "unidad": "kJ/kg" },
     { "clave": "q_esp", "i18n": "col_q_esp", "simbolo": "q", "unidad": "kJ/kg" },
     {
@@ -171,6 +172,65 @@
       },
       "trazado": { "nPuntos": 25, "escala": "log" },
       "columnas": ["dh", "ds", "q_esp", "potencia"]
+    },
+
+    {
+      "_comentario": [
+        "Conducto, intercambiador, tubería: no hay trabajo de eje, y esa única",
+        "hipótesis basta para que el primer principio en régimen estacionario dé",
+        "q = Δh aunque la presión caiga. La caída de presión es un resultado, no",
+        "un incumplimiento: es lo que separa este tipo del isobárico."
+      ],
+      "clave": "sin_trabajo",
+      "dominio": "fluido",
+      "i18n": "proc_sin_trabajo",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "q_dato",
+          "i18n": "param_q_dato",
+          "unidad": "kJ/kg",
+          "requerido": true,
+          "soloCalculado": true
+        },
+        {
+          "clave": "dp_dato",
+          "i18n": "param_dp_dato",
+          "unidad": "kPa",
+          "defecto": 0,
+          "min": 0,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "sinTrabajo",
+        "tolerancia": { "magnitud": "P", "rel": 0.001, "abs": 0.01 }
+      },
+      "trazado": { "nPuntos": 25, "escala": "log" },
+      "columnas": ["ds", "dp", "q_esp", "potencia"]
+    },
+
+    {
+      "_comentario": [
+        "El comodín: no supone nada, así que nunca es incoherente y solo puede",
+        "dar los saltos entre los dos estados. Sin hipótesis no hay camino, y por",
+        "eso su trazado es el segmento entre los extremos; sin saber si hay",
+        "trabajo no se puede repartir Δh entre calor y trabajo, y por eso un ciclo",
+        "que lo contenga no se puede balancear ('balance: indeterminado')."
+      ],
+      "clave": "generico",
+      "dominio": "fluido",
+      "i18n": "proc_generico",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [],
+      "restriccion": {
+        "resolvedor": "generico"
+      },
+      "balance": "indeterminado",
+      "trazado": { "nPuntos": 2, "escala": "lineal" },
+      "columnas": ["dh", "ds", "dt", "dp"]
     }
   ]
 }

@@ -1,20 +1,33 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, InputNumber, Form, Button, Drawer, ColorPicker, Checkbox } from 'antd'
-import { SettingOutlined } from '@ant-design/icons';
+import { Row, Col, Select, Form, Button, Tooltip } from 'antd'
+import { ExpandOutlined } from '@ant-design/icons';
 import { configuracion, getTextoUI } from '../configuracion';
 import { Chart as ChartJS } from 'chart.js/auto';
 import { Scatter } from 'react-chartjs-2';
+import zoomPlugin from 'chartjs-plugin-zoom';
 import formatear from '../util/formatear';
 import { listaFluidos } from '../listaFluidos';
 import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
 import { evaluarProceso, trazarProceso } from '../procesos/proceso';
 import { getListaFluidos, getPropFluido } from '../propFluidos/fluidos';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 // Radio en píxeles dentro del cual un clic se considera hecho sobre una curva.
 // Sin él, "el elemento más cercano" acaba seleccionando algo desde cualquier
 // punto del lienzo.
 const RADIO_CLIC = 30;
+
+// Movimiento del puntero, en píxeles, a partir del cual lo ocurrido se considera
+// un arrastre del diagrama y no un clic sobre una curva.
+const UMBRAL_ARRASTRE = 5;
+
+// El diagrama ya no tiene panel de configuración: lo que antes eran opciones
+// (color, línea, nombres, ejes) son ahora decisiones fijas, y lo único que el
+// usuario elige es qué diagrama y de qué fluido (DOCUMENTACION.md §3.4).
+const COLOR_ESTADOS = "#0000FF";
+const FONDO_ESTADOS = "#FFFFFF";
+const RADIO_ESTADO = 6;
+const RADIO_ESTADO_SELECCIONADO = 10;
 
 const { Option } = Select;
 
@@ -36,23 +49,13 @@ const proyectar = (estado, tipo, conNombre = true) => {
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
-    let series = useHookstate([]);
     const { tipoDiagrama, fluidoDiagrama,
-        ejeXmaxDiagrama, ejeXminDiagrama,
-        ejeYmaxDiagrama, ejeYminDiagrama, opcionAddDatosDiagrama,
-        colorDatos, lineaDatos, nombreDatos, fluidosSeleccionados,
-        procesosSeleccionados, idProcesoActual } = useHookstate(configuracion);
+        fluidosSeleccionados, procesosSeleccionados, idProcesoActual } = useHookstate(configuracion);
 
     const procesos = useHookstate(listaProcesos);
 
-    const [drawerVisible, setDrawerVisible] = useState(false);
-
-    // Valores de los que depende la curva de saturación, extraídos para poder
-    // memorizarla (ver getCurvaSat / curvaSaturacion más abajo).
     const fluidoActual = fluidoDiagrama.get();
     const tipoActual = tipoDiagrama.get();
-    const xMin = ejeXminDiagrama.get();
-    const xMax = ejeXmaxDiagrama.get();
 
     const estadosActuales = lista.get({ noproxy: true });
     const procesosActuales = procesos.get({ noproxy: true });
@@ -65,7 +68,7 @@ const Diagrama = () => {
     const mostrarNombres = {
         id: 'mostrarNombres',
         afterDatasetDraw: (chart, args, options) => {
-            const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
+            const { ctx } = chart;
             const datasets = chart.data.datasets;
 
             datasets.forEach((dataset, i) => {
@@ -74,7 +77,7 @@ const Diagrama = () => {
                     meta.data.forEach((datapoint, index) => {
                         // Solo mostrar si hay nombre
                         if (options.showLabels && dataset.data[index] && dataset.data[index].nombre) {
-                            const pos = datapoint.getProps(['x', 'y'], true); // <-- Cambia aquí
+                            const pos = datapoint.getProps(['x', 'y'], true);
                             ctx.save();
                             ctx.fillStyle = dataset.borderColor || 'black';
                             ctx.font = options.font || '12px Arial';
@@ -91,83 +94,39 @@ const Diagrama = () => {
 
 
     const getLabelX = () => {
-        if (tipoDiagrama.get() === "p-T") {
+        if (tipoActual === "p-T") {
             return "T [ºC]";
-        } else if (tipoDiagrama.get() === "p-h") {
+        } else if (tipoActual === "p-h") {
             return "h [kJ/kg]";
-        } else if (tipoDiagrama.get() === "T-s") {
+        } else if (tipoActual === "T-s") {
             return "s [kJ/kg·K]";
         }
+        return "";
     }
 
     const getLabelY = () => {
-        if (tipoDiagrama.get() === "p-T") {
+        if (tipoActual === "p-T" || tipoActual === "p-h") {
             return "p [kPa]";
-        } else if (tipoDiagrama.get() === "p-h") {
-            return "p [kPa]";
-        } else if (tipoDiagrama.get() === "T-s") {
+        } else if (tipoActual === "T-s") {
             return "T [ºC]";
         }
-    }
-    const getEscalaY = () => {
-        if (tipoDiagrama.get() === "p-h") {
-            return "logarithmic";
-        } else {
-            return "linear";
-        }
+        return "";
     }
 
+    const getEscalaY = () => tipoActual === "p-h" ? "logarithmic" : "linear";
 
-    function ajustarEjesDiagrama() {
-        const puntos = getSerie().data;
-        if (puntos.length > 0) {
-            let Xmin = Infinity;
-            let Xmax = -Infinity;
-            let Ymin = Infinity;
-            let Ymax = -Infinity;
-            for (let punto of puntos) {
-                if (punto.x < Xmin) {
-                    Xmin = punto.x;
-                }
-                if (punto.x > Xmax) {
-                    Xmax = punto.x;
-                }
-                if (punto.y < Ymin) {
-                    Ymin = punto.y;
-                }
-                if (punto.y > Ymax) {
-                    Ymax = punto.y;
-                }
-            }
-            ejeXminDiagrama.set(potenciaDe10Inferior(Xmin));
-            ejeXmaxDiagrama.set(potenciaDe10Superior(Xmax));
-            ejeYminDiagrama.set(potenciaDe10Inferior(Ymin));
-            ejeYmaxDiagrama.set(potenciaDe10Superior(Ymax));
-        }
-    }
-
-    function potenciaDe10Inferior(numero) {
-        const log10 = Math.log10(numero);
-        const redondeado = Math.round(log10);
-        const orden = Math.pow(10, redondeado);
-        const valor = Math.floor(numero / orden) * orden;
-        return valor;
-    }
-
-    function potenciaDe10Superior(numero) {
-        const log10 = Math.log10(numero);
-        const redondeado = Math.round(log10);
-        const orden = Math.pow(10, redondeado);
-        const valor = Math.ceil(numero / orden) * orden;
-        return valor;
-    }
-
+    // La campana (o la línea de saturación en p-T) se recorre siempre entre el
+    // punto triple y el crítico: es el rango donde existe equilibrio líquido-vapor
+    // y evita depender de unos límites de eje que el usuario ya no fija.
     const getCurvaSat = useCallback((grosor = 1) => {
         let datos = [];
-        const fluido = fluidoActual
+        const fluido = fluidoActual;
         if (tipoActual === "p-T") {
-            const deltaT = (xMax - xMin) / 100
-            for (let t = xMin; t <= xMax; t += deltaT) {
+            const tTriple = getPropFluido(fluido, "TTRIPLE", "T", 0, "X", 50);
+            const tCritica = getPropFluido(fluido, "TCRIT", "T", 0, "X", 50);
+
+            const deltaT = (tCritica - tTriple) / 100
+            for (let t = tTriple; t <= tCritica; t += deltaT) {
                 let p = getPropFluido(fluido, "P", "T", t, "X", 50);
                 datos.push({ x: t, y: p })
             }
@@ -205,51 +164,38 @@ const Diagrama = () => {
             pointRadius: 0,
             borderWidth: grosor
         };
-    }, [fluidoActual, tipoActual, xMin, xMax])
+    }, [fluidoActual, tipoActual])
 
-    function getPuntoTripleInfo() {
-        const fluido = fluidoDiagrama.get();
-        const pTriple = formatear(getPropFluido(fluido, "PTRIPLE", "T", 0, "X", 50), 3);
-        const tTriple = formatear(getPropFluido(fluido, "TTRIPLE", "T", 0, "X", 50), 3);
-        return `${getTextoUI("lab_punto_triple")}: ${tTriple} ºC, ${pTriple} kPa`;
+    function getPuntosCaracteristicos() {
+        const pTriple = formatear(getPropFluido(fluidoActual, "PTRIPLE", "T", 0, "X", 50), 3);
+        const tTriple = formatear(getPropFluido(fluidoActual, "TTRIPLE", "T", 0, "X", 50), 3);
+        const pCritica = formatear(getPropFluido(fluidoActual, "PCRIT", "T", 0, "X", 50), 3);
+        const tCritica = formatear(getPropFluido(fluidoActual, "TCRIT", "T", 0, "X", 50), 3);
+        return `${getTextoUI("lab_punto_triple")}: ${tTriple} ºC, ${pTriple} kPa`
+            + ` — ${getTextoUI("lab_punto_critico")}: ${tCritica} ºC, ${pCritica} kPa`;
     }
 
-    function getPuntoCriticoInfo() {
-        const fluido = fluidoDiagrama.get();
-        const pCritica = formatear(getPropFluido(fluido, "PCRIT", "T", 0, "X", 50), 3);
-        const tCritica = formatear(getPropFluido(fluido, "TCRIT", "T", 0, "X", 50), 3);
-        return `${getTextoUI("lab_punto_critico")}: ${tCritica} ºC, ${pCritica} kPa`;
-    }
-
-
-    const getDato = (estado) => proyectar(estado, tipoActual);
-
-    const getSerie = (incluirDatos = "todos") => {
-        let datos = [];
-        if (incluirDatos === "todos") {
-            estadosActuales.forEach(estado => {
-                if (estado.fluido === fluidoActual) {
-                    datos.push(getDato(estado));
-                }
-            })
-        } else if (incluirDatos === "seleccionados") {
-            const ids = [...fluidosSeleccionados.get()]
-            ids.forEach(id => {
-                const estado = estadosActuales.find(e => e.id === id);
-                if (estado && estado.fluido === fluidoActual) {
-                    datos.push(getDato(estado));
-                }
-            })
-        }
+    // Los estados del fluido elegido que no estén ocultos con el ojo de la tabla.
+    // Los seleccionados se dibujan más grandes: es el mismo resaltado cruzado que
+    // ya hacen las tablas entre sí.
+    const getSerieEstados = () => {
+        const seleccionados = new Set(fluidosSeleccionados.get());
+        const estados = estadosActuales.filter(
+            (estado) => estado.fluido === fluidoActual && estado.enDiagrama !== false
+        );
         return {
-            data: datos,
-            borderColor: colorDatos.get(),
-            showLine: lineaDatos.get(),
-            pointRadius: 6
+            data: estados.map((estado) => proyectar(estado, tipoActual)),
+            // Círculo hueco: el punto se ve sobre una curva de proceso sin taparla,
+            // y sobre la campana sigue leyéndose de qué lado cae.
+            borderColor: COLOR_ESTADOS,
+            backgroundColor: FONDO_ESTADOS,
+            pointBorderWidth: 2,
+            showLine: false,
+            pointRadius: estados.map(
+                (estado) => seleccionados.has(estado.id) ? RADIO_ESTADO_SELECCIONADO : RADIO_ESTADO
+            )
         };
     }
-
-
 
     // La curva de saturación son ~200 llamadas a CoolProp: se recalcula solo cuando
     // cambia algo de lo que depende, no en cada render.
@@ -265,6 +211,7 @@ const Diagrama = () => {
 
     const curvasProcesos = useMemo(() => {
         return procesosActuales.flatMap((proceso) => {
+            if (proceso.enDiagrama === false) return [];
             const evaluacion = evaluarProceso(proceso, estadosActuales);
             // Un proceso de otro fluido no pinta nada en este diagrama
             if (!evaluacion.valido || evaluacion.destino.fluido !== fluidoActual) return [];
@@ -298,11 +245,29 @@ const Diagrama = () => {
 
     const referenciaGrafico = useRef(null);
 
+    // Arrastrar mueve el diagrama, y al soltar el navegador dispara además un
+    // clic: sin esto, cada desplazamiento cambiaría la selección de procesos.
+    const inicioPulsacion = useRef(null);
+
+    const alPulsar = (evento) => {
+        inicioPulsacion.current = { x: evento.nativeEvent.offsetX, y: evento.nativeEvent.offsetY };
+    };
+
+    const huboArrastre = (evento) => {
+        const inicio = inicioPulsacion.current;
+        if (inicio === null) return false;
+        return Math.hypot(
+            evento.nativeEvent.offsetX - inicio.x, evento.nativeEvent.offsetY - inicio.y
+        ) > UMBRAL_ARRASTRE;
+    };
+
+    const reencuadrar = () => { referenciaGrafico.current?.resetZoom(); };
+
     // Clic sobre una curva → selecciona su fila. El id del proceso viaja dentro
     // del dataset, así que no hace falta reconstruir a qué corresponde cada uno.
     const alHacerClic = (evento) => {
         const grafico = referenciaGrafico.current;
-        if (!grafico) return;
+        if (!grafico || huboArrastre(evento)) return;
 
         const elementos = grafico.getElementsAtEventForMode(
             evento.nativeEvent, 'nearest', { intersect: false }, true
@@ -330,289 +295,139 @@ const Diagrama = () => {
                 ? { ...curva, borderWidth: curva.borderWidth + 3 }
                 : curva
         ));
-        let todasSeries = [curvaSaturacion, ...seriesProcesos]
-        if (opcionAddDatosDiagrama.get() === "todos") {
-            todasSeries.push(getSerie("todos"));
-        } else if (opcionAddDatosDiagrama.get() === "seleccionados") {
-            series.get({ noproxy: true }).forEach(serie => {
-                todasSeries.push(serie);
-            });
-            todasSeries.push(getSerie("seleccionados"));
-        }
-        return todasSeries;
+        return [curvaSaturacion, ...seriesProcesos, getSerieEstados()];
     }
 
-    return (<div className="grafica">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0 }}>{getTextoUI("titulo_diagrama")}</h3>
-            <Button
-                type="primary"
-                icon={<SettingOutlined />}
-                onClick={() => setDrawerVisible(true)}
-            >
-                {getTextoUI("configuracion_diagrama")}
-            </Button>
-        </div>
+    // Al encender el diagrama conviene que apunte a lo que hay en la tabla: si el
+    // fluido elegido no tiene ningún estado, se adopta el del primero.
+    const alCambiarTipo = (valor) => {
+        tipoDiagrama.set(valor);
+        if (valor === "ninguno") return;
+        const hayEstadosDelFluido = estadosActuales.some((estado) => estado.fluido === fluidoActual);
+        if (!hayEstadosDelFluido && estadosActuales.length > 0) {
+            fluidoDiagrama.set(estadosActuales[0].fluido);
+        }
+    };
 
-        <Scatter
-            ref={referenciaGrafico}
-            onClick={alHacerClic}
-            options={{
-                locale: "es",
-                scales: {
-                    x: {
-                        min: ejeXminDiagrama.get(),
-                        max: ejeXmaxDiagrama.get(),
-                        title: {
-                            display: true,
-                            text: getLabelX(),
-                            font: { size: 14 }
-                        },
-                        ticks: {
-                            font: { size: 14 }
-                        }
-                    },
-                    y: {
-                        type: getEscalaY(),
-                        min: ejeYminDiagrama.get(),
-                        max: ejeYmaxDiagrama.get(),
-                        title: {
-                            display: true,
-                            text: getLabelY(),
-                            font: { size: 14 }
-                        },
-                        ticks: {
-                            font: { size: 14 }
-                        }
-                    },
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: titleTooltip,
-                            label: ctx => getLabelX() + ": " + formatear(ctx.parsed.x, 3) + ", " + getLabelY() + ": " + formatear(ctx.parsed.y, 3)
-                        }
-                    },
-                    mostrarNombres: {
-                        showLabels: nombreDatos.get(),
-                        align: 'left',
-                        baseline: 'middle'
-                    }
+    // Las opciones van memorizadas y no es un detalle de rendimiento: react-chartjs-2
+    // vuelca este objeto sobre el del gráfico cada vez que cambia de identidad, y
+    // el zoom vive precisamente en los mínimos y máximos de las escalas. Sin
+    // memorizar, cualquier render (seleccionar una fila, editar un estado) devolvería
+    // el diagrama a su encuadre inicial. Que el tipo o el fluido sí lo reencuadren es
+    // lo deseable: el encuadre anterior no significa nada en otros ejes.
+    const opcionesGrafico = useMemo(() => ({
+        locale: "es",
+        maintainAspectRatio: false,
+        scales: {
+            x: {
+                title: { display: true, text: getLabelX(), font: { size: 14 } },
+                ticks: { font: { size: 14 } }
+            },
+            y: {
+                type: getEscalaY(),
+                title: { display: true, text: getLabelY(), font: { size: 14 } },
+                ticks: { font: { size: 14 } }
+            },
+        },
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                callbacks: {
+                    title: titleTooltip,
+                    label: ctx => getLabelX() + ": " + formatear(ctx.parsed.x, 3) + ", " + getLabelY() + ": " + formatear(ctx.parsed.y, 3)
                 }
-            }}
-            data={{
-                datasets: getTodasSeries()
-            }}
-            plugins={[mostrarNombres]}
-        />
+            },
+            mostrarNombres: {
+                showLabels: true,
+                align: 'left',
+                baseline: 'middle'
+            },
+            // Rueda y pellizco acercan; arrastrar mueve. El encuadre por rectángulo
+            // se reserva a Mayús+arrastrar porque solo cabe un gesto de arrastre, y
+            // mover es el que se busca sin pensar.
+            zoom: {
+                zoom: {
+                    wheel: { enabled: true, speed: 0.1 },
+                    pinch: { enabled: true },
+                    drag: {
+                        enabled: true,
+                        modifierKey: 'shift',
+                        backgroundColor: 'rgba(24, 144, 255, 0.15)',
+                        borderColor: '#1890FF',
+                        borderWidth: 1
+                    },
+                    mode: 'xy'
+                },
+                pan: { enabled: true, mode: 'xy' }
+            }
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }), [tipoActual, fluidoActual]);
 
-        <Drawer
-            title={getTextoUI("configuracion_diagrama")}
-            placement="right"
-            onClose={() => setDrawerVisible(false)}
-            open={drawerVisible}
-            width={360}
-        >
-            <Form name="selector_diagrama" layout="vertical">
-                <Row gutter={8}>
-                    <Col span={24}>
-                        <Form.Item
-                            label={getTextoUI("lab_tipo_diagrama")}
+    const selectores = (
+        <Form name="selector_diagrama" layout="vertical" style={{ marginBottom: 8 }}>
+            <Row gutter={16}>
+                <Col xs={24} sm={10} md={8}>
+                    <Form.Item label={getTextoUI("lab_tipo_diagrama")} style={{ marginBottom: 8 }}>
+                        <Select value={tipoActual} onChange={alCambiarTipo}>
+                            <Option value="ninguno">{getTextoUI("tipo_ninguno")}</Option>
+                            <Option value="p-T">{getTextoUI("tipo_p-T")}</Option>
+                            <Option value="p-h">{getTextoUI("tipo_p-h")}</Option>
+                            <Option value="T-s">{getTextoUI("tipo_T-s")}</Option>
+                        </Select>
+                    </Form.Item>
+                </Col>
+                {tipoActual !== "ninguno" && <Col xs={24} sm={10} md={8}>
+                    <Form.Item label={getTextoUI("lab_fluido_diagrama")} style={{ marginBottom: 8 }}>
+                        <Select
+                            showSearch
+                            value={fluidoActual}
+                            onChange={(valor) => { fluidoDiagrama.set(valor); }}
                         >
-                            <Select
-                                showSearch
-                                value={tipoDiagrama.get()}
-                                onChange={(value) => {
-                                    tipoDiagrama.set(value);
-                                }}
-                            >
-                                <Option value="p-T">{getTextoUI("tipo_p-T")}</Option>
-                                <Option value="p-h">{getTextoUI("tipo_p-h")}</Option>
-                                <Option value="T-s">{getTextoUI("tipo_T-s")}</Option>
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                </Row>
+                            {getListaFluidos().map((fluido) => (
+                                <Option key={fluido} value={fluido}>{fluido}</Option>
+                            ))}
+                        </Select>
+                    </Form.Item>
+                </Col>}
+                {tipoActual !== "ninguno" && <Col xs={24} sm={4} md={4}>
+                    <Form.Item label={" "} style={{ marginBottom: 8 }}>
+                        <Tooltip title={getTextoUI("tooltip_reencuadrar")} mouseEnterDelay={1}>
+                            <Button icon={<ExpandOutlined />} onClick={reencuadrar} block>
+                                {getTextoUI("bot_reencuadrar")}
+                            </Button>
+                        </Tooltip>
+                    </Form.Item>
+                </Col>}
+            </Row>
+        </Form>
+    );
 
-                <Row gutter={8}>
-                    <Col span={24}>
-                        <Form.Item
-                            label={getTextoUI("lab_fluido_diagrama")}
-                        >
-                            <Select
-                                showSearch
-                                value={fluidoDiagrama.get()}
-                                onChange={(value) => {
-                                    fluidoDiagrama.set(value);
-                                }}
-                            >
-                                {getListaFluidos().map((fluido) => (<Option key={fluido} value={fluido}>{fluido}</Option>))}
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                </Row>
+    if (tipoActual === "ninguno") {
+        return (<div className="panel">{selectores}</div>);
+    }
 
-                <Row gutter={8}>
-                    <Col span={24}>
-                        <span className='comentario'>{getPuntoTripleInfo()}</span>
-                    </Col>
-                </Row>
-                <Row gutter={8}>
-                    <Col span={24}>
-                        <span className='comentario'>{getPuntoCriticoInfo()}</span>
-                    </Col>
-                </Row>
+    return (<div className="panel">
+        <h3>{getTextoUI("titulo_diagrama")}</h3>
 
-                <Row gutter={8} style={{ marginTop: 16 }}>
-                    <Col span={24}>
-                        <Form.Item label={getTextoUI("lab_add_puntos")}>
-                            <Select
-                                showSearch
-                                value={opcionAddDatosDiagrama.get()}
-                                onChange={(value) => {
-                                    opcionAddDatosDiagrama.set(value);
-                                }}
-                            >
-                                <Option value="todos">{getTextoUI("opcion_add_datos_todos")}</Option>
-                                <Option value="seleccionados">{getTextoUI("opcion_add_datos_seleccionados")}</Option>
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                </Row>
+        {selectores}
 
-                <Row gutter={8}>
-                    <Col span={8}>
-                        <Form.Item label={getTextoUI("lab_color_datos")}>
-                            <ColorPicker
-                                value={colorDatos.get()}
-                                onChange={(_, hex) => {
-                                    colorDatos.set(hex);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
-                            <Checkbox
-                                checked={nombreDatos.get()}
-                                onChange={(e) => {
-                                    nombreDatos.set(e.target.checked);
-                                }}> </Checkbox>
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item label={getTextoUI("lab_add_linea")}>
-                            <Checkbox
-                                checked={lineaDatos.get()}
-                                onChange={(e) => {
-                                    lineaDatos.set(e.target.checked);
-                                }}> </Checkbox>
-                        </Form.Item>
-                    </Col>
-                </Row>
+        <p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>{getPuntosCaracteristicos()}</p>
+        <p className='comentario' style={{ marginTop: 0 }}>{getTextoUI("ayuda_zoom")}</p>
 
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Button
-                            type="primary"
-                            disabled={opcionAddDatosDiagrama.get() === "todos"}
-                            onClick={() => {
-                                series.merge([getSerie(opcionAddDatosDiagrama.get())])
-                                fluidosSeleccionados.set([]);
-                            }}
-                            block
-                        >{getTextoUI("bot_guardar_serie")}</Button>
-                    </Col>
-                    <Col span={12}>
-                        <Button
-                            type="primary"
-                            disabled={opcionAddDatosDiagrama.get() === "todos"}
-                            onClick={() => {
-                                series.set([]);
-                            }}
-                            block
-                        >{getTextoUI("bot_borrar_series")}</Button>
-                    </Col>
-                </Row>
-
-                <Row gutter={8} style={{ marginTop: 24 }}>
-                    <Col span={24}>
-                        <h4>{getTextoUI("ejes_max_min")}</h4>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getLabelX() + " (min)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeXminDiagrama.get()}
-                                onChange={(value) => {
-                                    ejeXminDiagrama.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getLabelX() + " (max)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeXmaxDiagrama.get()}
-                                onChange={(value) => {
-                                    ejeXmaxDiagrama.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getLabelY() + " (min)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeYminDiagrama.get()}
-                                onChange={(value) => {
-                                    ejeYminDiagrama.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getLabelY() + " (max)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeYmaxDiagrama.get()}
-                                onChange={(value) => {
-                                    ejeYmaxDiagrama.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={24}>
-                        <Button
-                            type="primary"
-                            onClick={() => { ajustarEjesDiagrama() }}
-                            block
-                        >{getTextoUI("bot_actualizar_ejes")}</Button>
-                    </Col>
-                </Row>
-            </Form>
-        </Drawer>
+        <div className="lienzo-diagrama">
+            <Scatter
+                ref={referenciaGrafico}
+                onClick={alHacerClic}
+                onPointerDown={alPulsar}
+                onDoubleClick={reencuadrar}
+                options={opcionesGrafico}
+                data={{
+                    datasets: getTodasSeries()
+                }}
+                plugins={[mostrarNombres, zoomPlugin]}
+            />
+        </div>
 
     </div >);
 

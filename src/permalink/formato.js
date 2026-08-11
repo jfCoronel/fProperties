@@ -27,14 +27,8 @@ export const CLAVES_CONFIGURACION = [
   'nCifras',
   'columnasTablaFluidos',
   'columnasTablaAires',
-  'verDiagrama',
   'tipoDiagrama',
   'fluidoDiagrama',
-  'ejeXmaxDiagrama',
-  'ejeXminDiagrama',
-  'ejeYmaxDiagrama',
-  'ejeYminDiagrama',
-  'opcionAddDatosDiagrama',
   'verPsicrometrico',
   'opcionPsicrometrico',
   'valorOpcionPsicrometrico',
@@ -123,7 +117,11 @@ function normalizarEstadoFluido(estado) {
     in1Id: String(estado.in1Id ?? 'T'),
     in2Id: String(estado.in2Id ?? 'P'),
     in1Val: Number(estado.in1Val),
-    in2Val: Number(estado.in2Val)
+    in2Val: Number(estado.in2Val),
+    // Campo añadido después de la 2.1.0. Se lee como "visible salvo que diga
+    // que no", así que los enlaces anteriores siguen abriéndose con todo
+    // dibujado y no hace falta subir la versión del esquema.
+    enDiagrama: estado.enDiagrama !== false
   };
 }
 
@@ -170,6 +168,7 @@ function normalizarProceso(proceso) {
     tipo: proceso.tipo,
     modoDestino: proceso.modoDestino === 'calculado' ? 'calculado' : 'manual',
     parametros: normalizarParametros(proceso.parametros),
+    enDiagrama: proceso.enDiagrama !== false,
     estilo: {
       color: String(estilo.color ?? '#1890FF'),
       grosor: Number.isFinite(Number(estilo.grosor)) ? Number(estilo.grosor) : 2,

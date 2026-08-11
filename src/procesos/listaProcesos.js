@@ -1,5 +1,9 @@
 import { hookstate, none } from '@hookstate/core';
-import { getDefiniciones, getParametrosPorDefecto } from './proceso';
+import { listaFluidos } from '../listaFluidos';
+import {
+  getDefiniciones, getDefinicion, getParametrosPorDefecto, puedeCalcular
+} from './proceso';
+import { detectarTipo } from './deteccion';
 
 export const listaProcesos = hookstate([]);
 
@@ -55,7 +59,14 @@ export const idsEstadosDeProcesos = (idsProcesos) => {
 }
 
 export const nuevoProceso = (idOrigen = null, idDestino = null) => {
-  const definicion = getDefiniciones('fluido')[0];
+  // Naciendo de dos estados ya elegidos, el tipo que encaja es mejor punto de
+  // partida que el primero de la lista. Es solo el valor inicial: se cambia en
+  // el diálogo como cualquier otro.
+  const estados = listaFluidos.get({ noproxy: true });
+  const buscar = (id) => estados.find(estado => estado.id === id) ?? null;
+  const detectado = getDefinicion(detectarTipo(buscar(idOrigen), buscar(idDestino)));
+  const definicion = detectado ?? getDefiniciones('fluido')[0];
+
   const nProcesos = listaProcesos.get({ noproxy: true }).length;
 
   const procesoNuevo = {
@@ -65,6 +76,8 @@ export const nuevoProceso = (idOrigen = null, idDestino = null) => {
     tipo: definicion.clave,
     modoDestino: "manual",
     parametros: getParametrosPorDefecto(definicion),
+    // Un proceso nuevo se dibuja: ocultarlo es la excepción, no la norma.
+    enDiagrama: true,
     estilo: {
       color: COLORES[nProcesos % COLORES.length],
       grosor: 2,
@@ -95,8 +108,54 @@ export const duplicarProcesos = (ids) => {
   })
 }
 
+// Visibilidad en el diagrama, igual que en los estados: propiedad del proceso, no
+// de la sesión. Se decide aparte de la de sus extremos, para que ocultar un punto
+// no borre la curva que llega hasta él.
+export const verProcesosEnDiagrama = (ids, valor) => {
+  ids.forEach(id => {
+    const i = indiceProceso(id);
+    if (i >= 0) {
+      listaProcesos[i].merge({ enDiagrama: valor });
+    }
+  })
+}
+
 export const actualizarProceso = (id, proceso) => {
   const i = indiceProceso(id);
   if (i < 0) return;
   listaProcesos[i].set({ ...proceso, id });
+}
+
+/**
+ * Cambia el tipo de un proceso conservando lo que siga teniendo sentido.
+ *
+ * Vive aquí, y no en el diálogo, porque el cambio se ofrece desde dos sitios: el
+ * desplegable del editor y el aviso de la tabla ("encaja con isentálpico"). El
+ * tipo nuevo puede no saber calcular su destino, y en ese caso el proceso vuelve
+ * a modo manual en vez de quedarse en un modo que no haría nada.
+ *
+ * No propaga: de eso se encarga quien llama, que es quien sabe si hay más
+ * cambios en camino.
+ */
+export const cambiarTipoProceso = (id, clave) => {
+  const i = indiceProceso(id);
+  if (i < 0) return;
+
+  const proceso = listaProcesos[i].get({ noproxy: true });
+  const definicion = getDefinicion(clave);
+  if (!definicion) return;
+
+  const modoDestino = (proceso.modoDestino === 'calculado' && !puedeCalcular(definicion))
+    ? 'manual'
+    : proceso.modoDestino;
+
+  listaProcesos[i].set({
+    ...proceso,
+    tipo: clave,
+    modoDestino,
+    parametros: {
+      ...getParametrosPorDefecto(definicion, modoDestino),
+      ...proceso.parametros
+    }
+  });
 }

@@ -64,6 +64,19 @@ export function tieneCaudal(proceso) {
 }
 
 /**
+ * ¿Sabe este tipo generar su estado destino?
+ *
+ * Los tipos que no implementan destino() —el genérico, que no supone nada con lo
+ * que calcular— no ofrecen modo calculado. El motor ya los tolera; esto es para
+ * que la interfaz no ofrezca una opción que no haría nada.
+ */
+export function puedeCalcular(definicion) {
+  if (!definicion) return false;
+  const resolvedor = RESOLVEDORES[definicion.restriccion.resolvedor];
+  return typeof resolvedor?.destino === 'function';
+}
+
+/**
  * Magnitudes derivadas de un proceso ya evaluado (Δh, Δs, w, η real, potencia…).
  *
  * Solo devuelve las claves que el tipo declara en `columnas` y cuyo valor es
