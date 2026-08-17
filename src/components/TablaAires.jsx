@@ -4,10 +4,9 @@ import {
   SettingOutlined,
   FileExcelOutlined,
   PlusCircleOutlined,
-  LineChartOutlined,
   HolderOutlined
 } from '@ant-design/icons';
-import { Button, Tooltip, Switch, Table } from 'antd';
+import { Button, Tooltip, Table } from 'antd';
 import { DndContext } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
@@ -94,7 +93,7 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaAires = () => {
-  const { idAireActual, columnasTablaAires, nCifras, verConfiguracion, verPsicrometrico, verDialogoAire, airesSeleccionados } = useHookstate(configuracion);
+  const { idAireActual, columnasTablaAires, nCifras, verConfiguracion, verDialogoAire, airesSeleccionados } = useHookstate(configuracion);
 
 
   const lista = useHookstate(listaAires);
@@ -235,15 +234,8 @@ const TablaAires = () => {
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
       </Tooltip>
       <span>  </span>
-      <Tooltip title={getTextoUI("tooltip_psicrometrico")} mouseEnterDelay={1}>
-        <Switch
-          checkedChildren={<LineChartOutlined />}
-          unCheckedChildren={<LineChartOutlined />}
-          checked={verPsicrometrico.get()}
-          onClick={() => { verPsicrometrico.set(!verPsicrometrico.get()); }}
-        />
-      </Tooltip>
-      <span>  </span>
+      {/* El psicrométrico ya no se enciende desde aquí: su propio desplegable de
+          tipo hace de interruptor, igual que en el diagrama de fluidos. */}
        <Button
         icon={<FileExcelOutlined />}
         onClick={() => {

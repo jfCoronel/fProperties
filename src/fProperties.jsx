@@ -17,7 +17,7 @@ import DialogoAire from './components/DialogoAire';
 const { Option } = Select;
 
 const FProperties = () => {
-  const { menuActual, idFluidoActual, idAireActual, version, idioma, textosCargados, verPsicrometrico } = useHookstate(configuracion);
+  const { menuActual, idFluidoActual, idAireActual, version, idioma, textosCargados } = useHookstate(configuracion);
 
   // Fluidos y aire húmedo son dos calculadoras distintas, no dos vistas de lo
   // mismo: un desplegable junto al título lo dice mejor que unas pestañas, y deja
@@ -100,17 +100,18 @@ const FProperties = () => {
         </div>
         <Divider style={{ margin: "12px 0" }} />
 
+        {/* Las dos calculadoras tienen la misma forma: tabla de estados, tabla de
+            procesos y diagrama. Los tres van dentro del mismo contenedor, que es
+            la única manera de que las cajas compartan ancho y márgenes. */}
         {(menuActual.get() === 'fluidos') && <TablaFluidos />}
         {(menuActual.get() === 'fluidos') && <TablaProcesos />}
-        {/* El diagrama va dentro del mismo contenedor que las tablas: es la única
-            forma de que las tres cajas compartan ancho y márgenes. */}
         {(menuActual.get() === 'fluidos') && <Diagrama />}
         {(menuActual.get() === 'aireHumedo') && <TablaAires />}
+        {(menuActual.get() === 'aireHumedo') && <Psicrometrico />}
 
         <p>  </p>
       </div>
 
-      {(verPsicrometrico.get() && (menuActual.get() === 'aireHumedo')) && <Psicrometrico />}
       <Divider />
       <div className='pie'>
         <span className='etiqueta'> {getTextoUI("lab_version")}: {version.get()},  <a href="http://jfc.us.es" target="blank">{getTextoUI("lab_copyright")} </a></span>

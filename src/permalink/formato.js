@@ -21,6 +21,12 @@ const MARCA_PLANO = 'j';
 // Claves de configuración que forman parte del enunciado compartido. La lista es
 // explícita a propósito: lo que no esté aquí (selecciones, diálogos abiertos,
 // textos cargados) es estado de sesión y no debe viajar.
+//
+// Quitar una clave de aquí es compatible hacia atrás sin subir la versión del
+// esquema: normalizarConfiguracion solo copia las que están en la lista, así que
+// un enlace antiguo que traiga claves ya retiradas —las del panel del
+// psicrométrico, que desapareció al unificar los dos diagramas— se abre igual y
+// simplemente las ignora.
 export const CLAVES_CONFIGURACION = [
   'menuActual',
   'idioma',
@@ -29,17 +35,9 @@ export const CLAVES_CONFIGURACION = [
   'columnasTablaAires',
   'tipoDiagrama',
   'fluidoDiagrama',
-  'verPsicrometrico',
+  'tipoPsicrometrico',
   'opcionPsicrometrico',
-  'valorOpcionPsicrometrico',
-  'opcionAddDatosPsicrometrico',
-  'ejeXmaxPsicrometrico',
-  'ejeXminPsicrometrico',
-  'ejeYmaxPsicrometrico',
-  'ejeYminPsicrometrico',
-  'colorDatos',
-  'lineaDatos',
-  'nombreDatos'
+  'valorOpcionPsicrometrico'
 ];
 
 const hayCompresion =

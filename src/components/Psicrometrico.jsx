@@ -1,78 +1,64 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, InputNumber, Form, Drawer, ColorPicker, Checkbox, Button } from 'antd'
-import { SettingOutlined } from '@ant-design/icons';
+import { Row, Col, Select, InputNumber, Form } from 'antd';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires } from '../listaAires';
-import { Chart as ChartJS } from 'chart.js/auto';
-import { Scatter } from 'react-chartjs-2';
-import { getPropAireHumedo } from '../propFluidos/aires'
+import { getPropAireHumedo } from '../propFluidos/aires';
 import formatear from '../util/formatear';
-import { useCallback, useMemo, useState } from 'react';
+import { useMemo } from 'react';
+import GraficaEstados from './GraficaEstados';
+
+// Diagrama psicrométrico. Mismo esqueleto que el de fluidos: todo lo que no sea
+// la proyección a los ejes y las curvas de fondo vive en GraficaEstados.
+// Ver DOCUMENTACION.md §3.6.
+//
+// El papel que en el diagrama de fluidos hace "qué fluido se dibuja" lo hace aquí
+// "a qué presión total": un estado de aire a otra altitud es otro sistema, y sus
+// curvas de saturación son otras, así que no cabe en el mismo gráfico.
 
 const { Option } = Select;
 
+// Curvas de humedad relativa constante que se dibujan de fondo.
+const HUMEDADES_FONDO = [
+    { hr: 100, grosor: 3 },
+    { hr: 75, grosor: 1 },
+    { hr: 50, grosor: 1 },
+    { hr: 25, grosor: 1 }
+];
+
+// Rango de temperatura seca del fondo. Antes lo fijaba el usuario con cuatro
+// campos de mínimo y máximo; ahora es fijo y el encuadre se hace con el zoom,
+// como en el diagrama de fluidos.
+const T_MINIMA = -10;
+const T_MAXIMA = 55;
+
+// Dos estados están en el mismo diagrama si comparten presión total. Se compara
+// la presión y no la altitud porque es lo que de verdad usa CoolProp: dos estados
+// dados uno por altitud y otro por presión equivalente son el mismo sistema.
+const MISMA_PRESION = 1e-3;
+
 const Psicrometrico = () => {
     const lista = useHookstate(listaAires);
-    const { opcionPsicrometrico, valorOpcionPsicrometrico,
-        ejeXmaxPsicrometrico, ejeXminPsicrometrico,
-        ejeYmaxPsicrometrico, ejeYminPsicrometrico, opcionAddDatosPsicrometrico,
-        colorDatos, lineaDatos, airesSeleccionados, nombreDatos } = useHookstate(configuracion);
+    const {
+        tipoPsicrometrico, opcionPsicrometrico, valorOpcionPsicrometrico, airesSeleccionados
+    } = useHookstate(configuracion);
 
-    let series = useHookstate([]);
-    const [drawerVisible, setDrawerVisible] = useState(false);
-
-    // Valores de los que dependen las curvas de HR constante, extraídos para poder
-    // memorizarlas (ver getCurvaHRcte / curvasHR más abajo).
+    const tipoActual = tipoPsicrometrico.get();
     const opcionActual = opcionPsicrometrico.get();
-    const valorOpcionActual = valorOpcionPsicrometrico.get();
-    const xMin = ejeXminPsicrometrico.get();
-    const xMax = ejeXmaxPsicrometrico.get();
+    const valorActual = valorOpcionPsicrometrico.get();
+    const estadosActuales = lista.get({ noproxy: true });
 
-    // Tooltip
-    const titleTooltip = (ctx) => {
-        return ctx[0].raw.nombre;
-    }
+    // Presión total del diagrama, venga dada como altitud o como presión.
+    const presionDiagrama = getPropAireHumedo(
+        "P", opcionActual, valorActual, 'T', 25, 'HR', 50
+    );
 
-    // 
-    const mostrarNombres = {
-        id: 'mostrarNombres',
-        afterDatasetDraw: (chart, args, options) => {
-            const { ctx, chartArea: { left, right, top, bottom }, scales: { x, y } } = chart;
-            const datasets = chart.data.datasets;
-
-            datasets.forEach((dataset, i) => {
-                const meta = chart.getDatasetMeta(i);
-                if (!meta.hidden) {
-                    meta.data.forEach((datapoint, index) => {
-                        // Solo mostrar si hay nombre
-                        if (options.showLabels && dataset.data[index] && dataset.data[index].nombre) {
-                            const pos = datapoint.getProps(['x', 'y'], true); // <-- Cambia aquí
-                            ctx.save();
-                            ctx.fillStyle = dataset.borderColor || 'black';
-                            ctx.font = options.font || '12px Arial';
-                            ctx.textAlign = options.align || 'center';
-                            ctx.textBaseline = options.baseline || 'bottom';
-                            ctx.fillText(dataset.data[index].nombre, pos.x + 5, pos.y - 15);
-                            ctx.restore();
-                        }
-                    });
-                }
-            });
-        }
-    };
-
-    const getCurvaHRcte = useCallback((hr, grosor = 1) => {
-        let datos = [];
-        let w = 0
-        for (let t = xMin; t <= xMax; t++) {
-            if (opcionActual === "A") {
-                w = getPropAireHumedo("W", 'A', valorOpcionActual, 'T', t, 'HR', hr)
-            } else if (opcionActual === "P") {
-                w = getPropAireHumedo("W", 'P', valorOpcionActual, 'T', t, 'HR', hr)
-            }
-
-            datos.push({ x: t, y: w })
-
+    // Las curvas de ϕ constante son ~4·(rango de T) llamadas a CoolProp: se
+    // recalculan solo cuando cambia la presión del diagrama, no en cada render.
+    const curvasFondo = useMemo(() => HUMEDADES_FONDO.map(({ hr, grosor }) => {
+        const datos = [];
+        for (let t = T_MINIMA; t <= T_MAXIMA; t++) {
+            const w = getPropAireHumedo("W", opcionActual, valorActual, 'T', t, 'HR', hr);
+            if (Number.isFinite(w)) datos.push({ x: t, y: w });
         }
         return {
             data: datos,
@@ -81,329 +67,73 @@ const Psicrometrico = () => {
             pointRadius: 0,
             borderWidth: grosor
         };
-    }, [opcionActual, valorOpcionActual, xMin, xMax])
+    }), [opcionActual, valorActual]);
 
-    const check_altura = (aire) => {
-        if (opcionPsicrometrico.get() === "A") {
-            if (Math.abs(aire.A.get() - valorOpcionPsicrometrico.get()) < 1e-3) {
-                return true
-            } else {
-                return false
-            }
-
-        } else if (Math.abs(aire.P.get() - valorOpcionPsicrometrico.get()) < 1e-3) {
-            if (aire.P.get() === valorOpcionPsicrometrico.get()) {
-                return true
-            } else {
-                return false
-            }
-        }
-    }
-    const getSerie = (incluirDatos = "todos") => {
-        let datos = [];
-        if (incluirDatos === "todos") {
-            lista.forEach(aire => {
-                if (check_altura(aire)) {
-                    let dato = {
-                        x: aire.T.get(),
-                        y: aire.W.get(),
-                        nombre: aire.nombre.get()
-                    }
-                    datos.push(dato);
-                }
-            })
-        } else if (incluirDatos === "seleccionados") {
-            const ids = [...airesSeleccionados.get()]
-            ids.forEach(id => {
-                const aire = lista.find(a => a.id.get() === id);
-                if (aire && check_altura(aire)) {
-                    let dato = {
-                        x: aire.T.get(),
-                        y: aire.W.get(),
-                        nombre: aire.nombre.get()
-                    }
-                    datos.push(dato);
-                }
-            })
-        }
-
-        return {
-            data: datos,
-            borderColor: colorDatos.get(),
-            showLine: lineaDatos.get(),
-            pointRadius: 6
-        };
-    }
-
-    // Las curvas de HR constante son ~4·(rango de T) llamadas a CoolProp: se recalculan
-    // solo cuando cambia algo de lo que dependen, no en cada render.
-    const curvasHR = useMemo(
-        () => [
-            getCurvaHRcte(100, 3),
-            getCurvaHRcte(75),
-            getCurvaHRcte(50),
-            getCurvaHRcte(25)
-        ],
-        [getCurvaHRcte]
+    const selectorTipo = (
+        <Col xs={24} sm={10} md={8} key="tipo">
+            <Form.Item label={getTextoUI("lab_tipo_diagrama")} style={{ marginBottom: 8 }}>
+                <Select value={tipoActual} onChange={(valor) => { tipoPsicrometrico.set(valor); }}>
+                    <Option value="ninguno">{getTextoUI("tipo_ninguno")}</Option>
+                    <Option value="psicrometrico">{getTextoUI("titulo_psicrometrico")}</Option>
+                </Select>
+            </Form.Item>
+        </Col>
     );
 
-    function getTodasSeries() {
-        let todasSeries = [...curvasHR]
-
-        if (opcionAddDatosPsicrometrico.get() === "todos") {
-            todasSeries.push(getSerie("todos"));
-        } else if (opcionAddDatosPsicrometrico.get() === "seleccionados") {
-            series.get({ noproxy: true }).forEach(serie => {
-                todasSeries.push(serie);
-            });
-            todasSeries.push(getSerie("seleccionados"));
-        }
-        return todasSeries;
+    if (tipoActual === "ninguno") {
+        return (<div className="panel">
+            <Form name="selector_psicrometrico" layout="vertical" style={{ marginBottom: 8 }}>
+                <Row gutter={16}>{selectorTipo}</Row>
+            </Form>
+        </div>);
     }
 
-    return (<div className="grafica">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0 }}>{getTextoUI("titulo_psicrometrico")}</h3>
-            <Button
-                type="primary"
-                icon={<SettingOutlined />}
-                onClick={() => setDrawerVisible(true)}
-            >
-                {getTextoUI("configuracion_psicrometrico")}
-            </Button>
-        </div>
+    // Altitud o presión: es lo que identifica al diagrama, igual que el fluido en
+    // el de fluidos, y por eso va en la barra y no en un panel aparte.
+    const selectorPresion = (
+        <Col xs={24} sm={10} md={8} key="presion">
+            <Form.Item label={getTextoUI("lab_opcion_psicrometrico")} style={{ marginBottom: 8 }}>
+                <Row gutter={4}>
+                    <Col span={10}>
+                        <Select
+                            style={{ width: "100%" }}
+                            value={opcionActual}
+                            onChange={(valor) => { opcionPsicrometrico.set(valor); }}
+                        >
+                            <Option value="A">{getTextoUI("tabla_altura")}</Option>
+                            <Option value="P">p [kPa]</Option>
+                        </Select>
+                    </Col>
+                    <Col span={14}>
+                        <InputNumber
+                            style={{ width: "100%" }}
+                            value={valorActual}
+                            onChange={(valor) => { valorOpcionPsicrometrico.set(valor); }}
+                        />
+                    </Col>
+                </Row>
+            </Form.Item>
+        </Col>
+    );
 
-        <Scatter
-            options={{
-                locale: "es",
-                scales: {
-                    x: {
-                        min: ejeXminPsicrometrico.get(),
-                        max: ejeXmaxPsicrometrico.get(),
-                        title: {
-                            display: true,
-                            text: "T [°C]",
-                            font: { size: 14 }
-                        },
-                        ticks: {
-                            font: { size: 14 }
-                        }
-                    },
-                    y: {
-                        min: ejeYminPsicrometrico.get(),
-                        max: ejeYmaxPsicrometrico.get(),
-                        title: {
-                            display: true,
-                            text: "w [g/kg a.s.]",
-                            font: { size: 14 }
-                        },
-                        ticks: {
-                            font: { size: 14 }
-                        }
-                    },
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: titleTooltip,
-                            label: ctx => ' T: ' + formatear(ctx.parsed.x, 3) + '°C,  w: ' + formatear(ctx.parsed.y, 3) + ' g/kg'
-                        }
-                    },
-                    mostrarNombres: {
-                        showLabels: nombreDatos.get(),
-                        align: 'left',
-                        baseline: 'middle'
-                    }
-                }
-            }}
-            data={{
-                datasets: getTodasSeries()
-            }}
-            plugins={[mostrarNombres]}
+    return (
+        <GraficaEstados
+            dominio="aire"
+            estados={estadosActuales}
+            seleccionados={airesSeleccionados}
+            visible={(estado) => Math.abs(estado.P - presionDiagrama) < MISMA_PRESION}
+            proyectar={(estado) => ({ x: estado.T, y: estado.W })}
+            etiquetaX="T [°C]"
+            etiquetaY="w [g/kg a.s.]"
+            firmaVista={`psicrometrico|${opcionActual}|${valorActual}`}
+            curvasFondo={curvasFondo}
+            titulo={getTextoUI("titulo_psicrometrico")}
+            selectores={[selectorTipo, selectorPresion]}
+            pie={<p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
+                {getTextoUI("coment_psicrometrico")} — p = {formatear(presionDiagrama, 4)} kPa
+            </p>}
         />
-
-        <Drawer
-            title={getTextoUI("configuracion_psicrometrico")}
-            placement="right"
-            onClose={() => setDrawerVisible(false)}
-            open={drawerVisible}
-            width={360}
-        >
-            <Form name="selector_presión" layout="vertical">
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Form.Item label={getTextoUI("lab_opcion_psicrometrico")}>
-                            <Select
-                                showSearch
-                                value={opcionPsicrometrico.get()}
-                                onChange={(value) => {
-                                    opcionPsicrometrico.set(value);
-                                }}
-                            >
-                                <Option value="A">{getTextoUI("tabla_altura")}</Option>
-                                <Option value="P">p [kPa]</Option>
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item label={getTextoUI("valor_altura_presion")}>
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={valorOpcionPsicrometrico.get()}
-                                onChange={(value) => {
-                                    valorOpcionPsicrometrico.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={24}>
-                        <span className='comentario'>{getTextoUI("coment_psicrometrico")}</span>
-                    </Col>
-                </Row>
-
-                <Row gutter={8} style={{ marginTop: 16 }}>
-                    <Col span={24}>
-                        <Form.Item label={getTextoUI("lab_add_puntos")}>
-                            <Select
-                                showSearch
-                                value={opcionAddDatosPsicrometrico.get()}
-                                onChange={(value) => {
-                                    opcionAddDatosPsicrometrico.set(value);
-                                }}
-                            >
-                                <Option value="todos">{getTextoUI("opcion_add_datos_todos")}</Option>
-                                <Option value="seleccionados">{getTextoUI("opcion_add_datos_seleccionados")}</Option>
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={8}>
-                        <Form.Item label={getTextoUI("lab_color_datos")}>
-                            <ColorPicker
-                                value={colorDatos.get()}
-                                onChange={(_, hex) => {
-                                    colorDatos.set(hex);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item label={getTextoUI("lab_mostrar_nombre")}>
-                            <Checkbox
-                                checked={nombreDatos.get()}
-                                onChange={(e) => {
-                                    nombreDatos.set(e.target.checked);
-                                }}> </Checkbox>
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item label={getTextoUI("lab_add_linea")}>
-                            <Checkbox
-                                checked={lineaDatos.get()}
-                                onChange={(e) => {
-                                    lineaDatos.set(e.target.checked);
-                                }}> </Checkbox>
-                        </Form.Item>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Button
-                            type="primary"
-                            disabled={opcionAddDatosPsicrometrico.get() === "todos"}
-                            onClick={() => {
-                                series.merge([getSerie(opcionAddDatosPsicrometrico.get())])
-                                airesSeleccionados.set([]);
-                            }}
-                            block
-                        >{getTextoUI("bot_guardar_serie")}</Button>
-                    </Col>
-                    <Col span={12}>
-                        <Button
-                            type="primary"
-                            disabled={opcionAddDatosPsicrometrico.get() === "todos"}
-                            onClick={() => { series.set([]); }}
-                            block
-                        >{getTextoUI("bot_borrar_series")}</Button>
-                    </Col>
-                </Row>
-
-                <Row gutter={8} style={{ marginTop: 24 }}>
-                    <Col span={24}>
-                        <h4>{getTextoUI("ejes_max_min")}</h4>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getTextoUI("lab_ejeX_psicrometrico") + " (min)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeXminPsicrometrico.get()}
-                                onChange={(value) => {
-                                    ejeXminPsicrometrico.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getTextoUI("lab_ejeX_psicrometrico") + " (max)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeXmaxPsicrometrico.get()}
-                                onChange={(value) => {
-                                    ejeXmaxPsicrometrico.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
-
-                <Row gutter={8}>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getTextoUI("lab_ejeY_psicrometrico") + " (min)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeYminPsicrometrico.get()}
-                                onChange={(value) => {
-                                    ejeYminPsicrometrico.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item
-                            label={getTextoUI("lab_ejeY_psicrometrico") + " (max)"}
-                        >
-                            <InputNumber
-                                style={{ width: "100%" }}
-                                value={ejeYmaxPsicrometrico.get()}
-                                onChange={(value) => {
-                                    ejeYmaxPsicrometrico.set(value);
-                                }}
-                            />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Form>
-        </Drawer>
-    </div >);
-
+    );
 }
 
 export default Psicrometrico;

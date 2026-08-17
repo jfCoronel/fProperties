@@ -12,23 +12,19 @@ const configuracionInicial = {
   idioma: "es",
   textosUI: {},
   textosCargados: false,
-  verPsicrometrico: false,
+  // Igual que tipoDiagrama: el desplegable de tipo hace de interruptor, así que
+  // no hace falta un botón aparte para mostrar u ocultar el psicrométrico.
+  tipoPsicrometrico: "ninguno",
+  // Altitud o presión total del psicrométrico. Hace el papel que fluidoDiagrama
+  // hace en el de fluidos: identifica QUÉ diagrama se está mirando.
   opcionPsicrometrico: "A",
   valorOpcionPsicrometrico: 0,
-  opcionAddDatosPsicrometrico: "todos",
-  ejeXmaxPsicrometrico: 50,
-  ejeXminPsicrometrico: 0,
-  ejeYmaxPsicrometrico: 50,
-  ejeYminPsicrometrico: 0,
   verDialogoFluido: false,
   verDialogoAire: false,
   // "ninguno" = sin diagrama: el desplegable de tipo hace de interruptor, así que
   // no hace falta un botón aparte para mostrarlo u ocultarlo.
   tipoDiagrama: "ninguno",
   fluidoDiagrama: "Agua",
-  colorDatos: "#0000FF",
-  lineaDatos: false,
-  nombreDatos: false,
   airesSeleccionados: [],
   fluidosSeleccionados: [],
   idProcesoActual: null,
