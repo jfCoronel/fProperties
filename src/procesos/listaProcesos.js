@@ -1,5 +1,6 @@
 import { hookstate, none } from '@hookstate/core';
-import { listaFluidos } from '../listaFluidos';
+import { estadosDominio } from '../listasDominio';
+import { DOMINIO_POR_DEFECTO } from './dominios';
 import {
   getDefiniciones, getDefinicion, getParametrosPorDefecto, puedeCalcular
 } from './proceso';
@@ -58,14 +59,14 @@ export const idsEstadosDeProcesos = (idsProcesos) => {
   return [...estados];
 }
 
-export const nuevoProceso = (idOrigen = null, idDestino = null) => {
+export const nuevoProceso = (idOrigen = null, idDestino = null, dominio = DOMINIO_POR_DEFECTO) => {
   // Naciendo de dos estados ya elegidos, el tipo que encaja es mejor punto de
   // partida que el primero de la lista. Es solo el valor inicial: se cambia en
   // el diálogo como cualquier otro.
-  const estados = listaFluidos.get({ noproxy: true });
+  const estados = estadosDominio(dominio);
   const buscar = (id) => estados.find(estado => estado.id === id) ?? null;
-  const detectado = getDefinicion(detectarTipo(buscar(idOrigen), buscar(idDestino)));
-  const definicion = detectado ?? getDefiniciones('fluido')[0];
+  const detectado = getDefinicion(detectarTipo(buscar(idOrigen), buscar(idDestino), dominio));
+  const definicion = detectado ?? getDefiniciones(dominio)[0];
 
   const nProcesos = listaProcesos.get({ noproxy: true }).length;
 

@@ -3,10 +3,10 @@
 // resolvedores; este módulo solo los aplica sobre el estado vivo.
 // Ver DOCUMENTACION.md §1.5 y §3.4.
 import { none } from '@hookstate/core';
-import { listaFluidos, indiceFluido } from '../listaFluidos';
+import { getListaDominio, dominioDeEstado } from '../listasDominio';
+import { getDominio, CLAVES_DOMINIO } from './dominios';
 import { listaProcesos, indiceProceso } from './listaProcesos';
-import { getObjetoFluido } from '../propFluidos/fluidos';
-import { planificarPropagacion, parejaDestino } from './proceso';
+import { planificarPropagacion, parejaDestino, dominioDeProceso } from './proceso';
 
 // Un estado generado se marca con el proceso que lo genera. La marca no viaja en
 // el permalink: se vuelve a deducir de los procesos al propagar.
@@ -20,33 +20,32 @@ function sinMarca(estado) {
 }
 
 /**
- * Recalcula todos los estados generados por procesos en modo calculado.
+ * Aplica sobre la lista de un dominio los procesos que generan en él.
  *
- * Sustituye la lista de estados solo si algo ha cambiado: la propagación es
- * determinista, así que volver a lanzarla sobre el mismo problema no dispara
- * otro render. Devuelve el número de estados regenerados.
+ * Sustituye la lista solo si algo ha cambiado: la propagación es determinista,
+ * así que volver a lanzarla sobre el mismo problema no dispara otro render.
  */
-export function propagarProcesos() {
-  const { orden } = planificarPropagacion(listaProcesos.get({ noproxy: true }));
-  const anteriores = listaFluidos.get({ noproxy: true });
+function propagarDominio(clave, procesos) {
+  const { lista } = getListaDominio(clave);
+  const dominio = getDominio(clave);
+  const anteriores = lista.get({ noproxy: true });
 
   let estados = anteriores;
   const generados = new Set();
 
-  orden.forEach((proceso) => {
+  procesos.forEach((proceso) => {
     const origenes = proceso.origenes.map((id) => estados.find((estado) => estado.id === id));
     const actual = estados.find((estado) => estado.id === proceso.destino);
     if (!actual || origenes.some((origen) => origen === undefined)) return;
 
-    const pareja = parejaDestino(proceso, origenes);
-    if (pareja === null) return;
+    const entradas = parejaDestino(proceso, origenes);
+    if (entradas === null) return;
 
-    const fluido = origenes[0].fluido;
     const generado = {
       ...sinMarca(actual),
-      fluido,
-      ...pareja,
-      ...getObjetoFluido(fluido, pareja.in1Id, pareja.in1Val, pareja.in2Id, pareja.in2Val),
+      ...dominio.identidad(origenes[0]),
+      ...entradas,
+      ...dominio.construir(entradas, origenes[0]),
       [MARCA]: proceso.id
     };
     estados = estados.map((estado) => (estado.id === generado.id ? generado : estado));
@@ -58,9 +57,28 @@ export function propagarProcesos() {
   estados = estados.map((estado) => (generados.has(estado.id) ? estado : sinMarca(estado)));
 
   if (JSON.stringify(estados) !== JSON.stringify(anteriores)) {
-    listaFluidos.set(estados);
+    lista.set(estados);
   }
   return generados.size;
+}
+
+/**
+ * Recalcula todos los estados generados por procesos en modo calculado.
+ *
+ * El orden topológico se planifica sobre la lista COMPLETA de procesos, que es
+ * una sola para los dos dominios; el reparto por dominio viene después y solo
+ * decide en qué lista se escribe. Hacerlo al revés —planificar por separado—
+ * daría el mismo resultado hoy, pero rompería en cuanto un problema encadenara
+ * los dos dominios.
+ *
+ * Devuelve el número de estados regenerados.
+ */
+export function propagarProcesos() {
+  const { orden } = planificarPropagacion(listaProcesos.get({ noproxy: true }));
+
+  return CLAVES_DOMINIO.reduce((total, clave) => total + propagarDominio(
+    clave, orden.filter((proceso) => dominioDeProceso(proceso) === clave)
+  ), 0);
 }
 
 export function esDerivado(estado) {
@@ -78,16 +96,20 @@ export function esDerivado(estado) {
  * derivado.
  */
 export function romperVinculo(idEstado) {
-  const estado = listaFluidos.get({ noproxy: true }).find((e) => e.id === idEstado);
+  const clave = dominioDeEstado(idEstado);
+  if (clave === null) return null;
+
+  const { lista, indice } = getListaDominio(clave);
+  const estado = lista.get({ noproxy: true }).find((e) => e.id === idEstado);
   if (!esDerivado(estado)) return null;
 
   // El id se guarda antes de borrar la marca: con noproxy, el objeto que
   // devuelve hookstate es el de dentro, y quitar la propiedad lo cambia.
   const idProceso = estado[MARCA];
 
-  const iEstado = indiceFluido(idEstado);
+  const iEstado = indice(idEstado);
   if (iEstado >= 0) {
-    listaFluidos[iEstado][MARCA].set(none);
+    lista[iEstado][MARCA].set(none);
   }
 
   const iProceso = indiceProceso(idProceso);

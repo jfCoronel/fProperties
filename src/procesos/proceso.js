@@ -4,22 +4,27 @@
 // Ver DOCUMENTACION.md §3.4.
 import definiciones from './definiciones.json';
 import { RESOLVEDORES, dentroDeTolerancia } from './resolvedores';
-import { getPropFluido } from '../propFluidos/fluidos';
+import { getDominio, DOMINIO_POR_DEFECTO } from './dominios';
 
 export const ESQUEMA_PROCESOS = definiciones.esquema;
 export const PARAMETROS_COMUNES = definiciones.parametrosComunes;
 export const COLUMNAS_RESULTADO = definiciones.columnasResultado;
 
-// Magnitudes que todo estado debe tener resueltas para poder evaluar un proceso.
-const MAGNITUDES_REQUERIDAS = ['T', 'P', 'H', 'S'];
-
-export function getDefiniciones(dominio = 'fluido') {
+export function getDefiniciones(dominio = DOMINIO_POR_DEFECTO) {
   return definiciones.tipos.filter((tipo) => tipo.dominio === dominio);
 }
 
 export function getDefinicion(clave) {
   return definiciones.tipos.find((tipo) => tipo.clave === clave) ?? null;
 }
+
+// El dominio de un proceso lo dice su tipo: no se guarda en el proceso, se
+// deduce, y así no puede quedar desincronizado al cambiar de tipo.
+export function dominioDeProceso(proceso) {
+  return getDefinicion(proceso?.tipo)?.dominio ?? DOMINIO_POR_DEFECTO;
+}
+
+const dominioDeDefinicion = (definicion) => getDominio(definicion?.dominio);
 
 // En modo manual el usuario crea los dos estados y el proceso deduce las
 // magnitudes: los parámetros marcados como soloCalculado son entradas que
@@ -29,6 +34,10 @@ export function getParametrosVisibles(definicion, modoDestino = 'manual') {
   const propios = modoDestino === 'calculado'
     ? definicion.parametros
     : definicion.parametros.filter((parametro) => !parametro.soloCalculado);
+  // El caudal común es entrada en casi todos los tipos, pero en la mezcla es un
+  // resultado (la suma de los dos que entran): pedirlo además sería pedir dos
+  // veces lo mismo y dejar que se contradigan.
+  if (definicion.sinCaudalComun) return propios;
   return [...propios, ...PARAMETROS_COMUNES];
 }
 
@@ -107,8 +116,10 @@ function buscarEstado(estados, id) {
   return estados.find((estado) => estado.id === id) ?? null;
 }
 
-function estadoResoluble(estado) {
-  return MAGNITUDES_REQUERIDAS.every((magnitud) => Number.isFinite(estado[magnitud]));
+// Un estado es resoluble si su dominio encuentra todas las magnitudes que
+// necesita: fuera del rango de la ecuación de estado, CoolProp devuelve NaN.
+function estadoResoluble(estado, dominio) {
+  return dominio.magnitudes.every((magnitud) => Number.isFinite(estado[magnitud]));
 }
 
 // En modo manual los parámetros del tipo no hacen falta: el usuario ya ha creado
@@ -142,26 +153,31 @@ function erroresParametros(definicion, proceso) {
 }
 
 /**
- * Pareja de propiedades que define el estado destino, o null si no se puede
- * calcular. Es la operación que hace posible el modo calculado.
+ * Entradas que definen el estado destino, o null si no se puede calcular. Es la
+ * operación que hace posible el modo calculado.
+ *
+ * Devuelve la bolsa { in1Id, in1Val, in2Id, in2Val, ... } tal cual la produce el
+ * resolvedor: una pareja en los fluidos y una terna en el aire húmedo. El motor
+ * no la interpreta, solo comprueba que sus valores son números.
  */
 export function parejaDestino(proceso, origenes) {
   const definicion = getDefinicion(proceso.tipo);
   if (!definicion) return null;
 
+  const dominio = dominioDeDefinicion(definicion);
   const resolvedor = RESOLVEDORES[definicion.restriccion.resolvedor];
   if (!resolvedor || typeof resolvedor.destino !== 'function') return null;
-  if (origenes.some((origen) => !origen || !estadoResoluble(origen))) return null;
+  if (origenes.some((origen) => !origen || !estadoResoluble(origen, dominio))) return null;
   if (erroresParametros(definicion, proceso).length > 0) return null;
 
-  const pareja = resolvedor.destino(origenes, proceso.parametros ?? {}, definicion);
-  if (!pareja || !Number.isFinite(pareja.in1Val) || !Number.isFinite(pareja.in2Val)) return null;
-  return pareja;
+  const entradas = resolvedor.destino(origenes, proceso.parametros ?? {}, definicion);
+  if (!entradas) return null;
+  // Las claves de valor son in1Val, in2Val… tantas como propiedades
+  // independientes pida el dominio: se validan todas las que vengan.
+  const valores = Object.keys(entradas).filter((clave) => clave.endsWith('Val'));
+  if (valores.some((clave) => !Number.isFinite(entradas[clave]))) return null;
+  return entradas;
 }
-
-// Tolerancia del cierre de un ciclo: floja en términos relativos, porque lo que
-// interesa señalar es una incoherencia del enunciado, no el ruido numérico.
-const TOLERANCIA_CIERRE = { H: { rel: 0.005, abs: 0.5 }, P: { rel: 0.01, abs: 0.05 } };
 
 /**
  * Comprobación de cierre (DOCUMENTACION.md §3.4, regla d).
@@ -172,27 +188,30 @@ const TOLERANCIA_CIERRE = { H: { rel: 0.005, abs: 0.5 }, P: { rel: 0.01, abs: 0.
  * el enunciado, lo marca. Cuando el proceso sí ha generado su destino, los dos
  * coinciden por construcción y esto no dice nada.
  */
-function avisosCierre(proceso, origenes, destino) {
+function avisosCierre(proceso, origenes, destino, dominio) {
   if (proceso.modoDestino !== 'calculado') return [];
 
-  const pareja = parejaDestino(proceso, origenes);
-  if (pareja === null) {
+  const entradas = parejaDestino(proceso, origenes);
+  if (entradas === null) {
     return [{ clave: 'aviso_destino_no_calculable', datos: {} }];
   }
 
-  const propiedad = (magnitud) => getPropFluido(
-    destino.fluido, magnitud, pareja.in1Id, pareja.in1Val, pareja.in2Id, pareja.in2Val
+  // Qué magnitudes se comparan y con qué tolerancia lo decide el dominio: en los
+  // fluidos, entalpía y presión; en el aire húmedo, entalpía y humedad absoluta,
+  // porque la presión ya la fija la propia terna de entrada.
+  const calculadas = Object.keys(dominio.cierre).map(
+    (magnitud) => [magnitud, dominio.getProp(magnitud, entradas, destino)]
   );
-  const h = propiedad('H');
-  const p = propiedad('P');
-  if (!Number.isFinite(h) || !Number.isFinite(p)) {
+  if (calculadas.some(([, valor]) => !Number.isFinite(valor))) {
     return [{ clave: 'aviso_destino_no_calculable', datos: {} }];
   }
 
-  if (dentroDeTolerancia(h, destino.H, TOLERANCIA_CIERRE.H)
-    && dentroDeTolerancia(p, destino.P, TOLERANCIA_CIERRE.P)) {
-    return [];
-  }
+  const cierra = calculadas.every(
+    ([magnitud, valor]) => dentroDeTolerancia(valor, destino[magnitud], dominio.cierre[magnitud])
+  );
+  if (cierra) return [];
+
+  const h = calculadas.find(([magnitud]) => magnitud === 'H')?.[1] ?? calculadas[0][1];
   return [{
     clave: 'aviso_cierre_discrepancia',
     datos: { valorCalculado: h, valorActual: destino.H }
@@ -263,9 +282,10 @@ export function trazarProceso(proceso, evaluacion) {
   const resolvedor = RESOLVEDORES[definicion.restriccion.resolvedor];
   if (!resolvedor || typeof resolvedor.trazar !== 'function') return [];
 
+  const dominio = dominioDeDefinicion(definicion);
   const intermedios = resolvedor
     .trazar(evaluacion.origenes, evaluacion.destino, proceso.parametros ?? {}, definicion)
-    .filter(estadoResoluble);
+    .filter((estado) => estadoResoluble(estado, dominio));
 
   return [evaluacion.origenes[0], ...intermedios, evaluacion.destino];
 }
@@ -315,19 +335,19 @@ export function evaluarProceso(proceso, estados) {
   }
 
   const implicados = [...origenes, destino].filter((estado) => estado !== null);
+  const dominio = dominioDeDefinicion(definicion);
 
-  if (definicion.dominio === 'fluido' && implicados.length > 1) {
-    const fluidos = new Set(implicados.map((estado) => estado.fluido));
-    if (fluidos.size > 1) {
-      errores.push({
-        clave: 'error_fluidos_distintos',
-        datos: { fluidos: [...fluidos].join(', ') }
-      });
-    }
+  // Qué hace incompatibles a dos estados depende del dominio: en los fluidos,
+  // ser fluidos distintos; en el aire húmedo, estar a presiones totales
+  // distintas. En los dos casos es un error, no un aviso: no hay proceso que lo
+  // arregle, hay que corregir los estados.
+  if (implicados.length > 1) {
+    const incompatibles = dominio.compatibles(implicados);
+    if (incompatibles) errores.push(incompatibles);
   }
 
   implicados.forEach((estado) => {
-    if (!estadoResoluble(estado)) {
+    if (!estadoResoluble(estado, dominio)) {
       errores.push({ clave: 'error_estado_no_resoluble', datos: { nombre: estado.nombre } });
     }
   });
@@ -355,7 +375,7 @@ export function evaluarProceso(proceso, estados) {
 
   const avisos = [
     ...resolvedor.verificar(origenes, destino, proceso.parametros ?? {}, definicion),
-    ...avisosCierre(proceso, origenes, destino)
+    ...avisosCierre(proceso, origenes, destino, dominio)
   ];
   return { definicion, origenes, destino, errores: [], avisos, valido: true };
 }

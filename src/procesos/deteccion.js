@@ -12,7 +12,8 @@
 // desde dos estados, mostrar "detectado: X" junto al desplegable, y ofrecer el
 // cambio de un clic cuando lo declarado no se cumple.
 // Ver DOCUMENTACION.md §3.4.
-import { getDefinicion } from './proceso';
+import { getDefinicion, dominioDeProceso } from './proceso';
+import { DOMINIO_POR_DEFECTO } from './dominios';
 import {
   dentroDeTolerancia, getRendimientoIsentropico, getRendimientoExpansion
 } from './resolvedores';
@@ -29,15 +30,9 @@ const CONSTANTES = [
   ['isentalpico', 'H']
 ];
 
-/**
- * Clave del tipo que mejor encaja con la pareja, o null si no se puede juzgar.
- *
- * Cada tipo se comprueba con SU tolerancia declarada en definiciones.json, no
- * con una constante de aquí: si un día se afina la tolerancia del isobárico, la
- * detección se afina con ella.
- */
-export function detectarTipo(origen, destino) {
-  if (!origen || !destino) return null;
+// Detector de fluidos puros. Cada dominio tiene el suyo: qué tipo encaja con una
+// pareja es una pregunta sobre la física de esa sustancia, no sobre el motor.
+function detectarTipoFluido(origen, destino) {
   if (origen.fluido !== destino.fluido) return null;
   if (![origen, destino].every((estado) => ['P', 'T', 'H', 'S'].every(
     (magnitud) => Number.isFinite(estado[magnitud])
@@ -78,6 +73,23 @@ export function detectarTipo(origen, destino) {
   return 'sin_trabajo';
 }
 
+const DETECTORES = {
+  fluido: detectarTipoFluido
+};
+
+/**
+ * Clave del tipo que mejor encaja con la pareja, o null si no se puede juzgar.
+ *
+ * Cada tipo se comprueba con SU tolerancia declarada en definiciones.json, no
+ * con una constante de aquí: si un día se afina la tolerancia del isobárico, la
+ * detección se afina con ella.
+ */
+export function detectarTipo(origen, destino, dominio = DOMINIO_POR_DEFECTO) {
+  if (!origen || !destino) return null;
+  const detector = DETECTORES[dominio];
+  return detector ? detector(origen, destino) : null;
+}
+
 /**
  * Tipo que encajaría mejor que el declarado, o null si no hay nada que sugerir.
  *
@@ -86,6 +98,8 @@ export function detectarTipo(origen, destino) {
  */
 export function sugerirTipo(proceso, evaluacion) {
   if (!evaluacion?.valido || evaluacion.avisos.length === 0) return null;
-  const clave = detectarTipo(evaluacion.origenes[0], evaluacion.destino);
+  const clave = detectarTipo(
+    evaluacion.origenes[0], evaluacion.destino, dominioDeProceso(proceso)
+  );
   return (clave === null || clave === proceso.tipo) ? null : clave;
 }
