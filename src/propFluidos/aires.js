@@ -6,7 +6,25 @@ import { Module } from './coolprop'
 const P_ATM = 101.325;
 const T0C = 273.15;
 
-const UNIDADES_AIRES = {
+// Símbolos con los que el usuario ve cada propiedad del aire húmedo. Es el
+// gemelo de PROPIEDADES_FLUIDOS, y lo usan los mensajes del motor de procesos
+// para hablar en los términos de la tabla y no en claves internas.
+export const PROPIEDADES_AIRES = {
+  A: 'z',
+  P: 'p',
+  T: 'T',
+  TH: 'T<sub>h</sub>',
+  TR: 'T<sub>r</sub>',
+  HR: 'ϕ',
+  W: 'w',
+  V: 'v',
+  RO: 'ρ',
+  H: 'h',
+  S: 's',
+  CP: 'c<sub>p</sub>'
+}
+
+export const UNIDADES_AIRES = {
   A: 'm',
   P: 'kPa',
   T: 'ºC',

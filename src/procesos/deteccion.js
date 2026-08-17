@@ -33,6 +33,10 @@ const CONSTANTES = [
 // Detector de fluidos puros. Cada dominio tiene el suyo: qué tipo encaja con una
 // pareja es una pregunta sobre la física de esa sustancia, no sobre el motor.
 function detectarTipoFluido(origen, destino) {
+  // Sin nombre de sustancia no son estados de fluido puro. Sin esta guarda, un
+  // par de estados de aire —que también tienen P, T, H y S— pasaría por aquí y
+  // saldría "isobárico".
+  if (typeof origen.fluido !== 'string' || typeof destino.fluido !== 'string') return null;
   if (origen.fluido !== destino.fluido) return null;
   if (![origen, destino].every((estado) => ['P', 'T', 'H', 'S'].every(
     (magnitud) => Number.isFinite(estado[magnitud])
@@ -73,8 +77,44 @@ function detectarTipoFluido(origen, destino) {
   return 'sin_trabajo';
 }
 
+// Detector del aire húmedo. Mismo criterio que en los fluidos: del más estricto
+// al más flojo, y cada tipo con SU tolerancia declarada en el JSON.
+function detectarTipoAire(origen, destino) {
+  if (![origen, destino].every((estado) => ['P', 'T', 'W', 'H'].every(
+    (magnitud) => Number.isFinite(estado[magnitud])
+  ))) return null;
+
+  const encaja = (clave, magnitud) => {
+    const definicion = getDefinicion(clave);
+    return definicion && dentroDeTolerancia(
+      origen[magnitud], destino[magnitud], definicion.restriccion.tolerancia
+    );
+  };
+
+  // La humedad constante es lo más estricto que puede cumplir una pareja, y
+  // además es el proceso más común: una batería seca o un recalentamiento.
+  if (encaja('sensible', 'W')) return 'sensible';
+
+  // Bulbo húmedo constante con la humedad subiendo: enfriamiento evaporativo.
+  // Sin la segunda condición, un proceso sensible ya saturado también pasaría.
+  if (destino.W > origen.W && encaja('humectacion_adiabatica', 'TH')) {
+    return 'humectacion_adiabatica';
+  }
+
+  // Baja la temperatura y baja la humedad: la batería de frío que cruza el rocío.
+  if (destino.T < origen.T && destino.W < origen.W) return 'enfriamiento_deshumidificacion';
+
+  // Sube la humedad sin mantener el bulbo húmedo: hay agua aportada con entalpía
+  // propia, que es lo que distingue la humectación con vapor de la adiabática.
+  if (destino.W > origen.W) return 'humectacion_vapor';
+
+  // La mezcla no se puede proponer: tiene dos orígenes y esto solo ve una pareja.
+  return 'generico_aire';
+}
+
 const DETECTORES = {
-  fluido: detectarTipoFluido
+  fluido: detectarTipoFluido,
+  aire: detectarTipoAire
 };
 
 /**

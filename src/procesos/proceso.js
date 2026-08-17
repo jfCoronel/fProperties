@@ -3,8 +3,15 @@
 // para que sea testeable y reutilizable.
 // Ver DOCUMENTACION.md §3.4.
 import definiciones from './definiciones.json';
-import { RESOLVEDORES, dentroDeTolerancia } from './resolvedores';
+import { RESOLVEDORES as RESOLVEDORES_FLUIDO, dentroDeTolerancia } from './resolvedores';
+import { RESOLVEDORES_AIRE } from './resolvedoresAire';
 import { getDominio, DOMINIO_POR_DEFECTO } from './dominios';
+
+// La física de cada dominio vive en su propio fichero —resolvedores.js y
+// resolvedoresAire.js— y el motor los ve como un solo registro clave → funciones.
+// Separarlos es cuestión de tamaño, no de contrato: los dos implementan las
+// mismas cuatro operaciones.
+const RESOLVEDORES = { ...RESOLVEDORES_FLUIDO, ...RESOLVEDORES_AIRE };
 
 export const ESQUEMA_PROCESOS = definiciones.esquema;
 export const PARAMETROS_COMUNES = definiciones.parametrosComunes;

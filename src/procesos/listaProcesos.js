@@ -72,7 +72,9 @@ export const nuevoProceso = (idOrigen = null, idDestino = null, dominio = DOMINI
 
   const procesoNuevo = {
     id: nuevoIdProceso(),
-    origenes: [idOrigen],
+    origenes: Array.from(
+      { length: definicion.aridad.origenes }, (_, n) => (n === 0 ? idOrigen : null)
+    ),
     destino: idDestino,
     tipo: definicion.clave,
     modoDestino: "manual",
@@ -150,10 +152,18 @@ export const cambiarTipoProceso = (id, clave) => {
     ? 'manual'
     : proceso.modoDestino;
 
+  // No todos los tipos conectan el mismo número de estados: la mezcla adiabática
+  // toma dos. Al cambiar de tipo se ajusta la lista de orígenes a la aridad
+  // nueva —rellenando con huecos o recortando— para que el proceso no quede
+  // inválido por una razón que el usuario no ha elegido.
+  const aridad = definicion.aridad.origenes;
+  const origenes = Array.from({ length: aridad }, (_, n) => proceso.origenes[n] ?? null);
+
   listaProcesos[i].set({
     ...proceso,
     tipo: clave,
     modoDestino,
+    origenes,
     parametros: {
       ...getParametrosPorDefecto(definicion, modoDestino),
       ...proceso.parametros

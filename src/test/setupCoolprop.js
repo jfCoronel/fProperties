@@ -39,3 +39,15 @@ export async function esperarCoolprop(Module, msLimite = 20000) {
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
 }
+
+// La espera se hace aquí, en el fichero de setup, y no solo en el beforeAll de
+// cada test: los cuerpos de los describe se evalúan durante la RECOLECCIÓN, antes
+// de que corra ningún hook, así que un estado construido a ese nivel llegaba a
+// CoolProp cuando todavía no existía PropsSI. Funcionaba por los pelos —el tiempo
+// de transformar el fichero solía bastar para que el wasm acabara— hasta que un
+// fichero de test pequeño no daba tiempo.
+//
+// El import es dinámico a propósito: los imports estáticos se izan, y coolprop.js
+// necesita encontrar ya puestos el require y el __dirname de arriba.
+const { Module } = await import('../propFluidos/coolprop.js');
+await esperarCoolprop(Module);

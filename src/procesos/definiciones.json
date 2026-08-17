@@ -35,8 +35,12 @@
     { "clave": "ds", "i18n": "col_ds", "simbolo": "Δs", "unidad": "kJ/(kg·K)" },
     { "clave": "dt", "i18n": "col_dt", "simbolo": "ΔT", "unidad": "K" },
     { "clave": "dp", "i18n": "col_dp", "simbolo": "Δp", "unidad": "kPa" },
+    { "clave": "dw", "i18n": "col_dw", "simbolo": "Δw", "unidad": "g/kg" },
     { "clave": "w_esp", "i18n": "col_w_esp", "simbolo": "w", "unidad": "kJ/kg" },
     { "clave": "q_esp", "i18n": "col_q_esp", "simbolo": "q", "unidad": "kJ/kg" },
+    { "clave": "q_sensible", "i18n": "col_q_sensible", "simbolo": "q<sub>s</sub>", "unidad": "kJ/kg" },
+    { "clave": "q_latente", "i18n": "col_q_latente", "simbolo": "q<sub>l</sub>", "unidad": "kJ/kg" },
+    { "clave": "shr", "i18n": "col_shr", "simbolo": "SHR", "unidad": "-" },
     {
       "clave": "rel_compresion",
       "i18n": "col_rel_compresion",
@@ -50,13 +54,34 @@
       "unidad": "-"
     },
     { "clave": "eta_real", "i18n": "col_eta_real", "simbolo": "η<sub>s</sub>", "unidad": "-" },
+    { "clave": "eficacia", "i18n": "col_eficacia", "simbolo": "ε", "unidad": "-" },
+    {
+      "clave": "h_agua_real",
+      "i18n": "col_h_agua_real",
+      "simbolo": "h<sub>w</sub>",
+      "unidad": "kJ/kg"
+    },
+    {
+      "clave": "fraccion_mezcla",
+      "i18n": "col_fraccion_mezcla",
+      "simbolo": "m<sub>1</sub>/m",
+      "unidad": "-"
+    },
     {
       "clave": "potencia",
       "i18n": "col_potencia",
       "simbolo": "P",
       "unidad": "kW",
       "requiereCaudal": true
-    }
+    },
+    {
+      "clave": "m_agua",
+      "i18n": "col_m_agua",
+      "simbolo": "ṁ<sub>w</sub>",
+      "unidad": "kg/s",
+      "requiereCaudal": true
+    },
+    { "clave": "m_total", "i18n": "col_m_total", "simbolo": "ṁ", "unidad": "kg/s" }
   ],
 
   "tipos": [
@@ -273,6 +298,193 @@
       "balance": "indeterminado",
       "trazado": { "nPuntos": 2, "escala": "lineal" },
       "columnas": ["dh", "ds", "dt", "dp"]
+    },
+
+    {
+      "_comentarioAire": [
+        "A partir de aquí, el aire húmedo. Mismo contrato y mismo motor: lo único",
+        "que cambia es el dominio, y con él la lista de estados, las magnitudes que",
+        "se exigen y qué hace incompatibles a dos estados (aquí, presiones totales",
+        "distintas). La física está en resolvedoresAire.js.",
+        "Todos ocurren a presión total constante, y h y w van por kilo de aire seco.",
+        "Casi todos son rectas en los ejes del psicrométrico (T, w), y por eso su",
+        "trazado son dos puntos: la excepción es la humectación adiabática, que",
+        "recorre una línea de bulbo húmedo constante y sí se curva."
+      ],
+      "clave": "sensible",
+      "dominio": "aire",
+      "i18n": "proc_sensible",
+      "diagramas": ["psicrometrico"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "t_final",
+          "i18n": "param_t_final",
+          "unidad": "ºC",
+          "requerido": true,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "sensible",
+        "tolerancia": { "magnitud": "W", "rel": 0.002, "abs": 0.01 }
+      },
+      "trazado": { "nPuntos": 2, "escala": "lineal" },
+      "columnas": ["dh", "dt", "q_esp", "potencia"]
+    },
+
+    {
+      "_comentario": [
+        "La batería de frío que baja del rocío. Es el proceso que justifica las",
+        "columnas de calor sensible y latente: lo que se dimensiona es ese reparto,",
+        "y el SHR es la cifra con la que se elige el equipo."
+      ],
+      "clave": "enfriamiento_deshumidificacion",
+      "dominio": "aire",
+      "i18n": "proc_enfriamiento_deshumidificacion",
+      "diagramas": ["psicrometrico"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "t_final",
+          "i18n": "param_t_final",
+          "unidad": "ºC",
+          "requerido": true,
+          "soloCalculado": true
+        },
+        {
+          "clave": "hr_final",
+          "i18n": "param_hr_final",
+          "unidad": "%",
+          "defecto": 95,
+          "min": 1,
+          "max": 100,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": { "resolvedor": "enfriamientoDeshumidificacion" },
+      "trazado": { "nPuntos": 2, "escala": "lineal" },
+      "columnas": [
+        "dh", "dt", "dw", "q_esp", "q_sensible", "q_latente", "shr", "potencia", "m_agua"
+      ]
+    },
+
+    {
+      "_comentario": [
+        "Enfriamiento evaporativo. El agua toma su calor del propio aire, así que",
+        "el proceso recorre una línea de bulbo húmedo constante: es el único tipo",
+        "del aire que no es una recta en los ejes del psicrométrico, y de ahí que",
+        "su trazado sí barra puntos intermedios."
+      ],
+      "clave": "humectacion_adiabatica",
+      "dominio": "aire",
+      "i18n": "proc_humectacion_adiabatica",
+      "diagramas": ["psicrometrico"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "hr_final",
+          "i18n": "param_hr_final",
+          "unidad": "%",
+          "requerido": true,
+          "defecto": 90,
+          "min": 1,
+          "max": 100,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "humectacionAdiabatica",
+        "tolerancia": { "magnitud": "TH", "rel": 0, "abs": 0.1 }
+      },
+      "trazado": { "nPuntos": 15, "escala": "lineal" },
+      "columnas": ["dt", "dw", "eficacia", "m_agua"]
+    },
+
+    {
+      "_comentario": [
+        "Humectación con vapor. Lo que la separa de la adiabática es que el agua",
+        "llega con su propia entalpía: h2 = h1 + Δw·h_agua. El valor por defecto es",
+        "el del vapor saturado a 100 ºC, que es el caso habitual."
+      ],
+      "clave": "humectacion_vapor",
+      "dominio": "aire",
+      "i18n": "proc_humectacion_vapor",
+      "diagramas": ["psicrometrico"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "w_final",
+          "i18n": "param_w_final",
+          "unidad": "g/kg",
+          "requerido": true,
+          "min": 0,
+          "soloCalculado": true
+        },
+        {
+          "clave": "h_agua",
+          "i18n": "param_h_agua",
+          "unidad": "kJ/kg",
+          "defecto": 2676,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": { "resolvedor": "humectacionVapor" },
+      "trazado": { "nPuntos": 2, "escala": "lineal" },
+      "columnas": ["dh", "dt", "dw", "h_agua_real", "potencia", "m_agua"]
+    },
+
+    {
+      "_comentario": [
+        "El único tipo con DOS estados de origen, y la razón de que el modelo",
+        "guarde 'origenes' como array desde el primer día. El caudal común no es",
+        "entrada sino resultado (m1+m2), y por eso se declara sinCaudalComun:",
+        "pedirlo además sería pedir dos veces lo mismo y dejar que se contradigan."
+      ],
+      "clave": "mezcla_adiabatica",
+      "dominio": "aire",
+      "i18n": "proc_mezcla_adiabatica",
+      "diagramas": ["psicrometrico"],
+      "aridad": { "origenes": 2 },
+      "sinCaudalComun": true,
+      "parametros": [
+        {
+          "clave": "m_1",
+          "i18n": "param_m_1",
+          "unidad": "kg/s",
+          "requerido": true,
+          "defecto": 1,
+          "min": 0
+        },
+        {
+          "clave": "m_2",
+          "i18n": "param_m_2",
+          "unidad": "kg/s",
+          "requerido": true,
+          "defecto": 1,
+          "min": 0
+        }
+      ],
+      "restriccion": { "resolvedor": "mezclaAdiabatica" },
+      "trazado": { "nPuntos": 2, "escala": "lineal" },
+      "columnas": ["fraccion_mezcla", "m_total"]
+    },
+
+    {
+      "_comentario": [
+        "El comodín del aire, gemelo del de fluidos: no supone nada, así que nunca",
+        "es incoherente y solo mide los saltos."
+      ],
+      "clave": "generico_aire",
+      "dominio": "aire",
+      "i18n": "proc_generico",
+      "diagramas": ["psicrometrico"],
+      "aridad": { "origenes": 1 },
+      "parametros": [],
+      "restriccion": { "resolvedor": "genericoAire" },
+      "balance": "indeterminado",
+      "trazado": { "nPuntos": 2, "escala": "lineal" },
+      "columnas": ["dh", "dw", "dt"]
     }
   ]
 }
