@@ -81,6 +81,78 @@ describe('serializar y aplicar', () => {
     expect(listaFluidos.get({ noproxy: true })).toHaveLength(2);
   });
 
+  it('reconstruye también los procesos del aire húmedo', () => {
+    // Una mezcla adiabática: es la que más cosas tiene que sobrevivir al viaje
+    // —dos orígenes, dos caudales y un tipo de otro dominio—.
+    nuevoAire();
+    nuevoAire();
+    nuevoAire();
+    const [a1, a2, a3] = listaAires.get({ noproxy: true });
+    nuevoProceso(a1.id, a3.id, 'aire');
+    const [creado] = listaProcesos.get({ noproxy: true });
+    listaProcesos[0].set({
+      ...creado, tipo: 'mezcla_adiabatica', origenes: [a1.id, a2.id],
+      parametros: { m_1: 1, m_2: 3 }
+    });
+
+    const problema = serializarProblema();
+    listaAires.set([]);
+    listaProcesos.set([]);
+    aplicarProblema(problema);
+
+    const proceso = listaProcesos.get({ noproxy: true })[0];
+    expect(proceso.tipo).toBe('mezcla_adiabatica');
+    expect(proceso.origenes).toEqual([a1.id, a2.id]);
+    expect(proceso.parametros).toEqual({ m_1: 1, m_2: 3 });
+    expect(listaAires.get({ noproxy: true })).toHaveLength(3);
+  });
+
+  it('conserva qué estados de aire se dibujan', () => {
+    nuevoAire();
+    nuevoAire();
+    listaAires[1].merge({ enDiagrama: false });
+
+    aplicarProblema(serializarProblema());
+
+    const [uno, dos] = listaAires.get({ noproxy: true });
+    expect(uno.enDiagrama).toBe(true);
+    expect(dos.enDiagrama).toBe(false);
+  });
+
+  it('abre un enlace de la 2.2.1, con claves de configuración ya retiradas', () => {
+    // El panel del psicrométrico desapareció al unificar los diagramas. Un enlace
+    // anterior sigue trayendo sus claves, y tiene que abrirse igual: por eso
+    // quitarlas de la lista blanca no obliga a subir la versión del esquema.
+    const antiguo = {
+      v: 1,
+      estados: [],
+      aires: [{
+        id: 'a1', nombre: 'Ambiente',
+        in1Id: 'A', in1Val: 0, in2Id: 'T', in2Val: 22, in3Id: 'HR', in3Val: 55
+      }],
+      procesos: [],
+      configuracion: {
+        nCifras: 5,
+        verPsicrometrico: true,
+        ejeXmaxPsicrometrico: 50,
+        colorDatos: '#FF0000'
+      }
+    };
+
+    expect(() => aplicarProblema(antiguo)).not.toThrow();
+
+    const [estado] = listaAires.get({ noproxy: true });
+    expect(estado.T).toBeCloseTo(22, 6);
+    // Sin enDiagrama declarado se lee como visible, no como oculto.
+    expect(estado.enDiagrama).toBe(true);
+    expect(configuracion.nCifras.get()).toBe(5);
+    // Y las claves retiradas ni se aplican ni dejan rastro. Se mira el estado
+    // crudo porque hookstate devuelve un proxy hasta para una clave inexistente.
+    const ajustes = configuracion.get({ noproxy: true });
+    expect(ajustes.verPsicrometrico).toBeUndefined();
+    expect(ajustes.colorDatos).toBeUndefined();
+  });
+
   it('lleva la configuración del enunciado y no el estado de sesión', () => {
     montarProblema();
     configuracion.merge({ tipoDiagrama: 'T-s', nCifras: 6, verDialogoFluido: true });

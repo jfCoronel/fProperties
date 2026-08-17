@@ -134,7 +134,10 @@ function normalizarEstadoAire(estado) {
     in3Id: String(estado.in3Id ?? 'HR'),
     in1Val: Number(estado.in1Val),
     in2Val: Number(estado.in2Val),
-    in3Val: Number(estado.in3Val)
+    in3Val: Number(estado.in3Val),
+    // Igual que en los estados de fluido: "visible salvo que diga que no", de
+    // modo que los enlaces anteriores a la 2.3.0 se abren con todo dibujado.
+    enDiagrama: estado.enDiagrama !== false
   };
 }
 

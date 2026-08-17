@@ -44,7 +44,8 @@ export function serializarProblema() {
     in2Id: estado.in2Id,
     in2Val: estado.in2Val,
     in3Id: estado.in3Id,
-    in3Val: estado.in3Val
+    in3Val: estado.in3Val,
+    enDiagrama: estado.enDiagrama !== false
   }));
 
   const ajustes = {};
