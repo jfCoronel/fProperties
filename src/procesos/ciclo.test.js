@@ -64,6 +64,68 @@ function cicloFrigorifico() {
   return { estados: [f1, f2, f3, f4], procesos };
 }
 
+// Ciclo Rankine de agua: caldera a 4000 kPa, condensador a 10 kPa, turbina y
+// bomba con rendimiento isentrópico 0,85. Es el ciclo que obligó a añadir la
+// expansión con trabajo: sin ella la turbina había que declararla "sin trabajo",
+// que da q = Δh y deja el trabajo neto en el de la bomba, positivo, con lo que el
+// ciclo se clasificaba como máquina frigorífica.
+function cicloRankine() {
+  const conRendimiento = (origen, pFinal, eta, esCompresion) => {
+    const hIsentropico = getPropFluido('Agua', 'H', 'P', pFinal, 'S', origen.S);
+    return esCompresion
+      ? origen.H + (hIsentropico - origen.H) / eta
+      : origen.H + eta * (hIsentropico - origen.H);
+  };
+  const punto = (id, prop1, val1, prop2, val2) => ({
+    id, nombre: id, fluido: 'Agua', ...getObjetoFluido('Agua', prop1, val1, prop2, val2)
+  });
+
+  const f1 = punto('f1', 'P', 4000, 'T', 400);                                  // entrada turbina
+  const f2 = punto('f2', 'P', 10, 'H', conRendimiento(f1, 10, 0.85, false));    // escape
+  const f3 = punto('f3', 'P', 10, 'X', 0);                                      // líquido saturado
+  const f4 = punto('f4', 'P', 4000, 'H', conRendimiento(f3, 4000, 0.85, true)); // salida bomba
+
+  const procesos = [
+    { ...arista('p1', 'f1', 'f2', 'expansion_isentropica'), parametros: { m_punto: 10 } },
+    { ...arista('p2', 'f2', 'f3', 'isobarico'), parametros: { m_punto: 10 } },
+    { ...arista('p3', 'f3', 'f4', 'compresion_isentropica'), parametros: { m_punto: 10 } },
+    { ...arista('p4', 'f4', 'f1', 'isobarico'), parametros: { m_punto: 10 } }
+  ];
+  return { estados: [f1, f2, f3, f4], procesos };
+}
+
+describe('balance de un ciclo de potencia', () => {
+  it('produce trabajo neto y cierra el primer principio', () => {
+    const { estados, procesos } = cicloRankine();
+    const balance = balanceCiclo(procesos, estados);
+
+    expect(balance.w_neto).toBeLessThan(0);      // el ciclo produce trabajo
+    expect(balance.q_absorbido).toBeGreaterThan(0);
+    expect(balance.q_cedido).toBeLessThan(0);
+    expect(balance.w_neto + balance.q_absorbido + balance.q_cedido).toBeCloseTo(0, 8);
+  });
+
+  it('da rendimiento térmico, no COP, y con un valor de ciclo real', () => {
+    const { estados, procesos } = cicloRankine();
+    const { indicador } = balanceCiclo(procesos, estados);
+
+    expect(indicador.cop_frigorifico).toBeUndefined();
+    expect(indicador.eta_termico).toBeGreaterThan(0.2);
+    expect(indicador.eta_termico).toBeLessThan(0.4);
+  });
+
+  it('declarar la turbina como conducto rompe el balance: es a lo que obligaba', () => {
+    const { estados, procesos } = cicloRankine();
+    procesos[0] = { ...procesos[0], tipo: 'sin_trabajo' };
+
+    const balance = balanceCiclo(procesos, estados);
+    // El Δh de la turbina se contabiliza como calor cedido, y el único trabajo
+    // que queda es el de la bomba: el ciclo aparenta consumir trabajo.
+    expect(balance.w_neto).toBeGreaterThan(0);
+    expect(balance.indicador?.eta_termico).toBeUndefined();
+  });
+});
+
 describe('balance del ciclo', () => {
   it('reparte trabajo y calores con los signos del convenio', () => {
     const { estados, procesos } = cicloFrigorifico();

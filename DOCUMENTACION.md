@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.2.0**.
+Estado del proyecto en la **versión 2.2.1**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -134,11 +134,19 @@ origen con uno de destino y declara **de qué tipo es**:
 | Tipo | Restricción | Se usa para |
 |---|---|---|
 | Compresión con rendimiento isentrópico | η_s dentro de (0, 1] y p_2 > p_1 | Compresores, bombas |
+| Expansión con rendimiento isentrópico | η_s dentro de (0, 1] y p_2 < p_1 | Turbinas y expansores |
 | Isobárico | p constante | Condensadores, evaporadores, calentadores |
 | Isentálpico | h constante | Válvulas de laminación |
 | Isotermo | T constante | Compresión o expansión isoterma |
 | Conducto / intercambiador | Sin trabajo de eje → q = Δh; la presión puede caer | Intercambiadores y tuberías con pérdida de carga, con o sin calor |
 | Otro (indeterminado) | Ninguna | Lo que no encaje en los anteriores |
+
+Compresión y expansión son simétricas salvo en un punto, y conviene saberlo: el **rendimiento
+isentrópico se define invertido** en cada una. El compresor gasta más trabajo que el
+reversible (η = ideal/real) y la turbina entrega menos (η = real/ideal). Invertir la razón es
+lo que mantiene los dos por debajo de 1 y los hace comparables. Lo que no cambia es el
+convenio de signos: el trabajo lo cuenta el fluido, así que sale positivo en el compresor y
+negativo en la turbina, y con él la potencia.
 
 Los dos últimos son los comodines, y no son el mismo comodín. El **conducto** supone una sola
 cosa —que no hay trabajo de eje—, y con esa hipótesis el primer principio en régimen
@@ -219,6 +227,12 @@ con la secuencia de estados y el balance global:
   todo el ciclo comparte el mismo caudal.
 - **COP frigorífico** y **COP de bomba de calor** si el ciclo consume trabajo, o
   **rendimiento térmico** si lo produce.
+
+El reparto entre calor y trabajo lo decide el **tipo** de cada proceso, y por eso importa
+declararlo bien: una turbina descrita como conducto sin trabajo aporta `q = Δh` y trabajo
+nulo, con lo que un ciclo de potencia acabaría dando COP en vez de rendimiento térmico. Para
+eso está el tipo de expansión, que al ser adiabático no declara calor y deja que todo su Δh
+lo recoja `w = Δh − q`.
 
 El convenio de signos es el del propio fluido: positivo lo que absorbe, negativo lo que cede.
 Pulsando la secuencia de estados se resalta el ciclo entero en el diagrama. Si alguno de sus
@@ -431,7 +445,11 @@ declararlo parece más cómodo, pero elimina la posibilidad misma del desacuerdo
 donde sale el valor didáctico de la columna de diagnóstico; y además no tiene respuesta única
 (isobárico e isotermo coinciden en la campana). Cada tipo se comprueba con **su** tolerancia
 declarada en el JSON, y el orden va del criterio más estricto al más flojo, para que gane el
-que menos se equivoca.
+que menos se equivoca. Cuando la presión cae, la frontera entre turbina y conducto la traza el
+propio rendimiento de expansión: que caiga en (0, 1] equivale a que el estado final quede
+entre el isentrópico y la isentálpica, que es exactamente la franja de la expansión adiabática
+irreversible. Un enfriamiento con pérdida de carga se pasa de largo y sale con η > 1; un
+calentamiento, con η < 0. No hace falta más criterio.
 
 **c) El trazado se genera en el espacio de estados, no en el plano del diagrama.**
 `trazar()` devuelve **estados termodinámicos completos**, y la proyección a los ejes la hace
@@ -449,7 +467,7 @@ llega a existir en vez de tener que romperse.
 | Fichero | Función |
 |---|---|
 | `procesos/definiciones.json` | La tabla de tipos: parámetros (con unidad, obligatoriedad, valor por defecto y rango), tolerancias de validación, número de puntos y escala del trazado, y columnas de resultado. Incluye el **catálogo de columnas** —símbolo, unidad, si exige caudal—, que además fija el orden en que se muestran, para que una columna compartida por varios tipos no salte de sitio. Añadir un tipo nuevo es añadir una entrada aquí y su resolvedor. |
-| `procesos/resolvedores.js` | La física de los seis tipos de fluido. Incluye la tolerancia mixta (absoluta más relativa, porque h y s llevan desplazamiento de referencia y T va en ºC) y el cálculo del rendimiento isentrópico real de una pareja de estados. |
+| `procesos/resolvedores.js` | La física de los siete tipos de fluido. Incluye la tolerancia mixta (absoluta más relativa, porque h y s llevan desplazamiento de referencia y T va en ºC) y el cálculo del rendimiento isentrópico real de una pareja de estados, en sus dos definiciones —compresión y expansión—. |
 | `procesos/deteccion.js` | Qué tipo encaja con una pareja de estados. Puro y sin estado: lo usan la creación de procesos, el editor y el aviso de la tabla, siempre como sugerencia. |
 | `procesos/proceso.js` | El motor, sin dependencias de React: resuelve las referencias a estados, valida (aridad, referencias rotas, fluidos distintos, estados fuera de rango, parámetros que faltan), calcula las magnitudes derivadas, genera el trazado, comprueba el cierre de los procesos calculados y ordena topológicamente la propagación. Distingue **errores** estructurales de **avisos** de coherencia. |
 | `procesos/propagacion.js` | Aplica el modo calculado sobre la lista de estados: recalcula en orden, marca los estados generados, quita la marca a los que dejan de serlo y rompe el vínculo cuando el usuario edita a mano un estado calculado. Solo escribe si algo ha cambiado, así que volver a propagar no dispara otro render. |
@@ -499,15 +517,15 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**77 tests en 6 ficheros:**
+**107 tests en 7 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
 | `propFluidos/coolprop.entorno.test.js` | 3 | Que CoolProp arranca en Node y que un estado irresoluble devuelve `NaN`. Es la sonda de la que depende todo lo demás. |
-| `procesos/proceso.test.js` | 44 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. |
+| `procesos/proceso.test.js` | 51 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. Compresión y expansión se comprueban en espejo, incluido que cada una recupera el rendimiento con el que se construyó su estado destino. |
 | `procesos/propagacion.test.js` | 8 | El modo calculado sobre un ciclo frigorífico completo: la cadena se genera entera, el ciclo se cierra sin bucle, propagar dos veces no cambia nada, mover el estado de partida arrastra la cadena y editar a mano rompe el vínculo. |
-| `procesos/ciclo.test.js` | 12 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. |
-| `procesos/deteccion.test.js` | 13 | La detección del tipo que encaja con una pareja de estados, y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
+| `procesos/ciclo.test.js` | 15 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. Sobre un Rankine completo fija además lo contrario: que produce trabajo neto y da rendimiento térmico, y que declarar su turbina como conducto vuelve a romperlo. |
+| `procesos/deteccion.test.js` | 15 | La detección del tipo que encaja con una pareja de estados —incluida la frontera entre turbina y conducto, que un enfriamiento con pérdida de carga no debe cruzar— y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
 | `permalink/formato.test.js` | 11 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera. |
 | `permalink/problema.test.js` | 4 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. |
 
@@ -559,9 +577,15 @@ Lo que falta o conviene arreglar, en orden de importancia:
 
    La regla al hacerlo: si algo se necesita en los dos lados, se extrae antes de escribirlo
    por segunda vez.
-3. **21 errores de ESLint preexistentes** (`react/prop-types` en las filas arrastrables,
+3. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
+   por debajo de ~0,88 erosiona los álabes, y señalarlo sería de lo más didáctico. Se dejó
+   fuera a propósito al añadir el tipo de expansión: sería el primer aviso que depende del
+   fluido y del componente, y no de la coherencia termodinámica de la pareja, que es lo único
+   que juzgan hoy los resolvedores. Entra cuando se decida si ese umbral es un parámetro más
+   del tipo o un criterio aparte.
+4. **21 errores de ESLint preexistentes** (`react/prop-types` en las filas arrastrables,
    `__APP_VERSION__` sin declarar como global, un `while (true)`). Como `npm run lint` corre
    con `--max-warnings 0`, sigue en rojo pese a no haber ningún error nuevo: limpiarlos es
    una tarea aparte, y hasta entonces la puerta de calidad no sirve de puerta.
-4. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
+5. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.

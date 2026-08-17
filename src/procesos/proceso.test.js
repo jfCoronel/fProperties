@@ -15,7 +15,9 @@ import {
   puedeCalcular,
   COLUMNAS_RESULTADO
 } from './proceso';
-import { RESOLVEDORES, getRendimientoIsentropico, dentroDeTolerancia } from './resolvedores';
+import {
+  RESOLVEDORES, getRendimientoIsentropico, getRendimientoExpansion, dentroDeTolerancia
+} from './resolvedores';
 
 beforeAll(async () => {
   await esperarCoolprop(Module);
@@ -31,11 +33,11 @@ function proceso(tipo, origen, destino, parametros = {}) {
 }
 
 describe('tabla de definiciones', () => {
-  it('declara los seis tipos de fluido y todos tienen resolvedor', () => {
+  it('declara los siete tipos de fluido y todos tienen resolvedor', () => {
     const tipos = getDefiniciones('fluido');
     expect(tipos.map((t) => t.clave)).toEqual([
-      'compresion_isentropica', 'isobarico', 'isentalpico', 'isotermo',
-      'sin_trabajo', 'generico'
+      'compresion_isentropica', 'expansion_isentropica', 'isobarico', 'isentalpico',
+      'isotermo', 'sin_trabajo', 'generico'
     ]);
     tipos.forEach((tipo) => {
       expect(RESOLVEDORES[tipo.restriccion.resolvedor]).toBeDefined();
@@ -223,6 +225,79 @@ describe('compresión con rendimiento isentrópico', () => {
     const claves = r.avisos.map((a) => a.clave);
     expect(claves).toContain('aviso_entropia_decrece');
     expect(claves).toContain('aviso_rendimiento_fuera_rango');
+  });
+});
+
+describe('expansión con rendimiento isentrópico (turbina)', () => {
+  // Turbina de vapor: entra recalentado a 4000 kPa y 400 ºC, escapa a 10 kPa
+  const origen = estado('f1', 'Agua', 'P', 4000, 'T', 400);
+  const destinoCon = (rendimiento) => {
+    const hIsentropico = getPropFluido('Agua', 'H', 'P', 10, 'S', origen.S);
+    const h2 = origen.H + rendimiento * (hIsentropico - origen.H);
+    return estado('f2', 'Agua', 'P', 10, 'H', h2);
+  };
+
+  it('recupera el rendimiento con el que se construyó el estado destino', () => {
+    expect(getRendimientoExpansion(origen, destinoCon(0.85))).toBeCloseTo(0.85, 4);
+  });
+
+  it('no avisa de una expansión física razonable', () => {
+    const r = evaluarProceso(proceso('expansion_isentropica', 'f1', 'f2'), [origen, destinoCon(0.85)]);
+    expect(r.valido).toBe(true);
+    expect(r.avisos).toEqual([]);
+  });
+
+  it('el trabajo es el salto de entalpía, y sale negativo: el fluido lo cede', () => {
+    const destino = destinoCon(0.85);
+    const p = proceso('expansion_isentropica', 'f1', 'f2', { m_punto: 3 });
+    const derivados = derivadosProceso(p, evaluarProceso(p, [origen, destino]));
+
+    expect(derivados.w_esp).toBeCloseTo(destino.H - origen.H, 6);
+    expect(derivados.w_esp).toBeLessThan(0);
+    expect(derivados.rel_expansion).toBeCloseTo(400, 6);
+    expect(derivados.eta_real).toBeCloseTo(0.85, 4);
+    expect(derivados.potencia).toBeCloseTo(3 * (destino.H - origen.H), 6);
+    // Adiabática: no declara calor, y de ahí que el ciclo cuente su Δh como trabajo
+    expect(derivados.q_esp).toBeUndefined();
+  });
+
+  it('avisa si el destino no está a menor presión', () => {
+    const destino = estado('f2', 'Agua', 'P', 5000, 'T', 450);
+    const r = evaluarProceso(proceso('expansion_isentropica', 'f1', 'f2'), [origen, destino]);
+    expect(r.avisos.map((a) => a.clave)).toEqual(['aviso_expansion_sin_caida_presion']);
+  });
+
+  it('avisa si el rendimiento sale fuera de (0, 1] — expansión mejor que la isentrópica', () => {
+    const r = evaluarProceso(proceso('expansion_isentropica', 'f1', 'f2'), [origen, destinoCon(1.2)]);
+    const claves = r.avisos.map((a) => a.clave);
+    expect(claves).toContain('aviso_entropia_decrece');
+    expect(claves).toContain('aviso_rendimiento_fuera_rango');
+  });
+
+  it('la curva baja en presión y no retrocede en entropía', () => {
+    const destino = destinoCon(0.85);
+    const p = proceso('expansion_isentropica', 'f1', 'f2');
+    const curva = trazarProceso(p, evaluarProceso(p, [origen, destino]));
+
+    expect(curva).toHaveLength(25);
+    expect(curva[0]).toBe(origen);
+    expect(curva[curva.length - 1]).toBe(destino);
+    for (let i = 1; i < curva.length; i++) {
+      expect(curva[i].P).toBeLessThan(curva[i - 1].P);
+      expect(curva[i].S).toBeGreaterThan(curva[i - 1].S - 1e-9);
+    }
+  });
+
+  it('genera el estado destino con el rendimiento pedido', () => {
+    const p = {
+      ...proceso('expansion_isentropica', 'f1', 'f2', { p_final: 10, eta: 0.85 }),
+      modoDestino: 'calculado'
+    };
+    const pareja = parejaDestino(p, [origen]);
+    const generado = estado('f2', 'Agua', pareja.in1Id, pareja.in1Val, pareja.in2Id, pareja.in2Val);
+
+    expect(pareja.in1Val).toBeCloseTo(10, 6);
+    expect(getRendimientoExpansion(origen, generado)).toBeCloseTo(0.85, 4);
   });
 });
 

@@ -102,6 +102,7 @@
     "proc_diag_invalido": "Invalid",
 
     "proc_compresion_isentropica": "Compression with isentropic efficiency",
+    "proc_expansion_isentropica": "Expansion with isentropic efficiency (turbine)",
     "proc_isobarico": "Isobaric (condensation / evaporation)",
     "proc_isentalpico": "Isenthalpic (throttling)",
     "proc_isotermo": "Isothermal",
@@ -156,6 +157,7 @@
 
     "aviso_magnitud_no_constante": "{simbolo} should stay constant: {valorOrigen} → {valorDestino} {unidad}",
     "aviso_compresion_sin_aumento_presion": "A compression must raise the pressure: {valorOrigen} → {valorDestino} kPa",
+    "aviso_expansion_sin_caida_presion": "An expansion must lower the pressure: {valorOrigen} → {valorDestino} kPa",
     "aviso_entropia_decrece": "Entropy decreases ({valorOrigen} → {valorDestino} kJ/(kg·K)): impossible in an adiabatic process",
     "aviso_rendimiento_fuera_rango": "Isentropic efficiency out of range: {rendimiento}",
     "aviso_rendimiento_no_calculable": "The isentropic efficiency of this pair cannot be computed",

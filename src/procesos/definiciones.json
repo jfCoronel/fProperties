@@ -93,6 +93,48 @@
     },
 
     {
+      "_comentario": [
+        "Turbina, expansor: el simétrico de la compresión. Su razón de ser no es",
+        "sólo dar el trabajo en su columna, sino que el balance del ciclo lo cuente:",
+        "al ser adiabático no declara q_esp, y w = Δh − q recoge todo el salto como",
+        "trabajo cedido. Sin este tipo, una turbina había que declararla como",
+        "conducto sin trabajo, que da q = Δh y trabajo nulo, y ningún ciclo de",
+        "potencia (Rankine, Brayton) llegaba a dar su rendimiento térmico.",
+        "Ojo al rendimiento: en la expansión es real/isentrópico, invertido",
+        "respecto al del compresor. Ver resolvedores.js."
+      ],
+      "clave": "expansion_isentropica",
+      "dominio": "fluido",
+      "i18n": "proc_expansion_isentropica",
+      "diagramas": ["p-h", "T-s", "p-T"],
+      "aridad": { "origenes": 1 },
+      "parametros": [
+        {
+          "clave": "p_final",
+          "i18n": "param_p_final",
+          "unidad": "kPa",
+          "requerido": true,
+          "soloCalculado": true
+        },
+        {
+          "clave": "eta",
+          "i18n": "param_eta",
+          "unidad": "-",
+          "defecto": 0.85,
+          "min": 0.01,
+          "max": 1,
+          "soloCalculado": true
+        }
+      ],
+      "restriccion": {
+        "resolvedor": "expansionEta",
+        "tolerancia": { "magnitud": "S", "rel": 0.002, "abs": 0.002 }
+      },
+      "trazado": { "nPuntos": 25, "escala": "log" },
+      "columnas": ["dh", "ds", "w_esp", "rel_expansion", "eta_real", "potencia"]
+    },
+
+    {
       "clave": "isobarico",
       "dominio": "fluido",
       "i18n": "proc_isobarico",

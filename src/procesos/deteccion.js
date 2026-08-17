@@ -13,7 +13,9 @@
 // cambio de un clic cuando lo declarado no se cumple.
 // Ver DOCUMENTACION.md §3.4.
 import { getDefinicion } from './proceso';
-import { dentroDeTolerancia, getRendimientoIsentropico } from './resolvedores';
+import {
+  dentroDeTolerancia, getRendimientoIsentropico, getRendimientoExpansion
+} from './resolvedores';
 
 // El orden importa donde dos tipos encajan a la vez, y va del criterio más
 // estricto al más flojo para que gane el que menos se equivoca. Una evaporación a
@@ -57,6 +59,17 @@ export function detectarTipo(origen, destino) {
     return (rendimiento !== null && rendimiento > 0 && rendimiento <= 1)
       ? 'compresion_isentropica'
       : 'generico';
+  }
+
+  // Perder presión puede ser una turbina o un conducto, y el rendimiento de
+  // expansión los separa por sí solo: que caiga en (0, 1] equivale a que el estado
+  // final quede entre el isentrópico y la isentálpica, que es exactamente la franja
+  // de la expansión adiabática irreversible. Un enfriamiento con pérdida de carga
+  // se pasa de largo (h₂ < h_2s, η > 1), un calentamiento sale con η < 0, y una
+  // laminación da η = 0 —además de haberse detectado ya como isentálpica—.
+  const rendimiento = getRendimientoExpansion(origen, destino);
+  if (rendimiento !== null && rendimiento > 0 && rendimiento <= 1) {
+    return 'expansion_isentropica';
   }
 
   // Pierde presión y no mantiene nada constante: el caso del conducto o el

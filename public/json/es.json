@@ -102,6 +102,7 @@
     "proc_diag_invalido": "Inválido",
 
     "proc_compresion_isentropica": "Compresión con rendimiento isentrópico",
+    "proc_expansion_isentropica": "Expansión con rendimiento isentrópico (turbina)",
     "proc_isobarico": "Isobárico (condensación / evaporación)",
     "proc_isentalpico": "Isentálpico (laminación)",
     "proc_isotermo": "Isotermo",
@@ -156,6 +157,7 @@
 
     "aviso_magnitud_no_constante": "{simbolo} debería mantenerse constante: {valorOrigen} → {valorDestino} {unidad}",
     "aviso_compresion_sin_aumento_presion": "Una compresión tiene que aumentar la presión: {valorOrigen} → {valorDestino} kPa",
+    "aviso_expansion_sin_caida_presion": "Una expansión tiene que disminuir la presión: {valorOrigen} → {valorDestino} kPa",
     "aviso_entropia_decrece": "La entropía disminuye ({valorOrigen} → {valorDestino} kJ/(kg·K)): imposible en un proceso adiabático",
     "aviso_rendimiento_fuera_rango": "Rendimiento isentrópico fuera de rango: {rendimiento}",
     "aviso_rendimiento_no_calculable": "No se puede calcular el rendimiento isentrópico de esta pareja",

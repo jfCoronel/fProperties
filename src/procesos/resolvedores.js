@@ -29,14 +29,32 @@ export function dentroDeTolerancia(a, b, tolerancia = {}) {
   return Math.abs(a - b) <= limite;
 }
 
-// Rendimiento isentrópico real de una pareja de estados dada.
-// Devuelve null si CoolProp no resuelve el estado isentrópico o si no hay salto.
-export function getRendimientoIsentropico(origen, destino) {
+// Salto de entalpía real y salto isentrópico hasta la presión del destino, que es
+// de lo que viven los dos rendimientos. null si CoolProp no resuelve el estado
+// isentrópico.
+function saltosIsentropicos(origen, destino) {
   const hIsentropico = getPropFluido(origen.fluido, 'H', 'P', destino.P, 'S', origen.S);
   if (!Number.isFinite(hIsentropico)) return null;
-  const saltoReal = destino.H - origen.H;
-  if (Math.abs(saltoReal) < 1e-9) return null;
-  return (hIsentropico - origen.H) / saltoReal;
+  return { ideal: hIsentropico - origen.H, real: destino.H - origen.H };
+}
+
+// Rendimiento isentrópico real de una compresión: el trabajo ideal partido por el
+// real, porque comprimir de verdad cuesta más que hacerlo reversiblemente.
+// Devuelve null si CoolProp no resuelve el estado isentrópico o si no hay salto.
+export function getRendimientoIsentropico(origen, destino) {
+  const salto = saltosIsentropicos(origen, destino);
+  if (salto === null || Math.abs(salto.real) < 1e-9) return null;
+  return salto.ideal / salto.real;
+}
+
+// En la expansión la razón se invierte: la turbina entrega menos trabajo del ideal,
+// así que η = real/ideal. No es otra convención, es la misma idea —cuánto se pierde
+// frente al proceso reversible— leída desde el lado que paga la factura. Invertirla
+// es lo que mantiene los dos rendimientos por debajo de 1 y, con ello, comparables.
+export function getRendimientoExpansion(origen, destino) {
+  const salto = saltosIsentropicos(origen, destino);
+  if (salto === null || Math.abs(salto.ideal) < 1e-9) return null;
+  return salto.real / salto.ideal;
 }
 
 // Saltos entre origen y destino, comunes a todos los tipos. T viene en ºC, así
@@ -175,6 +193,85 @@ export const RESOLVEDORES = {
       return {
         in1Id: 'P', in1Val: parametros.p_final,
         in2Id: 'H', in2Val: origen.H + (hIsentropico - origen.H) / parametros.eta
+      };
+    }
+  },
+
+  // Turbina, expansor: el gemelo de compresionEta al otro lado del ciclo. Todo se
+  // repite invertido salvo una cosa que no es simétrica —la definición del
+  // rendimiento, ver getRendimientoExpansion— y otra que es la razón de ser del
+  // tipo: al no declarar q_esp, el balance del ciclo cuenta su Δh como trabajo
+  // (w = Δh − q, ciclo.js). Modelar una turbina como conducto sin trabajo daba
+  // q = Δh y, con ello, trabajo nulo: ningún ciclo de potencia cerraba.
+  expansionEta: {
+    verificar(origenes, destino, parametros, definicion) {
+      const avisos = [];
+      const origen = origenes[0];
+
+      if (destino.P >= origen.P) {
+        // Sin caída de presión no hay expansión de la que extraer trabajo.
+        return [{
+          clave: 'aviso_expansion_sin_caida_presion',
+          datos: { valorOrigen: origen.P, valorDestino: destino.P }
+        }];
+      }
+
+      const tolerancia = definicion.restriccion.tolerancia;
+      if (destino.S < origen.S && !dentroDeTolerancia(origen.S, destino.S, tolerancia)) {
+        avisos.push({
+          clave: 'aviso_entropia_decrece',
+          datos: { valorOrigen: origen.S, valorDestino: destino.S }
+        });
+      }
+
+      const rendimiento = getRendimientoExpansion(origen, destino);
+      if (rendimiento === null) {
+        avisos.push({ clave: 'aviso_rendimiento_no_calculable', datos: {} });
+      } else if (rendimiento <= 0 || rendimiento > 1) {
+        avisos.push({ clave: 'aviso_rendimiento_fuera_rango', datos: { rendimiento } });
+      }
+
+      return avisos;
+    },
+
+    // Turbina adiabática en régimen estacionario: todo el salto de entalpía es
+    // trabajo. Sale negativo, y debe salirlo: el convenio del programa es que lo
+    // positivo es lo que absorbe el fluido, y aquí el fluido cede.
+    derivados(origenes, destino, parametros) {
+      const origen = origenes[0];
+      const { dh, ds } = saltos(origen, destino);
+      return {
+        dh,
+        ds,
+        w_esp: dh,
+        rel_expansion: destino.P === 0 ? null : origen.P / destino.P,
+        eta_real: getRendimientoExpansion(origen, destino),
+        potencia: potencia(parametros, dh)
+      };
+    },
+
+    // Misma hipótesis de trazado que la compresión —el rendimiento actúa por igual
+    // a lo largo de toda la expansión—, que aquí se escribe h(p) = h1 + η·(h_s(p) − h1).
+    // Con η medido en la propia pareja, no con el declarado, que en modo manual ni existe.
+    trazar(origenes, destino, parametros, definicion) {
+      const origen = origenes[0];
+      const rendimiento = getRendimientoExpansion(origen, destino);
+      if (rendimiento === null) return [];
+
+      return barridoPresion(origen, destino, definicion, (p) => {
+        const hIsentropico = getPropFluido(origen.fluido, 'H', 'P', p, 'S', origen.S);
+        return ['H', origen.H + rendimiento * (hIsentropico - origen.H)];
+      });
+    },
+
+    // Definición del rendimiento isentrópico de una turbina, despejando h2.
+    destino(origenes, parametros) {
+      const origen = origenes[0];
+      const hIsentropico = getPropFluido(origen.fluido, 'H', 'P', parametros.p_final, 'S', origen.S);
+      if (!Number.isFinite(hIsentropico)) return null;
+      return {
+        in1Id: 'P', in1Val: parametros.p_final,
+        in2Id: 'H', in2Val: origen.H + parametros.eta * (hIsentropico - origen.H)
       };
     }
   },

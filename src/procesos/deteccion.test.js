@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { esperarCoolprop } from '../test/setupCoolprop';
 import { Module } from '../propFluidos/coolprop';
-import { getObjetoFluido } from '../propFluidos/fluidos';
+import { getObjetoFluido, getPropFluido } from '../propFluidos/fluidos';
 import { evaluarProceso, derivadosProceso, trazarProceso, parejaDestino } from './proceso';
 import { detectarTipo, sugerirTipo } from './deteccion';
 
@@ -35,9 +35,25 @@ describe('detección del tipo que encaja', () => {
     expect(detectarTipo(aspiracion, descarga)).toBe('compresion_isentropica');
   });
 
+  it('propone expansión cuando la presión cae con un rendimiento posible', () => {
+    const admision = estado('f1', 'Agua', 'P', 4000, 'T', 400);
+    const hIsentropico = getPropFluido('Agua', 'H', 'P', 10, 'S', admision.S);
+    const escape = estado('f2', 'Agua', 'P', 10, 'H', admision.H + 0.85 * (hIsentropico - admision.H));
+    expect(detectarTipo(admision, escape)).toBe('expansion_isentropica');
+  });
+
   it('propone conducto cuando cae la presión sin mantener nada constante', () => {
+    // Se calienta mientras pierde carga: el rendimiento de expansión sale
+    // negativo, así que no lo confunde con una turbina.
     const entrada = estado('f1', 'Agua', 'P', 300, 'T', 40);
     const salida = estado('f2', 'Agua', 'P', 280, 'T', 70);
+    expect(detectarTipo(entrada, salida)).toBe('sin_trabajo');
+  });
+
+  it('un enfriamiento con pérdida de carga no se confunde con una turbina', () => {
+    // Enfría muy por debajo del estado isentrópico: η > 1, imposible adiabático.
+    const entrada = estado('f1', 'Agua', 'P', 300, 'T', 120);
+    const salida = estado('f2', 'Agua', 'P', 280, 'T', 40);
     expect(detectarTipo(entrada, salida)).toBe('sin_trabajo');
   });
 
