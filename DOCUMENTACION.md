@@ -562,6 +562,23 @@ llega a existir en vez de tener que romperse.
 | `Psicrometrico.jsx` | Lo propio del psicrométrico: el selector de altitud o presión —que hace el papel del fluido en el otro diagrama— y las curvas de humedad relativa constante. |
 | `Compartir.jsx` | Los tres botones de la cabecera: copiar enlace, descargar JSON e importar JSON. |
 
+### 3.7 Publicar
+
+El sitio lo sirve GitHub Pages desde `docs/`, así que publicar es construir y dejar ahí la
+salida. Lo hace `npm run publicar`, que encadena `vite build` con `scripts/publicar.js`.
+
+Ese script es media docena de líneas, pero ninguna es un `cp -R` por dos motivos:
+
+- **Reemplaza, no fusiona.** Los `assets` llevan un hash en el nombre, de modo que fusionar
+  iría acumulando en `docs/` los de todas las versiones anteriores, que ya no referencia
+  nadie. El `CNAME` no hay que preservarlo a mano: vive en `public/` y la propia build lo
+  copia.
+- **Comprueba antes de borrar.** Si la build ha salido incompleta, `docs/` no se toca. Una
+  build a medias copiada encima dejaría el sitio inservible, y el fallo se vería en
+  producción en vez de en el terminal.
+
+Va en Node y no en shell para no depender de `rm` ni de `cp`.
+
 ---
 
 ## 4. Tests
@@ -613,14 +630,10 @@ curvas y la propagación al editar un estado. Esos guiones no forman parte del r
 
 Lo que falta o conviene arreglar, en orden de importancia:
 
-1. **Publicar.** `docs/` sigue en la 1.6.0. Todo lo de los procesos —tabla, diagramas con
-   curvas, permalink, modo calculado y ciclos— está en el repositorio y probado, pero no en
-   línea hasta que se copie la salida de `npm run build` a `docs/`. Merece la pena
-   automatizar ese paso con un script de npm o una acción de GitHub, en vez de dejarlo como
-   una copia manual que es fácil olvidar. Ahora la copia es segura —el `CNAME` viaja dentro
-   de la build—, pero conviene que sea un reemplazo limpio de `docs/`, no una fusión sobre
-   los ficheros antiguos: los `assets` llevan hash en el nombre y los de versiones viejas se
-   quedarían acumulados.
+1. **Automatizar la publicación del todo.** `npm run publicar` ya construye y reemplaza
+   `docs/` ([§3.7](#37-publicar)), así que el paso deja de ser una copia manual que se
+   olvida; pero sigue siendo un comando que alguien tiene que acordarse de lanzar antes de
+   subir. Una acción de GitHub que lo hiciera al etiquetar una versión cerraría el asunto.
 2. **Factor de by-pass de la batería de frío.** Es lo único del catálogo psicrométrico
    original que se quedó fuera en la 2.3.0. Pedía decidir antes si el punto de rocío del
    equipo es un parámetro más del tipo o un tipo aparte, y no merecía la pena resolverlo a la
