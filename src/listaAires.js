@@ -24,6 +24,8 @@ export const indiceAire = (id) => {
   return listaAires.get({ noproxy: true }).findIndex(aire => aire.id === id);
 }
 
+// Devuelve el id del estado creado: el modo calculado necesita apuntar a él
+// nada más crearlo.
 export const nuevoAire = () => {
   const objetoAire = getObjetoAireHumedo('A', 0, 'T', 25, 'HR', 50);
   const aireNuevo = {
@@ -35,9 +37,12 @@ export const nuevoAire = () => {
     in1Val: 0,
     in2Val: 25,
     in3Val: 50,
+    // Un estado nuevo se dibuja: ocultarlo es la excepción, no la norma.
+    enDiagrama: true,
     ...objetoAire
   };
   listaAires.merge([aireNuevo])
+  return aireNuevo.id;
 }
 
 export const borrarAires = (ids) => {
@@ -63,8 +68,22 @@ export const actualizarAire = (id, aire) => {
   const i = indiceAire(id);
   if (i < 0) return;
   const objetoAire = getObjetoAireHumedo(aire.in1Id, aire.in1Val, aire.in2Id, aire.in2Val, aire.in3Id, aire.in3Val);
-  const aireCompleto = { ...aire, ...objetoAire, id }
+  // El diálogo solo trae las entradas del estado, así que se escribe encima del
+  // anterior: lo que no edita (la visibilidad en el diagrama) se conserva.
+  const anterior = listaAires[i].get({ noproxy: true });
+  const aireCompleto = { ...anterior, ...aire, ...objetoAire, id }
   listaAires[i].set(aireCompleto);
+}
+
+// Visibilidad en el diagrama. Es una propiedad del estado, no de la sesión: se
+// duplica con él, se borra con él y viaja en el enlace compartido.
+export const verAiresEnDiagrama = (ids, valor) => {
+  ids.forEach(id => {
+    const i = indiceAire(id);
+    if (i >= 0) {
+      listaAires[i].merge({ enDiagrama: valor });
+    }
+  })
 }
 
 export const reordenarAires = (fromIndex, toIndex) => {

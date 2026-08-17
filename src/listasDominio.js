@@ -9,9 +9,25 @@ import { listaFluidos, indiceFluido, nuevoFluido } from './listaFluidos';
 import { listaAires, indiceAire, nuevoAire } from './listaAires';
 import { DOMINIO_POR_DEFECTO } from './procesos/dominios';
 
+// Además de la lista, cada dominio dice con qué claves de configuración se
+// entiende la interfaz: cuál guarda su selección de estados y cuál el tipo de
+// diagrama que le corresponde. Son nombres, no valores, para que este módulo no
+// tenga que leer el estado de configuración.
 const LISTAS = {
-  fluido: { lista: listaFluidos, indice: indiceFluido, nuevoEstado: nuevoFluido },
-  aire: { lista: listaAires, indice: indiceAire, nuevoEstado: nuevoAire }
+  fluido: {
+    lista: listaFluidos,
+    indice: indiceFluido,
+    nuevoEstado: nuevoFluido,
+    claveSeleccion: 'fluidosSeleccionados',
+    claveTipoDiagrama: 'tipoDiagrama'
+  },
+  aire: {
+    lista: listaAires,
+    indice: indiceAire,
+    nuevoEstado: nuevoAire,
+    claveSeleccion: 'airesSeleccionados',
+    claveTipoDiagrama: 'tipoPsicrometrico'
+  }
 };
 
 export function getListaDominio(clave) {

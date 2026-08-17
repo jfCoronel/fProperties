@@ -4,6 +4,7 @@ import {
   SettingOutlined,
   FileExcelOutlined,
   PlusCircleOutlined,
+  CalculatorOutlined,
   HolderOutlined
 } from '@ant-design/icons';
 import { Button, Tooltip, Table } from 'antd';
@@ -18,9 +19,14 @@ import { CSS } from '@dnd-kit/utilities';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
-import { listaAires, nuevoAire, borrarAires, duplicarAires, reordenarAires } from '../listaAires';
+import {
+  listaAires, nuevoAire, borrarAires, duplicarAires, reordenarAires, verAiresEnDiagrama
+} from '../listaAires';
+import { listaProcesos, idsEstadosDeProcesos } from '../procesos/listaProcesos';
+import { esDerivado } from '../procesos/propagacion';
 import formatear from '../util/formatear';
 import ConfiguracionAires from './ConfiguracionAires';
+import { columnaDiagrama } from './columnaDiagrama';
 
 // Componente DragHandle que se renderiza en cada fila
 const DragHandle = ({ rowKey }) => {
@@ -93,10 +99,24 @@ const NOMBRE_COLUMNAS = {
 }
 
 const TablaAires = () => {
-  const { idAireActual, columnasTablaAires, nCifras, verConfiguracion, verDialogoAire, airesSeleccionados } = useHookstate(configuracion);
-
+  const {
+    idAireActual, columnasTablaAires, nCifras, verConfiguracion, verDialogoAire,
+    airesSeleccionados, procesosSeleccionados, tipoPsicrometrico
+  } = useHookstate(configuracion);
 
   const lista = useHookstate(listaAires);
+  useHookstate(listaProcesos); // la incidencia estado ↔ proceso cambia con la lista
+
+  const estadosActuales = lista.get({ noproxy: true });
+
+  // Estados generados por un proceso en modo calculado. Va aparte de las filas
+  // para no colarse como una columna más en el CSV.
+  const derivados = new Set(estadosActuales.filter(esDerivado).map((estado) => estado.id));
+
+  // Lo mismo con la visibilidad en el diagrama, y por la misma razón.
+  const ocultos = new Set(
+    estadosActuales.filter((estado) => estado.enDiagrama === false).map((estado) => estado.id)
+  );
 
   let columnas = [
     {
@@ -109,6 +129,9 @@ const TablaAires = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <DragHandle rowKey={record.key} />
           <a onClick={(event) => { event.stopPropagation(); idAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>
+          {derivados.has(record.key) && <Tooltip title={getTextoUI("tooltip_estado_derivado")}>
+            <CalculatorOutlined style={{ marginLeft: 6, color: '#1890FF' }} />
+          </Tooltip>}
         </div>
       ),
     },
@@ -174,8 +197,15 @@ const TablaAires = () => {
     }
   }
 
+  // Estados implicados en los procesos seleccionados: el otro sentido de la
+  // sincronización que hace la tabla de procesos con los estados.
+  const estadosResaltados = new Set(idsEstadosDeProcesos([...procesosSeleccionados.get()]));
+
   const rowClassName = (record) => {
-    return record.key === idAireActual.get() ? 'selected-row' : '';
+    const clases = [];
+    if (record.key === idAireActual.get()) clases.push('selected-row');
+    if (estadosResaltados.has(record.key)) clases.push('fila-resaltada');
+    return clases.join(' ');
   };
 
   const columnasCsv = columnas.map((a) => ({ ...a }));
@@ -187,6 +217,16 @@ const TablaAires = () => {
       iInicial++;
     }
   });
+
+  // La columna del ojo se añade después de copiar las del CSV (no es un dato del
+  // estado) y solo si hay diagrama que mirar.
+  if (tipoPsicrometrico.get() !== "ninguno") {
+    columnas.push(columnaDiagrama({
+      ids: estadosActuales.map((estado) => estado.id),
+      ocultos,
+      cambiar: verAiresEnDiagrama
+    }));
+  }
 
 
   const onDragEnd = ({ active, over }) => {

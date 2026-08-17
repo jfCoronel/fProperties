@@ -1,24 +1,30 @@
+/* eslint-disable react/prop-types */
 import { useHookstate } from '@hookstate/core';
 import { Descriptions, Tag, Tooltip } from 'antd';
 import { WarningTwoTone } from '@ant-design/icons';
 
 import { configuracion, getTextoUI } from '../configuracion';
-import { listaFluidos } from '../listaFluidos';
+import { getListaDominio } from '../listasDominio';
 import { listaProcesos } from '../procesos/listaProcesos';
+import { dominioDeProceso } from '../procesos/proceso';
 import { getCiclos } from '../procesos/ciclo';
 import formatear from '../util/formatear';
 
 // El balance de un ciclo no necesita un objeto nuevo: sale de los procesos que
 // ya hay, en cuanto forman un camino cerrado (DOCUMENTACION.md §1.6). El panel
 // solo aparece cuando existe ese camino.
-const Ciclos = () => {
+const Ciclos = ({ dominio = 'fluido' }) => {
     const { nCifras, procesosSeleccionados } = useHookstate(configuracion);
     const procesos = useHookstate(listaProcesos);
-    const estados = useHookstate(listaFluidos);
+    const estados = useHookstate(getListaDominio(dominio).lista);
 
     const cifras = nCifras.get();
     const listaEstados = estados.get({ noproxy: true });
-    const ciclos = getCiclos(procesos.get({ noproxy: true }), listaEstados);
+    // Un ciclo no puede cruzar dominios: sus estados están en una sola lista.
+    const ciclos = getCiclos(
+        procesos.get({ noproxy: true }).filter((p) => dominioDeProceso(p) === dominio),
+        listaEstados
+    );
 
     if (ciclos.length === 0) return (<></>);
 

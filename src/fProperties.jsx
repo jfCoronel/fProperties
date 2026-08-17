@@ -104,9 +104,10 @@ const FProperties = () => {
             procesos y diagrama. Los tres van dentro del mismo contenedor, que es
             la única manera de que las cajas compartan ancho y márgenes. */}
         {(menuActual.get() === 'fluidos') && <TablaFluidos />}
-        {(menuActual.get() === 'fluidos') && <TablaProcesos />}
+        {(menuActual.get() === 'fluidos') && <TablaProcesos dominio="fluido" />}
         {(menuActual.get() === 'fluidos') && <Diagrama />}
         {(menuActual.get() === 'aireHumedo') && <TablaAires />}
+        {(menuActual.get() === 'aireHumedo') && <TablaProcesos dominio="aire" />}
         {(menuActual.get() === 'aireHumedo') && <Psicrometrico />}
 
         <p>  </p>

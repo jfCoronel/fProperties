@@ -1,7 +1,8 @@
+/* eslint-disable react/prop-types */
 import { useHookstate } from '@hookstate/core';
 import { Modal, Button, Row, Col, Select, InputNumber, Form, ColorPicker, Alert } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
-import { listaFluidos, nuevoFluido } from '../listaFluidos';
+import { getListaDominio } from '../listasDominio';
 import { listaProcesos, actualizarProceso, cambiarTipoProceso } from '../procesos/listaProcesos';
 import {
     getDefiniciones,
@@ -13,15 +14,16 @@ import {
 } from '../procesos/proceso';
 import { detectarTipo } from '../procesos/deteccion';
 import { propagarProcesos } from '../procesos/propagacion';
-import { getRendimientoIsentropico } from '../procesos/resolvedores';
+import { getRendimientoIsentropico, getRendimientoExpansion } from '../procesos/resolvedores';
 import { textoMensaje } from '../procesos/mensajes';
 import formatear from '../util/formatear';
 
 const { Option } = Select;
 
-const DialogoProceso = () => {
+const DialogoProceso = ({ dominio = 'fluido' }) => {
     const procesos = useHookstate(listaProcesos);
-    const estados = useHookstate(listaFluidos);
+    const { lista, nuevoEstado } = getListaDominio(dominio);
+    const estados = useHookstate(lista);
     const { idProcesoActual, verDialogoProceso, nCifras } = useHookstate(configuracion);
 
     const id = idProcesoActual.get();
@@ -32,6 +34,11 @@ const DialogoProceso = () => {
     }
 
     const proceso = procesos[fila].get({ noproxy: true });
+    // Las dos tablas montan su diálogo; el que no es del dominio del proceso
+    // seleccionado se aparta en vez de editar la lista de estados equivocada.
+    if (getDefinicion(proceso.tipo)?.dominio !== dominio) {
+        return (<></>);
+    }
     const listaEstados = estados.get({ noproxy: true });
     const definicion = getDefinicion(proceso.tipo);
     const evaluacion = evaluarProceso(proceso, listaEstados);
@@ -53,7 +60,7 @@ const DialogoProceso = () => {
     // El tipo lo declara el usuario; esto solo dice cuál encajaría, y ofrece
     // adoptarlo de un clic si no es el declarado.
     const tipoDetectado = evaluacion.valido
-        ? detectarTipo(evaluacion.origenes[0], evaluacion.destino)
+        ? detectarTipo(evaluacion.origenes[0], evaluacion.destino, dominio)
         : null;
 
     const redondear = (valor) => Number(formatear(valor, nCifras.get()));
@@ -66,16 +73,33 @@ const DialogoProceso = () => {
         const estadoDestino = listaEstados.find((estado) => estado.id === proceso.destino);
         if (!origen || !estadoDestino) return {};
 
-        const claves = definicion.parametros.map((parametro) => parametro.clave);
+        // Cada parámetro sabe leerse de la pareja de estados. El rendimiento va
+        // aparte porque solo se adopta si cae en el rango físico: fuera de él, el
+        // valor por defecto del tipo es mejor punto de partida que un absurdo.
+        const DE_LOS_ESTADOS = {
+            p_final: () => estadoDestino.P,
+            t_final: () => estadoDestino.T,
+            q_dato: () => estadoDestino.H - origen.H,
+            dp_dato: () => Math.max(0, origen.P - estadoDestino.P),
+            hr_final: () => estadoDestino.HR,
+            w_final: () => estadoDestino.W,
+            h_agua: () => (Math.abs(estadoDestino.W - origen.W) > 1e-9
+                ? (estadoDestino.H - origen.H) * 1000 / (estadoDestino.W - origen.W)
+                : null)
+        };
+
         const sugerencias = {};
-        if (claves.includes("p_final")) sugerencias.p_final = redondear(estadoDestino.P);
-        if (claves.includes("t_final")) sugerencias.t_final = redondear(estadoDestino.T);
-        if (claves.includes("q_dato")) sugerencias.q_dato = redondear(estadoDestino.H - origen.H);
-        if (claves.includes("dp_dato")) {
-            sugerencias.dp_dato = redondear(Math.max(0, origen.P - estadoDestino.P));
-        }
-        if (claves.includes("eta")) {
-            const rendimiento = getRendimientoIsentropico(origen, estadoDestino);
+        definicion.parametros.forEach(({ clave }) => {
+            const leer = DE_LOS_ESTADOS[clave];
+            if (!leer) return;
+            const valor = leer();
+            if (Number.isFinite(valor)) sugerencias[clave] = redondear(valor);
+        });
+
+        if (definicion.parametros.some((parametro) => parametro.clave === "eta")) {
+            const rendimiento = definicion.clave === "expansion_isentropica"
+                ? getRendimientoExpansion(origen, estadoDestino)
+                : getRendimientoIsentropico(origen, estadoDestino);
             if (rendimiento !== null && rendimiento > 0 && rendimiento <= 1) {
                 sugerencias.eta = redondear(rendimiento);
             }
@@ -92,7 +116,7 @@ const DialogoProceso = () => {
         // Sin estado destino no hay dónde dejar el resultado: se crea uno.
         const cambios = { modoDestino: "calculado" };
         if (proceso.destino === null) {
-            cambios.destino = nuevoFluido();
+            cambios.destino = nuevoEstado();
         }
         cambios.parametros = {
             ...getParametrosPorDefecto(definicion, "calculado"),
@@ -114,11 +138,27 @@ const DialogoProceso = () => {
         >
             {listaEstados.map((estado) => (
                 <Option key={estado.id} value={estado.id}>
-                    {estado.nombre} ({estado.fluido})
+                    {/* El fluido puro se identifica por su nombre; el aire húmedo,
+                        por su presión total, que es lo que lo hace o no compatible
+                        con los demás estados. */}
+                    {estado.nombre} ({estado.fluido ?? `${formatear(estado.P, 4)} kPa`})
                 </Option>
             ))}
         </Select>
     );
+
+    // Un proceso conecta tantos estados de origen como diga su aridad: uno en casi
+    // todos los tipos, dos en la mezcla adiabática. Cambiar un origen escribe en
+    // su posición y deja el resto como estaba.
+    const cambiarOrigen = (posicion) => (nuevo) => {
+        const origenes = [...proceso.origenes];
+        origenes[posicion] = nuevo;
+        guardar({ origenes });
+    };
+
+    const etiquetaOrigen = (posicion) => (proceso.origenes.length === 1
+        ? getTextoUI("proc_origen")
+        : `${getTextoUI("proc_origen")} ${posicion + 1}`);
 
     const parametros = getParametrosVisibles(definicion, proceso.modoDestino);
 
@@ -153,7 +193,7 @@ const DialogoProceso = () => {
                             value={proceso.tipo}
                             onChange={cambiarTipo}
                         >
-                            {getDefiniciones('fluido').map((tipo) => (
+                            {getDefiniciones(dominio).map((tipo) => (
                                 <Option key={tipo.clave} value={tipo.clave}>{getTextoUI(tipo.i18n)}</Option>
                             ))}
                         </Select>
@@ -179,11 +219,13 @@ const DialogoProceso = () => {
             </Row>
 
             <Row gutter={8}>
-                <Col span={12}>
-                    <Form.Item label={getTextoUI("proc_origen")}>
-                        {selectorEstado(proceso.origenes[0], (nuevo) => guardar({ origenes: [nuevo] }))}
-                    </Form.Item>
-                </Col>
+                {proceso.origenes.map((origen, posicion) => (
+                    <Col span={12} key={`origen${posicion}`}>
+                        <Form.Item label={etiquetaOrigen(posicion)}>
+                            {selectorEstado(origen, cambiarOrigen(posicion))}
+                        </Form.Item>
+                    </Col>
+                ))}
                 <Col span={12}>
                     <Form.Item
                         label={getTextoUI("proc_destino")}

@@ -7,11 +7,12 @@ import {
   WarningTwoTone,
   CloseCircleTwoTone
 } from '@ant-design/icons';
+/* eslint-disable react/prop-types */
 import { Button, Tooltip, Table } from 'antd';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
-import { listaFluidos } from '../listaFluidos';
+import { getListaDominio } from '../listasDominio';
 import {
   listaProcesos,
   nuevoProceso,
@@ -26,7 +27,8 @@ import {
   derivadosProceso,
   getColumnasVisibles,
   getDefinicion,
-  tieneCaudal
+  tieneCaudal,
+  dominioDeProceso
 } from '../procesos/proceso';
 import { sugerirTipo } from '../procesos/deteccion';
 import { propagarProcesos } from '../procesos/propagacion';
@@ -36,14 +38,19 @@ import DialogoProceso from './DialogoProceso';
 import Ciclos from './Ciclos';
 import { columnaDiagrama } from './columnaDiagrama';
 
-const TablaProcesos = () => {
-  const {
-    idProcesoActual, verDialogoProceso, procesosSeleccionados,
-    fluidosSeleccionados, nCifras, tipoDiagrama
-  } = useHookstate(configuracion);
+// La misma tabla sirve para los dos dominios: lo único que cambia es de qué
+// lista salen los estados, qué selección se sincroniza y qué diagrama decide si
+// hay ojo que enseñar. Ver DOCUMENTACION.md §3.6.
+const TablaProcesos = ({ dominio = 'fluido' }) => {
+  const ajustes = useHookstate(configuracion);
+  const { idProcesoActual, verDialogoProceso, procesosSeleccionados, nCifras } = ajustes;
+
+  const { lista, claveSeleccion, claveTipoDiagrama } = getListaDominio(dominio);
+  const estadosSeleccionados = ajustes[claveSeleccion];
+  const hayDiagrama = ajustes[claveTipoDiagrama].get() !== "ninguno";
 
   const procesos = useHookstate(listaProcesos);
-  const estados = useHookstate(listaFluidos);
+  const estados = useHookstate(lista);
 
   const listaEstados = estados.get({ noproxy: true });
   const cifras = nCifras.get();
@@ -56,19 +63,22 @@ const TablaProcesos = () => {
   // Un proceso nuevo hereda los dos estados seleccionados, si hay exactamente dos:
   // es el gesto natural ("conecta estos dos puntos") y ahorra rellenar el diálogo.
   const crearProceso = () => {
-    const seleccion = [...fluidosSeleccionados.get()];
+    const seleccion = [...estadosSeleccionados.get()];
     if (seleccion.length === 2) {
-      nuevoProceso(seleccion[0], seleccion[1]);
-      fluidosSeleccionados.set([]);
+      nuevoProceso(seleccion[0], seleccion[1], dominio);
+      estadosSeleccionados.set([]);
     } else {
-      nuevoProceso();
+      nuevoProceso(null, null, dominio);
     }
   };
 
   // Borrar o duplicar procesos cambia qué estados quedan generados
   const conPropagacion = (accion) => (ids) => { accion(ids); propagarProcesos(); };
 
-  const listaProcesosActual = procesos.get({ noproxy: true });
+  // La lista de procesos es una sola para los dos dominios; cada tabla enseña la
+  // suya. El dominio de un proceso lo dice su tipo, no un campo guardado.
+  const listaProcesosActual = procesos.get({ noproxy: true })
+    .filter((proceso) => dominioDeProceso(proceso) === dominio);
 
   // Las columnas de resultado las declara cada tipo, así que la tabla solo
   // muestra la unión de las que piden los procesos existentes. Las de potencia
@@ -85,7 +95,9 @@ const TablaProcesos = () => {
 
     const fila = {
       key: proceso.id,
-      etiqueta: `${nombreEstado(proceso.origenes[0])} → ${nombreEstado(proceso.destino)}`,
+      // La mezcla adiabática tiene dos orígenes, así que la etiqueta los junta
+      // todos en vez de dar por hecho que hay uno.
+      etiqueta: `${proceso.origenes.map(nombreEstado).join(' + ')} → ${nombreEstado(proceso.destino)}`,
       tipo: evaluacion.definicion ? getTextoUI(evaluacion.definicion.i18n) : proceso.tipo,
       caudal: tieneCaudal(proceso) ? formatear(proceso.parametros.m_punto, cifras) : "–"
     };
@@ -195,7 +207,7 @@ const TablaProcesos = () => {
     },
     // El ojo solo aparece si hay diagrama que mirar, y nunca en el CSV: no es un
     // resultado del proceso.
-    ...(tipoDiagrama.get() === "ninguno" ? [] : [columnaDiagrama({
+    ...(!hayDiagrama ? [] : [columnaDiagrama({
       ids: listaProcesosActual.map((proceso) => proceso.id),
       ocultos: new Set(
         listaProcesosActual.filter((proceso) => proceso.enDiagrama === false)
@@ -237,7 +249,7 @@ const TablaProcesos = () => {
   };
 
   // Procesos que inciden en los estados seleccionados en la tabla de arriba.
-  const procesosResaltados = new Set(idsProcesosDeEstados([...fluidosSeleccionados.get()]));
+  const procesosResaltados = new Set(idsProcesosDeEstados([...estadosSeleccionados.get()]));
 
   const rowClassName = (fila) => {
     const clases = [];
@@ -303,9 +315,9 @@ const TablaProcesos = () => {
           })}
         />}
 
-      <Ciclos />
+      <Ciclos dominio={dominio} />
 
-      <DialogoProceso />
+      <DialogoProceso dominio={dominio} />
     </div>
   );
 }
