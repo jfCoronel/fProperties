@@ -106,8 +106,9 @@ que sean de ese fluido —círculo hueco de borde azul, con su nombre al lado, y
 que estén seleccionados— y las **curvas de los procesos** de ese mismo fluido. El punto va
 hueco para que no tape la curva sobre la que cae.
 
-El encuadre se maneja sobre el propio lienzo: la **rueda** (o el pellizco, en táctil) acerca
-y aleja, **arrastrar** mueve, **Mayús+arrastrar** amplía el rectángulo que dibujes, y el botón
+El encuadre se maneja sobre el propio lienzo: **Cmd+rueda** en Apple o **Ctrl+rueda** en el
+resto acerca y aleja (el pellizco sigue disponible en táctil), **Cmd+arrastrar** en Apple o
+**Ctrl+arrastrar** en el resto mueve, **Mayús+arrastrar** amplía el rectángulo que dibujes, y el botón
 *Reencuadrar* —o un doble clic— vuelve al ajuste automático. Solo cabe un gesto de arrastre, y
 mover es el que se busca sin pensar; por eso el rectángulo va con Mayús. Cambiar de tipo de
 diagrama o de fluido también reencuadra: el encuadre anterior no significa nada en otros ejes.

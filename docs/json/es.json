@@ -82,7 +82,12 @@
     "bot_actualizar_ejes": "Ajustar a datos",
     "bot_reencuadrar": "Reencuadrar",
     "tooltip_reencuadrar": "Volver al encuadre automático del diagrama",
-    "ayuda_zoom": "Rueda: acercar · Arrastrar: mover · Mayús+arrastrar: encuadrar una zona · Doble clic: reencuadrar",
+    "titulo_configurar_ejes": "Límites de los ejes",
+    "tooltip_configurar_ejes": "Introducir los límites de los ejes",
+    "lab_minimo": "mínimo",
+    "lab_maximo": "máximo",
+    "bot_aplicar": "Aplicar",
+    "ayuda_zoom": "Cmd/Ctrl+rueda: acercar · Cmd/Ctrl+arrastrar: mover · Mayús+arrastrar: encuadrar una zona · Doble clic: reencuadrar",
     "lab_punto_triple": "Punto triple",
     "lab_punto_critico": "Punto crítico",
 

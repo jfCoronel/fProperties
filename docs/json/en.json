@@ -82,7 +82,12 @@
     "bot_actualizar_ejes": "Fit to data",
     "bot_reencuadrar": "Reset view",
     "tooltip_reencuadrar": "Back to the automatic framing of the diagram",
-    "ayuda_zoom": "Wheel: zoom · Drag: pan · Shift+drag: zoom to area · Double click: reset view",
+    "titulo_configurar_ejes": "Axis limits",
+    "tooltip_configurar_ejes": "Enter the axis limits",
+    "lab_minimo": "minimum",
+    "lab_maximo": "maximum",
+    "bot_aplicar": "Apply",
+    "ayuda_zoom": "Cmd/Ctrl+wheel: zoom · Cmd/Ctrl+drag: pan · Shift+drag: zoom to area · Double click: reset view",
     "lab_punto_triple": "Triple point",
     "lab_punto_critico": "Critical point",
 

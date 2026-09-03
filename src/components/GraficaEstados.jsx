@@ -4,13 +4,13 @@
 // declararlo solo en este fichero sería una excepción sin sentido.
 /* eslint-disable react/prop-types */
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Form, Button, Tooltip } from 'antd';
-import { ExpandOutlined } from '@ant-design/icons';
+import { Row, Col, Form, Button, InputNumber, Modal, Space, Tooltip } from 'antd';
+import { ExpandOutlined, SettingOutlined } from '@ant-design/icons';
 // Importado por su efecto: registra todos los controladores de Chart.js.
 import 'chart.js/auto';
 import { Scatter } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
 import { evaluarProceso, trazarProceso, dominioDeProceso } from '../procesos/proceso';
@@ -40,6 +40,7 @@ const COLOR_ESTADOS = "#0000FF";
 const FONDO_ESTADOS = "#FFFFFF";
 const RADIO_ESTADO = 6;
 const RADIO_ESTADO_SELECCIONADO = 10;
+const TECLA_MODIFICADORA = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'meta' : 'ctrl';
 
 // Rotula cada punto con su nombre. Va como plugin y no como opción de Chart.js
 // porque hay que pintar sobre el lienzo después de cada dataset.
@@ -91,7 +92,34 @@ const GraficaEstados = ({
         .filter((proceso) => dominioDeProceso(proceso) === dominio);
 
     const referenciaGrafico = useRef(null);
+    const [dialogoEjesAbierto, setDialogoEjesAbierto] = useState(false);
+    const [limitesEjes, setLimitesEjes] = useState(null);
     const reencuadrar = () => { referenciaGrafico.current?.resetZoom(); };
+
+    const abrirDialogoEjes = () => {
+        const grafico = referenciaGrafico.current;
+        if (!grafico) return;
+        setLimitesEjes({
+            xMin: grafico.scales.x.min,
+            xMax: grafico.scales.x.max,
+            yMin: grafico.scales.y.min,
+            yMax: grafico.scales.y.max
+        });
+        setDialogoEjesAbierto(true);
+    };
+
+    const aplicarLimitesEjes = () => {
+        if (!limitesEjes
+            || !Object.values(limitesEjes).every(Number.isFinite)
+            || limitesEjes.xMin >= limitesEjes.xMax
+            || limitesEjes.yMin >= limitesEjes.yMax) return;
+        const grafico = referenciaGrafico.current;
+        if (!grafico) return;
+        Object.assign(grafico.options.scales.x, { min: limitesEjes.xMin, max: limitesEjes.xMax });
+        Object.assign(grafico.options.scales.y, { min: limitesEjes.yMin, max: limitesEjes.yMax });
+        grafico.update();
+        setDialogoEjesAbierto(false);
+    };
 
     // Los estados de este diagrama que no estén ocultos con el ojo de la tabla.
     // Los seleccionados se dibujan más grandes: es el mismo resaltado cruzado que
@@ -235,12 +263,10 @@ const GraficaEstados = ({
                 }
             },
             mostrarNombres: { showLabels: true, align: 'left', baseline: 'middle' },
-            // Rueda y pellizco acercan; arrastrar mueve. El encuadre por rectángulo
-            // se reserva a Mayús+arrastrar porque solo cabe un gesto de arrastre, y
-            // mover es el que se busca sin pensar.
+            // Cmd en Apple y Ctrl en el resto evitan capturar la rueda de la página.
             zoom: {
                 zoom: {
-                    wheel: { enabled: true, speed: 0.1 },
+                    wheel: { enabled: true, speed: 0.1, modifierKey: TECLA_MODIFICADORA },
                     pinch: { enabled: true },
                     drag: {
                         enabled: true,
@@ -251,7 +277,7 @@ const GraficaEstados = ({
                     },
                     mode: 'xy'
                 },
-                pan: { enabled: true, mode: 'xy' }
+                pan: { enabled: true, mode: 'xy', modifierKey: TECLA_MODIFICADORA }
             }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -265,11 +291,16 @@ const GraficaEstados = ({
                 {selectores}
                 <Col xs={24} sm={4} md={4}>
                     <Form.Item label={" "} style={{ marginBottom: 8 }}>
-                        <Tooltip title={getTextoUI("tooltip_reencuadrar")} mouseEnterDelay={1}>
-                            <Button icon={<ExpandOutlined />} onClick={reencuadrar} block>
-                                {getTextoUI("bot_reencuadrar")}
-                            </Button>
-                        </Tooltip>
+                        <Space.Compact block>
+                            <Tooltip title={getTextoUI("tooltip_reencuadrar")} mouseEnterDelay={1}>
+                                <Button icon={<ExpandOutlined />} onClick={reencuadrar} block>
+                                    {getTextoUI("bot_reencuadrar")}
+                                </Button>
+                            </Tooltip>
+                            <Tooltip title={getTextoUI("tooltip_configurar_ejes")} mouseEnterDelay={1}>
+                                <Button icon={<SettingOutlined />} onClick={abrirDialogoEjes} />
+                            </Tooltip>
+                        </Space.Compact>
                     </Form.Item>
                 </Col>
             </Row>
@@ -289,6 +320,51 @@ const GraficaEstados = ({
                 plugins={[mostrarNombres, zoomPlugin]}
             />
         </div>
+
+        <Modal
+            title={getTextoUI("titulo_configurar_ejes")}
+            open={dialogoEjesAbierto}
+            onCancel={() => { setDialogoEjesAbierto(false); }}
+            onOk={aplicarLimitesEjes}
+            okText={getTextoUI("bot_aplicar")}
+            okButtonProps={{ disabled: !limitesEjes
+                || !Object.values(limitesEjes).every(Number.isFinite)
+                || limitesEjes.xMin >= limitesEjes.xMax
+                || limitesEjes.yMin >= limitesEjes.yMax }}
+        >
+            {limitesEjes && <Form layout="vertical">
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item label={`${etiquetaX} ${getTextoUI("lab_minimo")}`}>
+                            <InputNumber value={limitesEjes.xMin} onChange={(valor) => {
+                                setLimitesEjes({ ...limitesEjes, xMin: valor });
+                            }} style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item label={`${etiquetaX} ${getTextoUI("lab_maximo")}`}>
+                            <InputNumber value={limitesEjes.xMax} onChange={(valor) => {
+                                setLimitesEjes({ ...limitesEjes, xMax: valor });
+                            }} style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item label={`${etiquetaY} ${getTextoUI("lab_minimo")}`}>
+                            <InputNumber value={limitesEjes.yMin} onChange={(valor) => {
+                                setLimitesEjes({ ...limitesEjes, yMin: valor });
+                            }} style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item label={`${etiquetaY} ${getTextoUI("lab_maximo")}`}>
+                            <InputNumber value={limitesEjes.yMax} onChange={(valor) => {
+                                setLimitesEjes({ ...limitesEjes, yMax: valor });
+                            }} style={{ width: "100%" }} />
+                        </Form.Item>
+                    </Col>
+                </Row>
+            </Form>}
+        </Modal>
     </div>);
 };
 
