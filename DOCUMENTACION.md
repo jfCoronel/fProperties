@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.3.0**.
+Estado del proyecto en la **versión 2.4.0**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -18,7 +18,7 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (191 tests contra CoolProp real) |
+| Tests | Vitest (196 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -95,8 +95,9 @@ estado queda fuera del rango de la ecuación de estado, y los procesos que lo us
 Bajo la tabla de procesos hay dos desplegables, y son toda la configuración del **diagrama de
 fluidos**:
 
-- **Tipo**: *ninguno*, `log p – h`, `T – s` o `p – T`. *Ninguno* hace de interruptor: no hay
-  un botón aparte para mostrar u ocultar el diagrama, y con él no se dibuja nada.
+- **Tipo**: *ninguno*, `log p – h`, `T – s`, `h – s` (Mollier) o `p – T`. *Ninguno* hace de
+  interruptor: no hay un botón aparte para mostrar u ocultar el diagrama, y con él no se
+  dibuja nada.
 - **Fluido** del diagrama; debajo se recuerdan sus puntos triple y crítico.
 
 El diagrama muestra la curva de saturación del fluido elegido, los **estados de la tabla**
@@ -139,8 +140,16 @@ sus valores; la segunda fija a mano los límites de los ejes.
 |---|---|
 | p-h | isotermas ✓, isentrópicas ✓, título constante ✓, isócoras |
 | T-s | isobaras ✓, título constante ✓, isentálpicas, isócoras |
+| h-s | isobaras ✓, isotermas ✓, título constante ✓, isócoras |
 | p-T | isócoras |
 | Psicrométrico | humedad relativa ✓, bulbo húmedo ✓, entalpía ✓, volumen específico |
+
+El **h-s** es el diagrama de la producción de potencia: en él una isentrópica es una vertical,
+y dentro de la campana las isobaras son rectas de pendiente T. Por eso las compresiones y
+expansiones con rendimiento dibujan, además de su curva, un **trazo auxiliar** discontinuo
+del origen al estado ideal (p₂, s₁), rotulado *2s*: en el h-s los dos saltos de entalpía, el
+real y el ideal, se leen directamente, y el rendimiento isentrópico es su cociente. El trazo
+aparece también en los demás diagramas, donde la isentrópica se curva.
 
 Los valores son **automáticos** por defecto: valores redondos que cubren el diagrama y se
 adaptan al fluido (o a la presión total, en el psicrométrico). Con **valores propios** se
@@ -535,11 +544,11 @@ auxiliares(origenes, destino, parametros, definicion) -> [trazos]   // construcc
 destino(origenes, parametros, definicion)             -> pareja     // modo calculado
 ```
 
-`auxiliares` es la más reciente y la única que solo implementa, de momento, un tipo: la
-batería de frío, que devuelve la prolongación de la salida a su ADP. Cada trazo es
+`auxiliares` es la más reciente y la implementan tres tipos: la batería de frío, que devuelve
+la prolongación de la salida a su ADP, y la compresión y la expansión con rendimiento, que
+devuelven el camino isentrópico hasta el estado ideal *2s*. Cada trazo es
 `{ estados, rotuloFinal? }`, con estados completos por la misma razón que `trazar`, y el
-diagrama lo dibuja fino, discontinuo y del color del proceso, con el extremo marcado. Está
-pensada también para la expansión ideal junto a la real en el futuro diagrama h-s (§6.1).
+diagrama lo dibuja fino, discontinuo y del color del proceso, con el extremo marcado.
 
 **b bis) El tipo lo declara el usuario; el programa solo sugiere.** `deteccion.js` sabe qué
 tipo encaja con una pareja de estados, y ese conocimiento se usa en tres sitios: el tipo
@@ -692,12 +701,12 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**191 tests en 12 ficheros:**
+**196 tests en 12 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
 | `propFluidos/coolprop.entorno.test.js` | 3 | Que CoolProp arranca en Node y que un estado irresoluble devuelve `NaN`. Es la sonda de la que depende todo lo demás. |
-| `procesos/proceso.test.js` | 51 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. Compresión y expansión se comprueban en espejo, incluido que cada una recupera el rendimiento con el que se construyó su estado destino. |
+| `procesos/proceso.test.js` | 53 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. Compresión y expansión se comprueban en espejo, incluido que cada una recupera el rendimiento con el que se construyó su estado destino, y que la expansión dibuja su ideal *2s* a la entropía de entrada. |
 | `procesos/dominios.test.js` | 10 | El contrato del adaptador de dominio: que los dos implementan las mismas cinco operaciones, que construyen el mismo estado que la tabla y que cada uno sabe qué hace incompatibles a dos estados —fluidos distintos, presiones totales distintas—. |
 | `procesos/aire.test.js` | 40 | La física psicrométrica, centrada en los balances, que es donde un signo cambiado no se ve a ojo: que sensible más latente suman el calor total, que el condensado sale con signo negativo, que la eficacia de saturación vale 1 al saturar, que la mezcla cumple masa y energía y cae entre las dos corrientes, y que de una batería construida con ADP y factor de by-pass conocidos se recuperan los dos, junto con la prolongación que se dibuja hasta el ADP. Más la detección de tipo y la incompatibilidad de presiones. |
 | `procesos/propagacion.test.js` | 8 | El modo calculado sobre un ciclo frigorífico completo: la cadena se genera entera, el ciclo se cierra sin bucle, propagar dos veces no cambia nada, mover el estado de partida arrastra la cadena y editar a mano rompe el vínculo. |
@@ -705,7 +714,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | `procesos/ciclo.test.js` | 15 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. Sobre un Rankine completo fija además lo contrario: que produce trabajo neto y da rendimiento térmico, y que declarar su turbina como conducto vuelve a romperlo. |
 | `procesos/deteccion.test.js` | 15 | La detección del tipo que encaja con una pareja de estados —incluida la frontera entre turbina y conducto, que un enfriamiento con pérdida de carga no debe cruzar— y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
 | `propFluidos/isolineasAire.test.js` | 6 | Las isolíneas de fondo del psicrométrico: que arrancan en la campana y llegan a w = 0 sin cruzar el eje, que respetan el recorte del fondo, que **todos** sus puntos tienen la propiedad de la etiqueta, que dependen de la presión total y que la de T_h = 0, sin extremo seco, no se inventa. |
-| `diagramas/lineasFondo.test.js` | 17 | Las líneas de fondo: valores automáticos redondos (lineales y logarítmicos), el recorte a la ventana —también en eje logarítmico—, la lectura de lo que escribe el usuario, el filtrado de lo que llega por un enlace y la física: una isoterma del p-h cruza la campana horizontal a la presión de saturación, una isobara del T-s a la temperatura de saturación, las de título acaban junto al crítico y nada se sale de la ventana. |
+| `diagramas/lineasFondo.test.js` | 20 | Las líneas de fondo: valores automáticos redondos (lineales y logarítmicos), el recorte a la ventana —también en eje logarítmico—, la lectura de lo que escribe el usuario, el filtrado de lo que llega por un enlace y la física: una isoterma del p-h cruza la campana horizontal a la presión de saturación, una isobara del T-s a la temperatura de saturación, las de título acaban junto al crítico, nada se parte al cruzar la saturación ni se sale de la ventana, y en el h-s las isobaras son, dentro de la campana, rectas de pendiente T. |
 | `permalink/formato.test.js` | 12 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera, incluida la configuración de líneas de fondo. |
 | `permalink/problema.test.js` | 7 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. Incluye una mezcla adiabática —dos orígenes y dos caudales que sobrevivir al viaje— y un enlace de la 2.2.1 con claves de configuración ya retiradas, que debe abrirse igual. |
 
@@ -732,7 +741,10 @@ Lo que falta o conviene arreglar, en orden de importancia:
    fluido y del componente, y no de la coherencia termodinámica de la pareja, que es lo único
    que juzgan hoy los resolvedores. Entra cuando se decida si ese umbral es un parámetro más
    del tipo o un criterio aparte.
-2. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
+2. **La fase de un estado supercrítico sale como «Desconocido».** CoolProp clasifica un
+   estado por encima de la temperatura crítica (vapor a 400 ºC, por ejemplo) como gas
+   supercrítico, y `cambiarUnidadSalidaFluido` solo traduce líquido, vapor y bifásico.
+3. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.
 
 ---
@@ -742,40 +754,11 @@ Lo que falta o conviene arreglar, en orden de importancia:
 La §5 recoge lo que falta o sobra en lo que ya existe; esta sección recoge **hacia dónde
 crecer**. Van de menor a mayor alcance, que es también el orden propuesto.
 
-### 6.1 Diagrama h-s (Mollier) — 2.4
+### 6.1 Diagrama h-s (Mollier) — hecho en la 2.4.0
 
-Es el diagrama de la producción de potencia, y la aplicación ya tiene el tipo de proceso que
-más lo pide: la expansión. En h-s la isentrópica es una **vertical**, de modo que el salto
-ideal y el real de una turbina (o de un compresor) se leen como dos segmentos verticales y el
-rendimiento isentrópico es literalmente su cociente. Ningún otro de los tres diagramas actuales
-lo enseña tan a la vista.
-
-Cuesta poco porque la arquitectura ya lo admite ([§3.4](#34-el-motor-de-procesos),
-[§3.6](#36-componentes)): las curvas de los procesos se calculan en el espacio de estados y se
-proyectan después, así que un diagrama nuevo es sobre todo **una proyección más**.
-
-- `Diagrama.jsx`: `{ x: estado.S, y: estado.H }` en `proyectar`, sus etiquetas de eje, la
-  opción del desplegable y la campana (el mismo recorrido entre punto triple y crítico que la
-  del T-s, devolviendo h en lugar de T).
-- `es.json` / `en.json`: la clave `tipo_h-s`.
-- `definiciones.json`: añadir `"h-s"` a los `diagramas` de los tipos. Hoy el campo es
-  declarativo y nada lo lee, pero conviene que no mienta.
-- Tests del permalink: que el nuevo valor de `tipoDiagrama` viaja y se restaura.
-
-Dos decisiones que tomar antes:
-
-1. **Encuadre.** El Mollier de vapor de agua se usa casi solo en la zona de vapor y alrededor
-   de la curva de vapor saturado; el líquido se queda aplastado contra el origen. El ajuste
-   automático a lo dibujado ya lo resuelve si hay estados, pero falta decidir qué se encuadra
-   cuando solo está la campana.
-2. **Isolíneas de fondo.** Ya existe el sistema ([§1.3](#13-diagramas)): el h-s solo tiene
-   que declarar sus familias en `familiasFondo.js` (isobaras, isotermas y título constante)
-   y sus ejes en `lineasFondo.js`. Las isolíneas ya se construyen como estados y se
-   proyectan, así que salen bien en cualquier par de ejes.
-
-Un complemento natural, ya en la frontera con la §6.2: dibujar en discontinua la
-**expansión ideal** asociada a cada expansión o compresión con rendimiento, de forma que los
-dos saltos aparezcan juntos sin que el usuario tenga que crear el estado isentrópico a mano.
+Entró en la 2.4.0 junto con las líneas de fondo configurables y el trazo auxiliar del estado
+ideal *2s* ([§1.3](#13-diagramas)). Queda de este bloque el aviso de título mínimo a la salida
+de la turbina, que sigue en la [§5](#5-estado-y-deuda-conocida).
 
 ### 6.2 Análisis exergético — 2.x
 
