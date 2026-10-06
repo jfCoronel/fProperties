@@ -94,7 +94,7 @@
       "clave": "compresion_isentropica",
       "dominio": "fluido",
       "i18n": "proc_compresion_isentropica",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [
         {
@@ -136,7 +136,7 @@
       "clave": "expansion_isentropica",
       "dominio": "fluido",
       "i18n": "proc_expansion_isentropica",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [
         {
@@ -168,7 +168,7 @@
       "clave": "isobarico",
       "dominio": "fluido",
       "i18n": "proc_isobarico",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [
         {
@@ -204,7 +204,7 @@
       "clave": "isentalpico",
       "dominio": "fluido",
       "i18n": "proc_isentalpico",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [
         {
@@ -227,7 +227,7 @@
       "clave": "isotermo",
       "dominio": "fluido",
       "i18n": "proc_isotermo",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [
         {
@@ -256,7 +256,7 @@
       "clave": "sin_trabajo",
       "dominio": "fluido",
       "i18n": "proc_sin_trabajo",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [
         {
@@ -294,7 +294,7 @@
       "clave": "generico",
       "dominio": "fluido",
       "i18n": "proc_generico",
-      "diagramas": ["p-h", "T-s", "p-T"],
+      "diagramas": ["p-h", "T-s", "h-s", "p-T"],
       "aridad": { "origenes": 1 },
       "parametros": [],
       "restriccion": {

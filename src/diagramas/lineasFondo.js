@@ -15,7 +15,7 @@ import { configuracionFamilias, TRAZOS } from './familiasFondo';
 const PUNTOS_LINEA = 40;
 
 // Magnitudes de los ejes de cada diagrama de fluido, [x, y]
-export const EJES_FLUIDO = { 'p-h': ['H', 'P'], 'T-s': ['S', 'T'], 'p-T': ['T', 'P'] };
+export const EJES_FLUIDO = { 'p-h': ['H', 'P'], 'T-s': ['S', 'T'], 'p-T': ['T', 'P'], 'h-s': ['S', 'H'] };
 const Y_LOGARITMICO = new Set(['p-h']);
 
 // ---------------------------------------------------------------------------

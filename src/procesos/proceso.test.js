@@ -6,6 +6,7 @@ import {
   evaluarProceso,
   derivadosProceso,
   trazarProceso,
+  trazosAuxiliares,
   parejaDestino,
   planificarPropagacion,
   getColumnasVisibles,
@@ -239,6 +240,24 @@ describe('expansión con rendimiento isentrópico (turbina)', () => {
 
   it('recupera el rendimiento con el que se construyó el estado destino', () => {
     expect(getRendimientoExpansion(origen, destinoCon(0.85))).toBeCloseTo(0.85, 4);
+  });
+
+  it('dibuja junto a la real la expansión ideal, hasta el estado 2s', () => {
+    const p = proceso('expansion_isentropica', 'f1', 'f2');
+    const destino = destinoCon(0.85);
+    const [trazo] = trazosAuxiliares(p, evaluarProceso(p, [origen, destino]));
+    const ideal = trazo.estados[trazo.estados.length - 1];
+    expect(trazo.rotuloFinal).toBe('2s');
+    // Toda la línea a la entropía de entrada, y acaba a la presión de salida
+    trazo.estados.forEach((e) => expect(e.S).toBeCloseTo(origen.S, 4));
+    expect(ideal.P).toBeCloseTo(10, 6);
+    // El rendimiento es el cociente de los dos saltos que se ven en el h-s
+    expect((destino.H - origen.H) / (ideal.H - origen.H)).toBeCloseTo(0.85, 4);
+  });
+
+  it('una expansión ya isentrópica no tiene ideal aparte que dibujar', () => {
+    const p = proceso('expansion_isentropica', 'f1', 'f2');
+    expect(trazosAuxiliares(p, evaluarProceso(p, [origen, destinoCon(1)]))).toEqual([]);
   });
 
   it('no avisa de una expansión física razonable', () => {

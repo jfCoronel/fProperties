@@ -102,6 +102,26 @@ function barridoPresion(origen, destino, definicion, segundaPropiedad) {
   });
 }
 
+// Trazo auxiliar de compresiones y expansiones con rendimiento: el camino
+// isentrópico del origen a la presión de destino, hasta el estado ideal (p2, s1),
+// rotulado "2s". Junto a la curva real enseña de un vistazo de dónde sale el
+// rendimiento, sobre todo en el h-s, donde es una vertical y los dos saltos de
+// entalpía se leen directamente. Lleva puntos intermedios porque en el p-h la
+// isentrópica se curva. Si el proceso es ya isentrópico, no hay nada que añadir.
+const PUNTOS_ISENTROPICA = 8;
+
+function auxiliarIsentropico(origenes, destino) {
+  const origen = origenes[0];
+  const estado = (p) => ({ fluido: origen.fluido, ...getObjetoFluido(origen.fluido, 'P', p, 'S', origen.S) });
+  const ideal = estado(destino.P);
+  const saltoReal = Math.abs(destino.H - origen.H);
+  if (!Number.isFinite(ideal.H) || Math.abs(ideal.H - destino.H) <= 1e-6 * Math.max(1, saltoReal)) return [];
+  return [{
+    estados: [origen, ...interiores(origen.P, destino.P, PUNTOS_ISENTROPICA, 'log').map(estado), ideal],
+    rotuloFinal: '2s'
+  }];
+}
+
 // Fábrica para los tipos cuya restricción es "una magnitud no cambia".
 const magnitudConstante = (magnitud) => ({
   verificar(origenes, destino, parametros, definicion) {
@@ -185,6 +205,8 @@ export const RESOLVEDORES = {
       });
     },
 
+    auxiliares: auxiliarIsentropico,
+
     // Definición del rendimiento isentrópico de un compresor, despejando h2.
     destino(origenes, parametros) {
       const origen = origenes[0];
@@ -263,6 +285,8 @@ export const RESOLVEDORES = {
         return ['H', origen.H + rendimiento * (hIsentropico - origen.H)];
       });
     },
+
+    auxiliares: auxiliarIsentropico,
 
     // Definición del rendimiento isentrópico de una turbina, despejando h2.
     destino(origenes, parametros) {

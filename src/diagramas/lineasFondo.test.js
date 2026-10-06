@@ -102,7 +102,7 @@ describe('configuración y lo que escribe el usuario', () => {
   });
 
   it('todos los diagramas tienen familias con nombre y propiedad', () => {
-    ['p-h', 'T-s', 'p-T', 'psicrometrico'].forEach((diagrama) => {
+    ['p-h', 'T-s', 'h-s', 'p-T', 'psicrometrico'].forEach((diagrama) => {
       expect(getFamiliasFondo(diagrama).length).toBeGreaterThan(0);
       getFamiliasFondo(diagrama).forEach((f) => expect(f.propiedad).toBeTruthy());
     });
@@ -146,6 +146,17 @@ describe('isolíneas de fluido', () => {
       const rotulado = dataset.data.find((p) => p.nombre);
       expect(rotulado.posicionNombre.align).toBe('right');
     });
+  });
+
+  it('en el h-s, dentro de la campana las isobaras son rectas de pendiente T', () => {
+    // Es la propiedad que hace útil el Mollier: dh = T·ds a presión constante
+    const tSat = getPropFluido('Agua', 'T', 'P', 1000, 'X', 0);
+    const puntos = lineas('h-s', 'isobaras', [1000]).flatMap((d) => d.data);
+    const [liquido, vapor] = [0, 100].map((x) => ({
+      s: getPropFluido('Agua', 'S', 'P', 1000, 'X', x), h: getPropFluido('Agua', 'H', 'P', 1000, 'X', x)
+    }));
+    expect(puntos.some((p) => Math.abs(p.x - vapor.s) < 1e-9 && Math.abs(p.y - vapor.h) < 1e-9)).toBe(true);
+    expect((vapor.h - liquido.h) / (vapor.s - liquido.s)).toBeCloseTo(tSat + 273.15, 2);
   });
 
   it('las de título constante acaban junto al punto crítico', () => {

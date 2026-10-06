@@ -69,6 +69,7 @@
     "tipo_p-T": "p[kPa] - T[°C]",
     "tipo_p-h": "log p[kPa] - h[kJ/kg]",
     "tipo_T-s": "T[°C] - s[kJ/(kg·K)]",
+    "tipo_h-s": "h[kJ/kg] - s[kJ/(kg·K)] (Mollier)",
     "configuracion_psicrometrico": "Psychrometric settings",
     "ejes_max_min": "Maximun and Minimun of the axes: ",
     "lab_add_puntos": "Add data",

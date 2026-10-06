@@ -44,6 +44,15 @@ export const FAMILIAS_FONDO = {
         { clave: 'isentalpicas', propiedad: 'H', unidad: 'kJ/kg', activa: false, color: GRIS, trazo: 'discontinuo' },
         { clave: 'isocoras', propiedad: 'V', unidad: 'm³/kg', activa: false, color: GRIS_CLARO, trazo: 'trazoPunto' }
     ],
+    // El Mollier: contra las isobaras se lee el salto de una turbina, y la
+    // isoterma distingue el vapor sobrecalentado. Dentro de la campana las
+    // isobaras son rectas de pendiente T: son también isotermas.
+    'h-s': [
+        { clave: 'isobaras', propiedad: 'P', unidad: 'kPa', activa: true, color: GRIS, trazo: 'continuo' },
+        { clave: 'isotermas', propiedad: 'T', unidad: 'ºC', activa: true, color: GRIS, trazo: 'discontinuo' },
+        { clave: 'titulo', propiedad: 'X', unidad: '%', activa: true, color: GRIS, trazo: 'punteado' },
+        { clave: 'isocoras', propiedad: 'V', unidad: 'm³/kg', activa: false, color: GRIS_CLARO, trazo: 'trazoPunto' }
+    ],
     'p-T': [
         { clave: 'isocoras', propiedad: 'V', unidad: 'm³/kg', activa: false, color: GRIS, trazo: 'trazoPunto' }
     ],

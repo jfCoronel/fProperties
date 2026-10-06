@@ -10,7 +10,7 @@ import PanelLineasFondo from './PanelLineasFondo';
 import { curvasFondoFluido, contextoFluido, valoresAutomaticosFluido } from '../diagramas/lineasFondo';
 import { leyendaFondo } from '../diagramas/leyendaFondo';
 
-// Diagramas de fluido puro (p-h, T-s, p-T). Todo el andamiaje —zoom, clic sobre
+// Diagramas de fluido puro (p-h, T-s, h-s, p-T). Todo el andamiaje —zoom, clic sobre
 // curvas, rótulos, resaltado— vive en GraficaEstados; aquí queda solo lo propio
 // del dominio: qué ejes, cómo se proyecta un estado y qué curva de fondo se
 // dibuja. Ver DOCUMENTACION.md §3.6.
@@ -24,11 +24,12 @@ const { Option } = Select;
 const proyectar = (estado, tipo) => {
     if (tipo === "p-T") return { x: estado.T, y: estado.P };
     if (tipo === "p-h") return { x: estado.H, y: estado.P };
+    if (tipo === "h-s") return { x: estado.S, y: estado.H };
     return { x: estado.S, y: estado.T };
 };
 
-const ETIQUETAS_X = { "p-T": "T [ºC]", "p-h": "h [kJ/kg]", "T-s": "s [kJ/kg·K]" };
-const ETIQUETAS_Y = { "p-T": "p [kPa]", "p-h": "p [kPa]", "T-s": "T [ºC]" };
+const ETIQUETAS_X = { "p-T": "T [ºC]", "p-h": "h [kJ/kg]", "T-s": "s [kJ/kg·K]", "h-s": "s [kJ/kg·K]" };
+const ETIQUETAS_Y = { "p-T": "p [kPa]", "p-h": "p [kPa]", "T-s": "T [ºC]", "h-s": "h [kJ/kg]" };
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
@@ -65,6 +66,24 @@ const Diagrama = () => {
             for (let p = pCritica; p >= pTriple; p /= ratioP) {
                 let h = getPropFluido(fluido, "H", "P", p, "X", 100);
                 datos.push({ x: h, y: p })
+            }
+        } else if (tipoActual === "h-s") {
+            // La misma campana que en el T-s, leída en entalpía
+            const tTriple = getPropFluido(fluido, "TTRIPLE", "T", 0, "X", 50);
+            const tCritica = getPropFluido(fluido, "TCRIT", "T", 0, "X", 50);
+
+            const deltaT = (tCritica - tTriple) / 100
+            for (let t = tTriple; t <= tCritica; t += deltaT) {
+                datos.push({
+                    x: getPropFluido(fluido, "S", "T", t, "X", 0),
+                    y: getPropFluido(fluido, "H", "T", t, "X", 0)
+                })
+            }
+            for (let t = tCritica; t >= tTriple; t -= deltaT) {
+                datos.push({
+                    x: getPropFluido(fluido, "S", "T", t, "X", 100),
+                    y: getPropFluido(fluido, "H", "T", t, "X", 100)
+                })
             }
         } else if (tipoActual === "T-s") {
             const tTriple = getPropFluido(fluido, "TTRIPLE", "T", 0, "X", 50);
@@ -137,6 +156,7 @@ const Diagrama = () => {
                     <Option value="p-T">{getTextoUI("tipo_p-T")}</Option>
                     <Option value="p-h">{getTextoUI("tipo_p-h")}</Option>
                     <Option value="T-s">{getTextoUI("tipo_T-s")}</Option>
+                    <Option value="h-s">{getTextoUI("tipo_h-s")}</Option>
                 </Select>
             </Form.Item>
         </Col>
