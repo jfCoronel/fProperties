@@ -18,7 +18,7 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (77 tests contra CoolProp real) |
+| Tests | Vitest (160 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -33,6 +33,8 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 
 [5. Estado y deuda conocida](#5-estado-y-deuda-conocida)
 
+[6. Hoja de ruta](#6-hoja-de-ruta)
+
 ---
 
 ## 1. Cómo se usa
@@ -40,19 +42,15 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 ### 1.1 Acceso, idioma e instalación
 
 La aplicación vive en **[fproperties.jfcoronel.org](https://fproperties.jfcoronel.org)**,
-servida por GitHub Pages desde la carpeta `docs/`. No hace falta registrarse ni instalar
-nada: basta abrir la página.
+servida por GitHub Pages. No hace falta registrarse ni instalar nada: basta abrir la página.
 
 El dominio lo declara un fichero `CNAME` en la raíz de lo publicado. Está en **`public/`**,
 que es de donde Vite lo copia a cada build, de modo que cualquier salida de `npm run build`
-lo lleva dentro; `docs/CNAME` es esa misma copia ya publicada. Tenerlo solo en `docs/` era
-una trampa: bastaba sobrescribir la carpeta con una build nueva para tumbar el dominio.
+lo lleva dentro. Tenerlo solo en la carpeta publicada era una trampa: bastaba sobrescribirla
+con una build nueva para tumbar el dominio.
 
-> **Ojo:** publicar no es automático. `npm run build` deja la aplicación en `dist/`, y lo que
-> se sirve es `docs/`, que se actualiza copiando esa salida. Ahora mismo `docs/` contiene la
-> **versión 1.6.0**, así que lo que hay en línea todavía no tiene procesos, permalink ni
-> ciclos: todo lo que describe este documento a partir del [§1.4](#14-procesos) está en el
-> repositorio pero no publicado.
+Lo que hay en línea es la **última versión etiquetada**, no lo último de `main`: publicar es
+etiquetar ([§3.7](#37-publicar)).
 
 Arriba a la derecha hay tres botones —compartir, descargar e importar, todos ellos descritos
 en el [§2](#2-el-permalink)— y el **selector de idioma** (español / inglés), que cambia toda
@@ -565,20 +563,41 @@ llega a existir en vez de tener que romperse.
 
 ### 3.7 Publicar
 
-El sitio lo sirve GitHub Pages desde `docs/`, así que publicar es construir y dejar ahí la
-salida. Lo hace `npm run publicar`, que encadena `vite build` con `scripts/publicar.js`.
+Publicar es **etiquetar una versión**. Al subir una etiqueta `vX.Y.Z`, la acción
+`.github/workflows/publicar.yml` construye la aplicación en GitHub y despliega `dist/` con el
+mecanismo oficial de Pages:
 
-Ese script es media docena de líneas, pero ninguna es un `cp -R` por dos motivos:
+```bash
+# con la versión ya subida en package.json y todo en main
+git tag v2.4.0
+git push origin v2.4.0
+```
 
-- **Reemplaza, no fusiona.** Los `assets` llevan un hash en el nombre, de modo que fusionar
-  iría acumulando en `docs/` los de todas las versiones anteriores, que ya no referencia
-  nadie. El `CNAME` no hay que preservarlo a mano: vive en `public/` y la propia build lo
-  copia.
-- **Comprueba antes de borrar.** Si la build ha salido incompleta, `docs/` no se toca. Una
-  build a medias copiada encima dejaría el sitio inservible, y el fallo se vería en
-  producción en vez de en el terminal.
+Antes de desplegar, la acción hace de puerta:
 
-Va en Node y no en shell para no depender de `rm` ni de `cp`.
+- **La etiqueta tiene que coincidir con `package.json`.** La versión que enseña la
+  aplicación sale de ahí (`__APP_VERSION__`), y una etiqueta distinta publicaría un número
+  equivocado.
+- **Lint y tests**, los mismos que corre `comprobar.yml` en cada push a `main`.
+- **La build tiene que estar completa** (`index.html`, `CNAME`, `coolprop.wasm`); si no, no
+  se despliega nada y el sitio sigue con la versión anterior.
+
+También se puede lanzar a mano desde la pestaña *Actions* (*Run workflow*), para volver a
+publicar sin etiquetar.
+
+Requiere, **una sola vez**, elegir en *Settings → Pages → Source* la opción *GitHub Actions*.
+Con ella Pages deja de mirar la carpeta `docs/`.
+
+#### La vía anterior: `docs/` y `npm run publicar`
+
+Hasta la 2.3.1 el sitio se servía desde la carpeta `docs/` del repositorio, y publicar era
+lanzar `npm run publicar` —`vite build` más `scripts/publicar.js`— y subir el resultado. El
+script **reemplaza** `docs/` en vez de fusionar (los assets llevan hash en el nombre y se
+acumularían) y **comprueba la build antes de borrar** nada.
+
+Se conserva mientras se verifica el primer despliegue por la acción: volver atrás es elegir de
+nuevo *Deploy from a branch* (`main`, `/docs`) en los ajustes de Pages. Una vez comprobado,
+`docs/`, `scripts/publicar.js` y el script `publicar` de `package.json` pueden borrarse.
 
 ---
 
@@ -631,32 +650,110 @@ curvas y la propagación al editar un estado. Esos guiones no forman parte del r
 
 Lo que falta o conviene arreglar, en orden de importancia:
 
-1. **Automatizar la publicación del todo.** `npm run publicar` ya construye y reemplaza
-   `docs/` ([§3.7](#37-publicar)), así que el paso deja de ser una copia manual que se
-   olvida; pero sigue siendo un comando que alguien tiene que acordarse de lanzar antes de
-   subir. Una acción de GitHub que lo hiciera al etiquetar una versión cerraría el asunto.
-2. **Factor de by-pass de la batería de frío.** Es lo único del catálogo psicrométrico
+1. **Factor de by-pass de la batería de frío.** Es lo único del catálogo psicrométrico
    original que se quedó fuera en la 2.3.0. Pedía decidir antes si el punto de rocío del
    equipo es un parámetro más del tipo o un tipo aparte, y no merecía la pena resolverlo a la
    vez que todo lo demás. Con el tipo de enfriamiento ya en su sitio, añadirlo es una columna
    derivada más.
-3. **Curvas de fondo del psicrométrico.** Solo dibuja humedad relativa constante. Las líneas
+2. **Curvas de fondo del psicrométrico.** Solo dibuja humedad relativa constante. Las líneas
    de bulbo húmedo constante serían la referencia natural contra la que leer una humectación
    adiabática —que es exactamente una de ellas—, y las isoentálpicas ayudan con las mezclas.
    Se dejó el fondo como estaba a propósito, para no recargarlo; añadirlas es una entrada más
    en las curvas de fondo de `Psicrometrico.jsx`.
-4. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
+3. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
    por debajo de ~0,88 erosiona los álabes, y señalarlo sería de lo más didáctico. Se dejó
    fuera a propósito al añadir el tipo de expansión: sería el primer aviso que depende del
    fluido y del componente, y no de la coherencia termodinámica de la pareja, que es lo único
    que juzgan hoy los resolvedores. Entra cuando se decida si ese umbral es un parámetro más
    del tipo o un criterio aparte.
-5. **13 errores de ESLint preexistentes** (`react/prop-types` en las filas arrastrables,
-   `__APP_VERSION__` sin declarar como global, un `while (true)`). Eran 21 y la unificación de
-   los diagramas se llevó ocho por delante. La regla `react/prop-types` está desactivada en
-   los componentes que reciben props porque el proyecto **no usa PropTypes en ninguna parte**
-   y `prop-types` ni siquiera es una dependencia declarada: adoptarlo —o apagar la regla en
-   la configuración, que es lo coherente— es la tarea aparte. Como `npm run lint` corre con
-   `--max-warnings 0`, hasta entonces la puerta de calidad no sirve de puerta.
-6. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
+4. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.
+
+---
+
+## 6. Hoja de ruta
+
+La §5 recoge lo que falta o sobra en lo que ya existe; esta sección recoge **hacia dónde
+crecer**. Van de menor a mayor alcance, que es también el orden propuesto.
+
+### 6.1 Diagrama h-s (Mollier) — 2.4
+
+Es el diagrama de la producción de potencia, y la aplicación ya tiene el tipo de proceso que
+más lo pide: la expansión. En h-s la isentrópica es una **vertical**, de modo que el salto
+ideal y el real de una turbina (o de un compresor) se leen como dos segmentos verticales y el
+rendimiento isentrópico es literalmente su cociente. Ningún otro de los tres diagramas actuales
+lo enseña tan a la vista.
+
+Cuesta poco porque la arquitectura ya lo admite ([§3.4](#34-el-motor-de-procesos),
+[§3.6](#36-componentes)): las curvas de los procesos se calculan en el espacio de estados y se
+proyectan después, así que un diagrama nuevo es sobre todo **una proyección más**.
+
+- `Diagrama.jsx`: `{ x: estado.S, y: estado.H }` en `proyectar`, sus etiquetas de eje, la
+  opción del desplegable y la campana (el mismo recorrido entre punto triple y crítico que la
+  del T-s, devolviendo h en lugar de T).
+- `es.json` / `en.json`: la clave `tipo_h-s`.
+- `definiciones.json`: añadir `"h-s"` a los `diagramas` de los tipos. Hoy el campo es
+  declarativo y nada lo lee, pero conviene que no mienta.
+- Tests del permalink: que el nuevo valor de `tipoDiagrama` viaja y se restaura.
+
+Dos decisiones que tomar antes:
+
+1. **Encuadre.** El Mollier de vapor de agua se usa casi solo en la zona de vapor y alrededor
+   de la curva de vapor saturado; el líquido se queda aplastado contra el origen. El ajuste
+   automático a lo dibujado ya lo resuelve si hay estados, pero falta decidir qué se encuadra
+   cuando solo está la campana.
+2. **Isolíneas de fondo.** Sin isobaras (y, en menor medida, isotermas y líneas de título
+   constante) el h-s pierde buena parte de su utilidad: es contra ellas contra lo que se lee
+   un estado. El diagrama de fluidos hoy no dibuja ninguna, así que esto es una capacidad
+   nueva que aprovecharían también el p-h y el T-s. Se puede entregar el h-s sin ellas y
+   añadirlas después.
+
+Un complemento natural, ya en la frontera con la §6.2: dibujar en discontinua la
+**expansión ideal** asociada a cada expansión o compresión con rendimiento, de forma que los
+dos saltos aparezcan juntos sin que el usuario tenga que crear el estado isentrópico a mano.
+
+### 6.2 Análisis exergético — 2.x
+
+Una capa más sobre los procesos y los ciclos, con un **estado muerto** (T₀, p₀) configurable:
+
+- Exergía específica de cada estado: `ψ = (h − h₀) − T₀·(s − s₀)`.
+- **Exergía destruida** en cada proceso, `T₀·s_gen`, como columna de la tabla de procesos.
+- **Rendimiento exergético** del ciclo en el panel de ciclos, junto al térmico o al COP.
+
+Es barato porque *s* ya está en todos los estados y el reparto calor/trabajo lo deciden ya
+los tipos, y es muy didáctico: dice **dónde** se pierde el ciclo, no solo cuánto. El punto
+delicado es la temperatura a la que se intercambia el calor en los tipos con `q ≠ 0`, que
+hace falta para la exergía del calor; habrá que decidir si es un parámetro del tipo o se toma
+de los extremos.
+
+### 6.3 Instalaciones con varias corrientes — 3.0
+
+Es el salto de mayor alcance. Hoy el motor resuelve muy bien la *línea* (estado → proceso →
+estado, y ciclo si el camino se cierra), pero buena parte de los ciclos de libro no son una
+línea:
+
+- **Rankine regenerativo**: sangrado de turbina con fracción *y* hacia un calentador abierto
+  o cerrado.
+- **Refrigeración en dos etapas** con depósito de *flash* o enfriamiento intermedio, y
+  **cascada**.
+- **Batería de frío de una UTA**: el refrigerante que se evapora enfría al aire húmedo, que
+  acoplaría de verdad los dos dominios que la 2.3.0 igualó.
+
+El motor está a medio camino: los tipos ya declaran `aridad` y guardan `origenes` como array,
+y la mezcla adiabática del aire tiene dos orígenes. El límite real está en `ciclo.js`, que solo
+da potencias si **todos los procesos comparten el mismo caudal**; con caudales distintos el
+balance se queda en kJ/kg.
+
+Fases propuestas:
+
+1. **Caudal por rama** y **balance de masa en los nudos**; el ciclo deja de exigir un caudal
+   único.
+2. **Mezcla y división de fluidos**, reaprovechando la mezcla adiabática del aire.
+3. **Intercambiador de dos corrientes**: un proceso que enlaza dos procesos con la
+   restricción `ṁ₁·q₁ = −ṁ₂·q₂`, válido para cualquier pareja de dominios (fluido–fluido o
+   fluido–aire).
+4. **Problemas de referencia en permalink** (Rankine regenerativo, frigorífico de dos etapas),
+   que sirvan a la vez de ejemplos y de tests de integración.
+
+Encaja con el espíritu de corrector de la herramienta: un nudo cuyas masas o energías no
+cuadran es un diagnóstico ⚠️ más, como los que ya emiten los resolvedores.

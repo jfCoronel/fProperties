@@ -1,0 +1,73 @@
+# Publica la aplicación en GitHub Pages al etiquetar una versión (v2.4.0, …).
+#
+# Construye en la propia acción y despliega dist/ con el mecanismo oficial de
+# Pages, así que no hace commits de vuelta a main ni depende de que alguien se
+# acuerde de lanzar `npm run publicar`. Requiere, una sola vez, Settings → Pages
+# → Source: "GitHub Actions". Ver DOCUMENTACION.md §3.7.
+name: Publicar
+
+on:
+  push:
+    tags: ['v*']
+  # Para volver a publicar a mano sin etiquetar (p. ej. tras un fallo de Pages).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Una publicación no debe pisar a otra a medias, pero tampoco cancelarse.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  construir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # La versión que muestra la app sale de package.json (__APP_VERSION__):
+      # una etiqueta que no coincida publicaría un número equivocado.
+      - name: Comprobar que la etiqueta coincide con package.json
+        if: github.ref_type == 'tag'
+        run: |
+          VERSION="v$(node -p "require('./package.json').version")"
+          if [ "$VERSION" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::La etiqueta $GITHUB_REF_NAME no coincide con package.json ($VERSION)."
+            exit 1
+          fi
+
+      - run: npm run lint
+      - run: npm test
+      - run: npm run build
+
+      # Lo mismo que comprueba scripts/publicar.js antes de tocar docs/.
+      - name: Comprobar que la build está completa
+        run: |
+          for f in index.html CNAME coolprop.wasm; do
+            test -f "dist/$f" || { echo "::error::Falta dist/$f"; exit 1; }
+          done
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  desplegar:
+    needs: construir
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.despliegue.outputs.page_url }}
+    steps:
+      - id: despliegue
+        uses: actions/deploy-pages@v4

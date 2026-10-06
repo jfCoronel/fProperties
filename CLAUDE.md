@@ -91,9 +91,9 @@ npm run preview      # Preview production build locally
 ## Development Notes
 
 - **No TypeScript**: Project uses JavaScript (.js/.jsx) exclusively
-- **No test framework**: No test runner configured (consider adding Vitest if needed)
-- **Static assets**: Images in [public/img/](public/img/), WebAssembly in [docs/coolprop.wasm](docs/coolprop.wasm)
-- **Deployment**: Build outputs to [dist/](dist/), appears to deploy to [docs/](docs/) for GitHub Pages (note CNAME file)
+- **Tests**: Vitest against real CoolProp (`npm test`); CI runs lint + tests on every push to main (`.github/workflows/comprobar.yml`)
+- **Static assets**: Images in [public/img/](public/img/), WebAssembly in [public/coolprop.wasm](public/coolprop.wasm), CNAME in [public/CNAME](public/CNAME)
+- **Deployment**: Pushing a tag `vX.Y.Z` (must match `package.json` version) runs `.github/workflows/publicar.yml`, which builds and deploys `dist/` to GitHub Pages. The legacy `docs/` folder + `npm run publicar` path is kept only until the Actions deploy is verified (DOCUMENTACION.md §3.7)
 - **CoolProp module**: The coolprop.js file is 471KB and should not be read or modified unless absolutely necessary
 
 ## Common Development Patterns
