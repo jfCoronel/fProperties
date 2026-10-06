@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useHookstate } from '@hookstate/core';
 import { Modal, Button, Row, Col, Select, InputNumber, Form, ColorPicker, Alert } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';

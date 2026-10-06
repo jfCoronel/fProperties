@@ -2,7 +2,6 @@
 // del proyecto: no se usa PropTypes en ninguna parte y prop-types no es una
 // dependencia declarada. Adoptarlo es la tarea aparte que recoge la deuda §5.4;
 // declararlo solo en este fichero sería una excepción sin sentido.
-/* eslint-disable react/prop-types */
 import { useHookstate } from '@hookstate/core';
 import { Row, Col, Form, Button, InputNumber, Modal, Space, Tooltip } from 'antd';
 import { ExpandOutlined, SettingOutlined } from '@ant-design/icons';

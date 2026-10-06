@@ -1,4 +1,3 @@
-import React from 'react';
 import { Drawer, Form, Select, InputNumber } from 'antd';
 
 import { useHookstate } from '@hookstate/core';

@@ -96,13 +96,9 @@ export const reordenarFluidos = (fromIndex, toIndex) => {
 }
 
 function nuevoNombreFluido() {
-  let i = 1;
-  do {
-    let nuevoNombre = getTextoUI("nuevo_fluido") + i;
-    if (listaFluidos.find(fluido => fluido.nombre.get() === nuevoNombre)) { // encontrado
-      i++;
-    } else {
-      return nuevoNombre;
-    }
-  } while (true);
+  // El primer "<nombre><i>" libre: siempre existe, porque la lista es finita.
+  for (let i = 1; ; i++) {
+    const nuevoNombre = getTextoUI("nuevo_fluido") + i;
+    if (!listaFluidos.find(fluido => fluido.nombre.get() === nuevoNombre)) return nuevoNombre;
+  }
 }

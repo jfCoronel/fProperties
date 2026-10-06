@@ -95,13 +95,9 @@ export const reordenarAires = (fromIndex, toIndex) => {
 }
 
 function nuevoNombreAire() {
-  let i = 1;
-  do {
-    let nuevoNombre = getTextoUI("nuevo_aire") + i;
-    if (listaAires.find(aire => aire.nombre.get() === nuevoNombre)) { // encontrado
-      i++;
-    } else {
-      return nuevoNombre;
-    }
-  } while (true);
+  // El primer "<nombre><i>" libre: siempre existe, porque la lista es finita.
+  for (let i = 1; ; i++) {
+    const nuevoNombre = getTextoUI("nuevo_aire") + i;
+    if (!listaAires.find(aire => aire.nombre.get() === nuevoNombre)) return nuevoNombre;
+  }
 }

@@ -7,7 +7,6 @@ import {
   WarningTwoTone,
   CloseCircleTwoTone
 } from '@ant-design/icons';
-/* eslint-disable react/prop-types */
 import { Button, Tooltip, Table } from 'antd';
 
 import { useHookstate } from '@hookstate/core';

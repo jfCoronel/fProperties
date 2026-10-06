@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useHookstate } from '@hookstate/core';
 import { Descriptions, Tag, Tooltip } from 'antd';
 import { WarningTwoTone } from '@ant-design/icons';
