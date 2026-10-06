@@ -44,8 +44,44 @@ a {
 
 /* El lienzo llena el ancho de su caja y la altura la fija el envoltorio, no la
    proporción del gráfico: así el diagrama no crece sin fin en pantallas anchas. */
+/* Por defecto, tres cuartos de la ventana: con una altura fija de 440 px, a
+   pantalla completa el diagrama salía tres veces más ancho que alto. El usuario
+   la cambia con el tirador de debajo (GraficaEstados.jsx). */
+/* position: relative lo pide Chart.js para seguir al contenedor también cuando
+   encoge. */
 .lienzo-diagrama {
-  height: 440px;
+  position: relative;
+  height: clamp(440px, 75vh, 1000px);
+}
+
+/* Tirador para cambiar la altura del diagrama: una barra fina con una muesca en
+   el centro. touch-action: none para que en táctil arrastre en vez de desplazar
+   la página. */
+.tirador-diagrama {
+  height: 12px;
+  margin-top: 4px;
+  cursor: ns-resize;
+  touch-action: none;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tirador-diagrama::after {
+  content: "";
+  width: 48px;
+  height: 4px;
+  border-radius: 2px;
+  background: #d9d9d9;
+}
+
+.tirador-diagrama:hover {
+  background: #f5f5f5;
+}
+
+.tirador-diagrama:hover::after {
+  background: #1890ff;
 }
 
 .editor-fila {

@@ -1,7 +1,3 @@
-// react/prop-types va desactivada aquí por lo mismo que está en rojo en el resto
-// del proyecto: no se usa PropTypes en ninguna parte y prop-types no es una
-// dependencia declarada. Adoptarlo es la tarea aparte que recoge la deuda §5.4;
-// declararlo solo en este fichero sería una excepción sin sentido.
 import { useHookstate } from '@hookstate/core';
 import { Row, Col, Form, Button, InputNumber, Modal, Space, Tooltip } from 'antd';
 import { ExpandOutlined, SettingOutlined } from '@ant-design/icons';
@@ -33,6 +29,33 @@ const RADIO_CLIC = 30;
 // un arrastre del diagrama y no un clic sobre una curva.
 const UMBRAL_ARRASTRE = 5;
 
+// Altura del lienzo elegida con el tirador. Sin elegir, manda la del CSS
+// (.lienzo-diagrama), que es relativa a la ventana. Se guarda en el navegador y
+// no en el permalink: depende de la pantalla de quien mira, no del problema.
+// localStorage puede no estar (ventana privada, datos bloqueados): entonces
+// simplemente no se recuerda.
+const CLAVE_ALTO_DIAGRAMA = 'fproperties.altoDiagrama';
+const ALTO_MINIMO = 300;
+const ALTO_MAXIMO = 2000;
+
+const leerAltoGuardado = () => {
+    try {
+        const alto = Number(localStorage.getItem(CLAVE_ALTO_DIAGRAMA));
+        return alto >= ALTO_MINIMO && alto <= ALTO_MAXIMO ? alto : null;
+    } catch {
+        return null;
+    }
+};
+
+const guardarAlto = (alto) => {
+    try {
+        if (alto === null) localStorage.removeItem(CLAVE_ALTO_DIAGRAMA);
+        else localStorage.setItem(CLAVE_ALTO_DIAGRAMA, String(Math.round(alto)));
+    } catch {
+        // Sin almacenamiento, la altura vale para esta sesión y nada más
+    }
+};
+
 // Los diagramas no tienen panel de configuración: lo que antes eran opciones
 // (color, línea, nombres, ejes) son ahora decisiones fijas.
 const COLOR_ESTADOS = "#0000FF";
@@ -42,23 +65,35 @@ const RADIO_ESTADO_SELECCIONADO = 10;
 const TECLA_MODIFICADORA = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'meta' : 'ctrl';
 
 // Rotula cada punto con su nombre. Va como plugin y no como opción de Chart.js
-// porque hay que pintar sobre el lienzo después de cada dataset.
+// porque hay que pintar sobre el lienzo una vez dibujadas las series. Es
+// afterDatasetsDraw (una vez, al final) y no afterDatasetDraw (una por serie):
+// con este último, cada pasada volvía a rotular todas las series y cada texto se
+// pintaba tantas veces como series hubiera, emborronado y en falsa negrita.
+//
+// Por defecto el rótulo va arriba a la derecha del punto, que es lo que piden los
+// estados. Un punto puede traer su propia `posicionNombre` ({ align, dx, dy,
+// font, color }): lo usan los rótulos de las isolíneas de fondo, que no pueden
+// ir todos en el mismo sitio sin pisarse.
+const POSICION_NOMBRE = { dx: 5, dy: -15 };
+
 const mostrarNombres = {
     id: 'mostrarNombres',
-    afterDatasetDraw: (chart, args, options) => {
+    afterDatasetsDraw: (chart, args, options) => {
         const { ctx } = chart;
         chart.data.datasets.forEach((dataset, i) => {
             const meta = chart.getDatasetMeta(i);
             if (meta.hidden) return;
             meta.data.forEach((datapoint, index) => {
-                if (options.showLabels && dataset.data[index] && dataset.data[index].nombre) {
+                const punto = dataset.data[index];
+                if (options.showLabels && punto && punto.nombre) {
                     const pos = datapoint.getProps(['x', 'y'], true);
+                    const posicion = { ...POSICION_NOMBRE, ...punto.posicionNombre };
                     ctx.save();
-                    ctx.fillStyle = dataset.borderColor || 'black';
-                    ctx.font = options.font || '12px Arial';
-                    ctx.textAlign = options.align || 'center';
+                    ctx.fillStyle = posicion.color || dataset.borderColor || 'black';
+                    ctx.font = posicion.font || options.font || '12px Arial';
+                    ctx.textAlign = posicion.align || options.align || 'center';
                     ctx.textBaseline = options.baseline || 'bottom';
-                    ctx.fillText(dataset.data[index].nombre, pos.x + 5, pos.y - 15);
+                    ctx.fillText(punto.nombre, pos.x + posicion.dx, pos.y + posicion.dy);
                     ctx.restore();
                 }
             });
@@ -94,6 +129,36 @@ const GraficaEstados = ({
     const [dialogoEjesAbierto, setDialogoEjesAbierto] = useState(false);
     const [limitesEjes, setLimitesEjes] = useState(null);
     const reencuadrar = () => { referenciaGrafico.current?.resetZoom(); };
+
+    // Tirador de altura. Chart.js sigue al contenedor por su cuenta (responsive con
+    // maintainAspectRatio: false), así que basta con cambiar la altura del div.
+    // La captura del puntero mantiene el arrastre aunque se salga del tirador.
+    const referenciaLienzo = useRef(null);
+    const [alto, setAlto] = useState(leerAltoGuardado);
+    const arrastreAlto = useRef(null);
+
+    const empezarArrastreAlto = (evento) => {
+        evento.currentTarget.setPointerCapture(evento.pointerId);
+        arrastreAlto.current = {
+            y: evento.clientY,
+            alto: referenciaLienzo.current.getBoundingClientRect().height
+        };
+    };
+    const moverArrastreAlto = (evento) => {
+        const inicio = arrastreAlto.current;
+        if (inicio === null) return;
+        const nuevo = inicio.alto + evento.clientY - inicio.y;
+        setAlto(Math.min(ALTO_MAXIMO, Math.max(ALTO_MINIMO, nuevo)));
+    };
+    const terminarArrastreAlto = () => {
+        if (arrastreAlto.current === null) return;
+        arrastreAlto.current = null;
+        guardarAlto(referenciaLienzo.current.getBoundingClientRect().height);
+    };
+    const altoPorDefecto = () => {
+        setAlto(null);
+        guardarAlto(null);
+    };
 
     const abrirDialogoEjes = () => {
         const grafico = referenciaGrafico.current;
@@ -308,7 +373,11 @@ const GraficaEstados = ({
         {pie}
         <p className='comentario' style={{ marginTop: 0 }}>{getTextoUI("ayuda_zoom")}</p>
 
-        <div className="lienzo-diagrama">
+        <div
+            className="lienzo-diagrama"
+            ref={referenciaLienzo}
+            style={alto === null ? undefined : { height: alto }}
+        >
             <Scatter
                 ref={referenciaGrafico}
                 onClick={alHacerClic}
@@ -319,6 +388,18 @@ const GraficaEstados = ({
                 plugins={[mostrarNombres, zoomPlugin]}
             />
         </div>
+        <Tooltip title={getTextoUI("tooltip_alto_diagrama")} mouseEnterDelay={1}>
+            <div
+                className="tirador-diagrama"
+                role="separator"
+                aria-orientation="horizontal"
+                onPointerDown={empezarArrastreAlto}
+                onPointerMove={moverArrastreAlto}
+                onPointerUp={terminarArrastreAlto}
+                onPointerCancel={terminarArrastreAlto}
+                onDoubleClick={altoPorDefecto}
+            />
+        </Tooltip>
 
         <Modal
             title={getTextoUI("titulo_configurar_ejes")}

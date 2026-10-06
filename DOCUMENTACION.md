@@ -18,7 +18,7 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (160 tests contra CoolProp real) |
+| Tests | Vitest (166 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -111,6 +111,12 @@ resto acerca y aleja (el pellizco sigue disponible en táctil), **Cmd+arrastrar*
 mover es el que se busca sin pensar; por eso el rectángulo va con Mayús. Cambiar de tipo de
 diagrama o de fluido también reencuadra: el encuadre anterior no significa nada en otros ejes.
 El zoom es estado de sesión y no viaja en el enlace compartido.
+
+El ancho del diagrama es el de la página y el **alto**, por defecto, tres cuartos de la
+ventana (entre 440 y 1000 px). Se cambia **arrastrando el tirador** que hay bajo el lienzo, y
+un doble clic sobre él devuelve la altura por defecto. La altura elegida se recuerda en el
+navegador —es la misma para el diagrama de fluidos y el psicrométrico— pero no viaja en el
+enlace: depende de la pantalla de cada uno, no del problema.
 
 Qué entra y qué no lo decide la columna **Diagrama**, que aparece en la tabla de estados y en
 la de procesos en cuanto hay un diagrama elegido: un ojo por fila, encendido por defecto, y
@@ -256,9 +262,18 @@ estados, tabla de procesos con diagnóstico, panel de ciclos, diagrama y modo ca
 un parecido de fachada: es literalmente el mismo motor y el mismo componente de gráfica, con
 un **dominio** distinto ([§3.4](#34-el-motor-de-procesos)).
 
-El **diagrama psicrométrico** dibuja las curvas de humedad relativa constante, los puntos de
-la tabla y las curvas de los procesos, con el mismo zoom, arrastre, clic sobre curva y
-resaltado cruzado que el de fluidos. Un diagrama psicrométrico solo vale para **una presión
+El **diagrama psicrométrico** dibuja de fondo tres familias de isolíneas: la humedad
+relativa al 25, 50, 75 y 100 % (continuas), la temperatura de **bulbo húmedo** de 5 a 35 ºC
+(discontinuas, rotuladas sobre la campana) y la **entalpía** de 0 a 130 kJ/kg (las más
+claras, rotuladas en su extremo, sobre el eje w = 0 o en el borde derecho). Las de bulbo
+húmedo son la referencia contra la que leer una humectación adiabática, que es exactamente
+una de ellas, y las de entalpía ayudan con las mezclas. Todo el fondo va **en grises**, más
+oscuro cuanto más importante, para que resalten los estados y los procesos. Encima van los
+puntos de la tabla y las curvas de los procesos, con el mismo zoom, arrastre, clic sobre
+curva y resaltado cruzado que el de fluidos.
+
+Las de bulbo húmedo empiezan en 5 ºC a propósito: CoolProp distingue agua líquida de hielo, su
+bulbo húmedo salta al cruzar 0 ºC y la línea de T_h = 0 no tiene extremo seco. Un diagrama psicrométrico solo vale para **una presión
 total**, así que la altitud (o la presión) hace aquí el papel que el fluido hace en el otro
 diagrama: dice qué diagrama se está mirando, y los estados a otra presión no se dibujan
 porque son otro sistema.
@@ -558,7 +573,7 @@ llega a existir en vez de tener que romperse.
 | `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
 | `GraficaEstados.jsx` | **El andamiaje común a los dos diagramas**: rótulos de los puntos, tooltip, zoom, arrastre y reencuadre, clic sobre una curva traducido a la fila de su proceso, armado de series y resaltado. Recibe del diagrama concreto la proyección a los ejes, las etiquetas y las curvas de fondo. Dos cosas van memorizadas y ninguna por capricho: las curvas de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |
 | `Diagrama.jsx` | Lo propio del diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación y la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los tres tipos de diagrama. |
-| `Psicrometrico.jsx` | Lo propio del psicrométrico: el selector de altitud o presión —que hace el papel del fluido en el otro diagrama— y las curvas de humedad relativa constante. |
+| `Psicrometrico.jsx` | Lo propio del psicrométrico: el selector de altitud o presión —que hace el papel del fluido en el otro diagrama— y las isolíneas de fondo (humedad relativa, bulbo húmedo y entalpía), con sus grises y la posición de sus rótulos. |
 | `Compartir.jsx` | Los tres botones de la cabecera: copiar enlace, descargar JSON e importar JSON. |
 
 ### 3.7 Publicar
@@ -618,7 +633,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**160 tests en 10 ficheros:**
+**166 tests en 11 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
@@ -630,6 +645,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | `procesos/propagacionAire.test.js` | 7 | Lo mismo sobre una climatizadora —mezcla de exterior y retorno, batería de frío y recalentamiento—, que junta los tres tipos y el único con dos orígenes. Comprueba además que la propagación escribe en la lista de aires y deja intacta la de fluidos, que es lo que estrena el registro de dominios. |
 | `procesos/ciclo.test.js` | 15 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. Sobre un Rankine completo fija además lo contrario: que produce trabajo neto y da rendimiento térmico, y que declarar su turbina como conducto vuelve a romperlo. |
 | `procesos/deteccion.test.js` | 15 | La detección del tipo que encaja con una pareja de estados —incluida la frontera entre turbina y conducto, que un enfriamiento con pérdida de carga no debe cruzar— y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
+| `propFluidos/isolineasAire.test.js` | 6 | Las isolíneas de fondo del psicrométrico: que arrancan en la campana y llegan a w = 0 sin cruzar el eje, que respetan el recorte del fondo, que **todos** sus puntos tienen la propiedad de la etiqueta, que dependen de la presión total y que la de T_h = 0, sin extremo seco, no se inventa. |
 | `permalink/formato.test.js` | 11 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera. |
 | `permalink/problema.test.js` | 7 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. Incluye una mezcla adiabática —dos orígenes y dos caudales que sobrevivir al viaje— y un enlace de la 2.2.1 con claves de configuración ya retiradas, que debe abrirse igual. |
 
@@ -655,18 +671,13 @@ Lo que falta o conviene arreglar, en orden de importancia:
    equipo es un parámetro más del tipo o un tipo aparte, y no merecía la pena resolverlo a la
    vez que todo lo demás. Con el tipo de enfriamiento ya en su sitio, añadirlo es una columna
    derivada más.
-2. **Curvas de fondo del psicrométrico.** Solo dibuja humedad relativa constante. Las líneas
-   de bulbo húmedo constante serían la referencia natural contra la que leer una humectación
-   adiabática —que es exactamente una de ellas—, y las isoentálpicas ayudan con las mezclas.
-   Se dejó el fondo como estaba a propósito, para no recargarlo; añadirlas es una entrada más
-   en las curvas de fondo de `Psicrometrico.jsx`.
-3. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
+2. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
    por debajo de ~0,88 erosiona los álabes, y señalarlo sería de lo más didáctico. Se dejó
    fuera a propósito al añadir el tipo de expansión: sería el primer aviso que depende del
    fluido y del componente, y no de la coherencia termodinámica de la pareja, que es lo único
    que juzgan hoy los resolvedores. Entra cuando se decida si ese umbral es un parámetro más
    del tipo o un criterio aparte.
-4. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
+3. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.
 
 ---
@@ -705,7 +716,9 @@ Dos decisiones que tomar antes:
 2. **Isolíneas de fondo.** Sin isobaras (y, en menor medida, isotermas y líneas de título
    constante) el h-s pierde buena parte de su utilidad: es contra ellas contra lo que se lee
    un estado. El diagrama de fluidos hoy no dibuja ninguna, así que esto es una capacidad
-   nueva que aprovecharían también el p-h y el T-s. Se puede entregar el h-s sin ellas y
+   nueva que aprovecharían también el p-h y el T-s. El psicrométrico ya tiene las suyas, y
+   con ellas el patrón a seguir: grises por jerarquía y rótulos con posición propia por
+   punto (`posicionNombre` en `GraficaEstados.jsx`). Se puede entregar el h-s sin ellas y
    añadirlas después.
 
 Un complemento natural, ya en la frontera con la §6.2: dibujar en discontinua la
