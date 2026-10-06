@@ -60,7 +60,10 @@ npm run preview      # Preview production build locally
 **Components** ([src/components/](src/components/)):
 - [TablaFluidos.jsx](src/components/TablaFluidos.jsx): Main table for fluid properties with configurable columns
 - [TablaAires.jsx](src/components/TablaAires.jsx): Table for humid air properties
-- [Diagrama.jsx](src/components/Diagrama.jsx): Thermodynamic diagrams (p-h, T-s, p-T) using Chart.js
+- [Diagrama.jsx](src/components/Diagrama.jsx): Thermodynamic diagrams (p-h, T-s, h-s, p-T) using Chart.js
+- [GraficaEstados.jsx](src/components/GraficaEstados.jsx): Chart scaffolding shared by all diagrams (zoom, labels, process curves, auxiliary traces, height handle, settings dialog)
+- [PanelLineasFondo.jsx](src/components/PanelLineasFondo.jsx): "Background lines" tab of the diagram settings dialog
+- Background isolines: catalog in [src/diagramas/familiasFondo.js](src/diagramas/familiasFondo.js), computation in [src/diagramas/lineasFondo.js](src/diagramas/lineasFondo.js); config lives in `configuracion.lineasFondo` (per diagram type, travels in the permalink)
 - [Psicrometrico.jsx](src/components/Psicrometrico.jsx): Psychrometric chart visualization
 - [DialogoFluido.jsx](src/components/DialogoFluido.jsx): Modal for editing fluid state points
 - [DialogoAire.jsx](src/components/DialogoAire.jsx): Modal for editing air state points
@@ -93,7 +96,7 @@ npm run preview      # Preview production build locally
 - **No TypeScript**: Project uses JavaScript (.js/.jsx) exclusively
 - **Tests**: Vitest against real CoolProp (`npm test`); CI runs lint + tests on every push to main (`.github/workflows/comprobar.yml`)
 - **Static assets**: Images in [public/img/](public/img/), WebAssembly in [public/coolprop.wasm](public/coolprop.wasm), CNAME in [public/CNAME](public/CNAME)
-- **Deployment**: Pushing a tag `vX.Y.Z` (must match `package.json` version) runs `.github/workflows/publicar.yml`, which builds and deploys `dist/` to GitHub Pages. The legacy `docs/` folder + `npm run publicar` path is kept only until the Actions deploy is verified (DOCUMENTACION.md §3.7)
+- **Deployment**: Pushing a tag `vX.Y.Z` (must match `package.json` version) runs `.github/workflows/publicar.yml`, which builds and deploys `dist/` to GitHub Pages. The `github-pages` environment allows `main` and `v*` tags. The legacy `docs/` folder + `npm run publicar` path is no longer used (DOCUMENTACION.md §3.7)
 - **CoolProp module**: The coolprop.js file is 471KB and should not be read or modified unless absolutely necessary
 
 ## Common Development Patterns
@@ -105,10 +108,10 @@ npm run preview      # Preview production build locally
 4. Add translation keys to [public/json/es.json](public/json/es.json) and [public/json/en.json](public/json/en.json)
 5. Update `ConfiguracionFluidos.jsx` column selector options
 
-**Adding a new diagram type**:
-1. Add type identifier to `tipoDiagrama` in [src/configuracion.js](src/configuracion.js)
-2. Implement axis calculations and chart rendering in [src/components/Diagrama.jsx](src/components/Diagrama.jsx)
-3. Add UI selection option in the diagram configuration section
+**Adding a new fluid diagram type** (as done for h-s):
+1. Projection, axis labels, saturation curve and `<Option>` in [src/components/Diagrama.jsx](src/components/Diagrama.jsx), plus `tipo_<x>` in both i18n JSON files
+2. Axes in `EJES_FLUIDO` ([src/diagramas/lineasFondo.js](src/diagramas/lineasFondo.js)) and background families in `FAMILIAS_FONDO` ([src/diagramas/familiasFondo.js](src/diagramas/familiasFondo.js))
+3. Add the type to the `diagramas` arrays in [src/procesos/definiciones.json](src/procesos/definiciones.json)
 
 **Adding a new language**:
 1. Create `public/json/{code}.json` with all translation keys

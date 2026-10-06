@@ -46,5 +46,9 @@ export default defineConfig({
     environment: 'node',
     include: ['src/**/*.test.js'],
     setupFiles: ['./src/test/setupCoolprop.js'],
+    // Los tests llaman a CoolProp de verdad y los ficheros corren en paralelo:
+    // con la máquina cargada, alguno pasaba de los 5 s por defecto y fallaba de
+    // forma intermitente, lo que podría bloquear una publicación.
+    testTimeout: 20000,
   },
 })

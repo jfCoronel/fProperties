@@ -7,7 +7,7 @@ funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compi
 WebAssembly, así que no hay servidor: ni cálculos en remoto, ni cuentas de usuario, ni datos
 que salgan del equipo.
 
-Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicrométrico),
+Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, h-s, p-T y psicrométrico),
 **procesos** que conectan dos estados y comprueban o calculan su coherencia termodinámica, y
 **ciclos**, que aparecen solos cuando los procesos cierran un camino.
 
@@ -227,7 +227,7 @@ campana es isobárica e isoterma a la vez, y cualquier pareja con p₂ > p₁ ti
 isentrópico.
 
 Los procesos válidos se **dibujan en el diagrama** con su estilo. La curva se calcula en el
-espacio de estados y se proyecta después, de modo que sale correcta en los tres diagramas:
+espacio de estados y se proyecta después, de modo que sale correcta en los cuatro diagramas:
 una laminación es una recta vertical en p-h pero **no** en T-s, y ahí se dibuja curva.
 
 **Selección sincronizada**: seleccionar un proceso resalta su curva y las filas de los
@@ -640,7 +640,7 @@ llega a existir en vez de tener que romperse.
 | `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
 | `GraficaEstados.jsx` | **El andamiaje común a los dos diagramas**: rótulos de los puntos, tooltip, zoom, arrastre y reencuadre, clic sobre una curva traducido a la fila de su proceso, armado de series y resaltado. Recibe del diagrama concreto la proyección a los ejes, las etiquetas y las curvas de fondo. Dos cosas van memorizadas y ninguna por capricho: las curvas de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |
 | `PanelLineasFondo.jsx` | La pestaña *Líneas de fondo* del diálogo de configuración, común a todos los diagramas: un interruptor por familia, automáticos o propios, y la vuelta a lo de por defecto. Escribe en `configuracion.lineasFondo`. |
-| `Diagrama.jsx` | Lo propio del diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación y la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los tres tipos de diagrama. |
+| `Diagrama.jsx` | Lo propio del diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación y la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los cuatro tipos de diagrama. Las líneas de fondo las calcula `diagramas/lineasFondo.js`; aquí solo se piden y se pasa el panel de su configuración. |
 | `Psicrometrico.jsx` | Lo propio del psicrométrico: el selector de altitud o presión —que hace el papel del fluido en el otro diagrama— y las isolíneas de fondo (humedad relativa, bulbo húmedo y entalpía), con sus grises y la posición de sus rótulos. |
 | `Compartir.jsx` | Los tres botones de la cabecera: copiar enlace, descargar JSON e importar JSON. |
 
@@ -687,9 +687,10 @@ lanzar `npm run publicar` —`vite build` más `scripts/publicar.js`— y subir 
 script **reemplaza** `docs/` en vez de fusionar (los assets llevan hash en el nombre y se
 acumularían) y **comprueba la build antes de borrar** nada.
 
-Se conserva mientras se verifica el primer despliegue por la acción: volver atrás es elegir de
-nuevo *Deploy from a branch* (`main`, `/docs`) en los ajustes de Pages. Una vez comprobado,
-`docs/`, `scripts/publicar.js` y el script `publicar` de `package.json` pueden borrarse.
+Ya no se usa: desde la v2.4.0 publica la acción, y `docs/` se quedó con la 2.3.1. Se conserva
+solo como vuelta atrás (elegir de nuevo *Deploy from a branch*, `main`, `/docs`, en los ajustes
+de Pages); `docs/`, `scripts/publicar.js` y el script `publicar` de `package.json` pueden
+borrarse cuando se quiera (§5).
 
 ---
 
@@ -753,7 +754,12 @@ Lo que falta o conviene arreglar, en orden de importancia:
 2. **La fase de un estado supercrítico sale como «Desconocido».** CoolProp clasifica un
    estado por encima de la temperatura crítica (vapor a 400 ºC, por ejemplo) como gas
    supercrítico, y `cambiarUnidadSalidaFluido` solo traduce líquido, vapor y bifásico.
-3. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
+3. **Actualizar las acciones de GitHub.** `checkout@v4`, `setup-node@v4`, `configure-pages@v5`
+   y las de Pages se basan en Node 20, que GitHub da por obsoleto: de momento las fuerza a
+   Node 24 y avisa. Y `ubuntu-latest` pasa a Ubuntu 26 desde el 19 de octubre de 2026.
+4. **Retirar la vía de publicación anterior**: `docs/`, `scripts/publicar.js` y el script
+   `publicar` ([§3.7](#37-publicar)).
+5. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.
 
 ---
