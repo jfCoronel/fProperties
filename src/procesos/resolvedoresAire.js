@@ -16,7 +16,7 @@
 //  - El estado destino se emite siempre por presión ('P'), aunque el origen se
 //    diera por altitud: es la misma presión total y evita arrastrar la altitud
 //    por una cadena de procesos.
-import { getPropAireHumedo, getObjetoAireHumedo } from '../propFluidos/aires';
+import { getPropAireHumedo, getObjetoAireHumedo, getPuntoRocioEquipo } from '../propFluidos/aires';
 import { dentroDeTolerancia } from './resolvedores';
 
 // Estado completo del aire a partir de presión y otras dos propiedades.
@@ -156,6 +156,15 @@ export const RESOLVEDORES_AIRE = {
       const qSensible = Number.isFinite(hIntermedio) ? hIntermedio - origen.H : null;
       const qLatente = Number.isFinite(hIntermedio) ? destino.H - hIntermedio : null;
 
+      // Factor de by-pass: la fracción del aire que atraviesa la batería sin
+      // tocarla, en el modelo de libro en que el resto sale saturado a la
+      // temperatura de superficie (el ADP). La salida es la mezcla de las dos
+      // corrientes, y por eso cae sobre la recta entrada-ADP. Sale del par de
+      // estados, sin pedir nada más: es una columna derivada, no un parámetro.
+      const adp = getPuntoRocioEquipo(origen.P, origen.T, origen.W, destino.T, destino.W);
+      const factorBypass = adp !== null && Math.abs(origen.T - adp.T) > 1e-9
+        ? (destino.T - adp.T) / (origen.T - adp.T) : null;
+
       return {
         dh,
         dt,
@@ -164,16 +173,32 @@ export const RESOLVEDORES_AIRE = {
         q_sensible: qSensible,
         q_latente: qLatente,
         shr: (qSensible !== null && Math.abs(dh) > 1e-9) ? qSensible / dh : null,
+        t_adp: adp?.T ?? null,
+        factor_bypass: factorBypass,
         m_agua: caudalAgua(parametros, dw),
         potencia: potencia(parametros, dh)
       };
     },
 
-    // El camino real depende de la batería (temperatura de superficie, factor de
-    // by-pass) y no se conoce con los datos del enunciado. La recta entre los dos
-    // estados es lo único afirmable, y es además como se dibuja en clase.
+    // El camino real del aire dentro de la batería no se conoce con los datos del
+    // enunciado. La recta entre los dos estados es lo único afirmable, y es
+    // además como se dibuja en clase (y la que, prolongada, da el ADP).
     trazar() {
       return [];
+    },
+
+    // La prolongación de esa recta hasta el ADP, sobre la curva de saturación: es
+    // la construcción de la que salen T_ADP y el factor de by-pass, y verla en el
+    // diagrama explica las dos columnas mejor que cualquier texto. El ADP se
+    // construye saturado para que caiga exactamente sobre la curva.
+    auxiliares(origenes, destino) {
+      const origen = origenes[0];
+      const adp = getPuntoRocioEquipo(origen.P, origen.T, origen.W, destino.T, destino.W);
+      if (adp === null || adp.T >= destino.T - 1e-6) return [];
+      return [{
+        estados: [destino, estadoAire(origen.P, 'T', adp.T, 'HR', 100)],
+        rotuloFinal: 'ADP'
+      }];
     },
 
     destino(origenes, parametros) {

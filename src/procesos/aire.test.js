@@ -9,8 +9,8 @@ import { esperarCoolprop } from '../test/setupCoolprop';
 import { Module } from '../propFluidos/coolprop';
 import { getObjetoAireHumedo, getPropAireHumedo } from '../propFluidos/aires';
 import {
-  evaluarProceso, derivadosProceso, trazarProceso, parejaDestino,
-  getDefiniciones, getDefinicion, getParametrosVisibles
+  evaluarProceso, derivadosProceso, trazarProceso, trazosAuxiliares, parejaDestino,
+  getDefiniciones, getDefinicion, getParametrosVisibles, getColumnasVisibles, caudalMostrado
 } from './proceso';
 import { detectarTipo } from './deteccion';
 
@@ -142,6 +142,64 @@ describe('enfriamiento con deshumidificación', () => {
       .toContain('aviso_humedad_sube_deshumidificando');
   });
 
+  // Una batería de libro con la respuesta conocida: el 80 % del aire sale
+  // saturado a 10 ºC (el ADP) y el 20 % pasa sin tocar la batería. La salida es
+  // esa mezcla, y de ella deben salir de vuelta el ADP y el factor de by-pass.
+  describe('punto de rocío del equipo y factor de by-pass', () => {
+    const adp = aire('adp', 'T', 10, 'HR', 100);
+    const bypass = 0.2;
+    const mezclada = aire(
+      'a2', 'T', adp.T + bypass * (entrada.T - adp.T), 'W', adp.W + bypass * (entrada.W - adp.W)
+    );
+    const q = proceso('enfriamiento_deshumidificacion', 'a1', 'a2');
+
+    it('recupera el ADP y el factor de by-pass de una mezcla conocida', () => {
+      const derivados = derivadosProceso(q, evaluar(q, [entrada, mezclada]));
+      expect(derivados.t_adp).toBeCloseTo(10, 4);
+      expect(derivados.factor_bypass).toBeCloseTo(bypass, 4);
+    });
+
+    it('si el aire sale saturado, la salida es el ADP y no hay by-pass', () => {
+      const saturada = aire('a2', 'T', 12, 'HR', 100);
+      const derivados = derivadosProceso(q, evaluar(q, [entrada, saturada]));
+      expect(derivados.t_adp).toBeCloseTo(12, 4);
+      expect(derivados.factor_bypass).toBeCloseTo(0, 4);
+    });
+
+    it('el ADP queda por debajo de la salida y del rocío de la entrada', () => {
+      const derivados = derivadosProceso(p, evaluar(p, estados));
+      expect(derivados.t_adp).toBeLessThan(salida.T);
+      expect(derivados.t_adp).toBeLessThan(entrada.TR);
+      expect(derivados.factor_bypass).toBeGreaterThan(0);
+      expect(derivados.factor_bypass).toBeLessThan(1);
+    });
+
+    it('dibuja la prolongación de la salida al ADP, que cae sobre la saturación', () => {
+      const trazos = trazosAuxiliares(q, evaluar(q, [entrada, mezclada]));
+      expect(trazos).toHaveLength(1);
+      const [desde, hasta] = trazos[0].estados;
+      expect(desde.T).toBeCloseTo(mezclada.T, 9);
+      expect(hasta.T).toBeCloseTo(10, 4);
+      expect(hasta.HR).toBeCloseTo(100, 6);
+      expect(trazos[0].rotuloFinal).toBe('ADP');
+    });
+
+    it('sin by-pass no hay prolongación que dibujar, y los demás tipos no tienen', () => {
+      const saturada = aire('a2', 'T', 12, 'HR', 100);
+      expect(trazosAuxiliares(q, evaluar(q, [entrada, saturada]))).toEqual([]);
+      const s = proceso('sensible', 'a1', 'a2');
+      const caliente = aire('a2', 'T', 35, 'W', entrada.W);
+      expect(trazosAuxiliares(s, evaluar(s, [entrada, caliente]))).toEqual([]);
+    });
+
+    it('sin enfriamiento no hay ADP que buscar, y las columnas quedan vacías', () => {
+      const igual = aire('a2', 'T', entrada.T, 'W', entrada.W - 1);
+      const derivados = derivadosProceso(q, evaluar(q, [entrada, igual]));
+      expect(derivados).not.toHaveProperty('t_adp');
+      expect(derivados).not.toHaveProperty('factor_bypass');
+    });
+  });
+
   it('genera el destino con la temperatura y la humedad relativa pedidas', () => {
     const q = proceso(
       'enfriamiento_deshumidificacion', 'a1', 'a2', { t_final: 13, hr_final: 95 }, 'calculado'
@@ -246,6 +304,16 @@ describe('mezcla adiabática de dos corrientes', () => {
   const mezcla = aire('a3', 'W', wMezcla, 'H', hMezcla);
   const estados = [exterior, retorno, mezcla];
   const p = proceso('mezcla_adiabatica', ['a1', 'a2'], 'a3', parametros);
+
+  it('su caudal resultante va en la columna de caudal, no en una de resultado', () => {
+    // Antes salía como una segunda columna ṁ al final de la tabla
+    const visibles = getColumnasVisibles([getDefinicion('mezcla_adiabatica')]).map((c) => c.clave);
+    expect(visibles).not.toContain('m_total');
+    expect(caudalMostrado(p, derivadosProceso(p, evaluar(p, estados)))).toBeCloseTo(4, 9);
+    // Un proceso con caudal propio enseña el suyo; uno sin caudal, ninguno
+    expect(caudalMostrado({ parametros: { m_punto: 1.5 } }, {})).toBe(1.5);
+    expect(caudalMostrado({ parametros: {} }, {})).toBeNull();
+  });
 
   it('el estado de mezcla cumple los balances de masa y de energía', () => {
     const evaluacion = evaluar(p, estados);

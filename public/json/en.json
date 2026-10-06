@@ -136,6 +136,8 @@
     "col_q_sensible": "Sensible heat (the part that changes temperature)",
     "col_q_latente": "Latent heat (the part that condenses or evaporates water)",
     "col_shr": "Sensible heat ratio: sensible over total",
+    "col_t_adp": "Apparatus dew point: effective coil surface temperature, where the inlet-outlet line extended meets saturation",
+    "col_factor_bypass": "Bypass factor: fraction of the air that passes through the coil untouched, (T₂ − T_ADP)/(T₁ − T_ADP)",
     "col_eficacia": "Saturation effectiveness",
     "col_h_agua_real": "Enthalpy of the added water, deduced from both states",
     "col_fraccion_mezcla": "Fraction of the first stream in the mixture",

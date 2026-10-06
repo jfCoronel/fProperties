@@ -136,6 +136,8 @@
     "col_q_sensible": "Calor sensible (el que cambia la temperatura)",
     "col_q_latente": "Calor latente (el que condensa o evapora agua)",
     "col_shr": "Factor de calor sensible: sensible entre total",
+    "col_t_adp": "Punto de rocío del equipo: temperatura de superficie efectiva de la batería, donde la recta entrada-salida prolongada corta la saturación",
+    "col_factor_bypass": "Factor de by-pass: fracción del aire que atraviesa la batería sin tocarla, (T₂ − T_ADP)/(T₁ − T_ADP)",
     "col_eficacia": "Eficacia de saturación",
     "col_h_agua_real": "Entalpía del agua aportada, deducida de los dos estados",
     "col_fraccion_mezcla": "Fracción de la primera corriente en la mezcla",

@@ -27,6 +27,7 @@ import {
   getColumnasVisibles,
   getDefinicion,
   tieneCaudal,
+  caudalMostrado,
   dominioDeProceso
 } from '../procesos/proceso';
 import { sugerirTipo } from '../procesos/deteccion';
@@ -91,6 +92,7 @@ const TablaProcesos = ({ dominio = 'fluido' }) => {
   const datos = listaProcesosActual.map((proceso, i) => {
     const evaluacion = evaluaciones[i];
     const derivados = derivadosProceso(proceso, evaluacion);
+    const caudal = caudalMostrado(proceso, derivados);
 
     const fila = {
       key: proceso.id,
@@ -98,7 +100,7 @@ const TablaProcesos = ({ dominio = 'fluido' }) => {
       // todos en vez de dar por hecho que hay uno.
       etiqueta: `${proceso.origenes.map(nombreEstado).join(' + ')} → ${nombreEstado(proceso.destino)}`,
       tipo: evaluacion.definicion ? getTextoUI(evaluacion.definicion.i18n) : proceso.tipo,
-      caudal: tieneCaudal(proceso) ? formatear(proceso.parametros.m_punto, cifras) : "–"
+      caudal: caudal === null ? "–" : formatear(caudal, cifras)
     };
     columnasResultado.forEach((columna) => {
       fila[columna.clave] = columna.clave in derivados

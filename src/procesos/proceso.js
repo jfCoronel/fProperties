@@ -71,12 +71,25 @@ export function getColumnasVisibles(definicionesProcesos, hayCaudal = true) {
     (definicion?.columnas ?? []).forEach((clave) => declaradas.add(clave));
   });
   return COLUMNAS_RESULTADO.filter(
-    (columna) => declaradas.has(columna.clave) && (hayCaudal || !columna.requiereCaudal)
+    (columna) => declaradas.has(columna.clave) && !columna.enColumnaCaudal
+      && (hayCaudal || !columna.requiereCaudal)
   );
 }
 
 export function tieneCaudal(proceso) {
   return Number.isFinite(proceso?.parametros?.m_punto);
+}
+
+// Caudal que enseña la columna ṁ: el que da el usuario o, si no lo da, el que
+// resulta del propio proceso (el de la mezcla, suma de los dos que entran).
+// null si no hay ninguno.
+export function caudalMostrado(proceso, derivados) {
+  if (tieneCaudal(proceso)) return proceso.parametros.m_punto;
+  const resultante = COLUMNAS_RESULTADO
+    .filter((columna) => columna.enColumnaCaudal)
+    .map((columna) => derivados?.[columna.clave])
+    .find(Number.isFinite);
+  return resultante ?? null;
 }
 
 /**
@@ -295,6 +308,33 @@ export function trazarProceso(proceso, evaluacion) {
     .filter((estado) => estadoResoluble(estado, dominio));
 
   return [evaluacion.origenes[0], ...intermedios, evaluacion.destino];
+}
+
+/**
+ * Trazos auxiliares del proceso: construcciones que no son el camino del fluido
+ * pero ayudan a leerlo, como la prolongación de una batería de frío hasta su
+ * punto de rocío del equipo. Cada trazo es { estados, rotuloFinal? }, con
+ * estados completos por lo mismo que trazarProceso: los proyecta el diagrama.
+ *
+ * Es una operación opcional del resolvedor: los tipos que no la implementan no
+ * tienen trazos auxiliares. Los estados que CoolProp no resuelva se descartan, y
+ * con ellos el trazo si se queda en menos de dos puntos.
+ */
+export function trazosAuxiliares(proceso, evaluacion) {
+  if (!evaluacion?.valido) return [];
+
+  const definicion = evaluacion.definicion;
+  const resolvedor = RESOLVEDORES[definicion.restriccion.resolvedor];
+  if (!resolvedor || typeof resolvedor.auxiliares !== 'function') return [];
+
+  const dominio = dominioDeDefinicion(definicion);
+  return resolvedor
+    .auxiliares(evaluacion.origenes, evaluacion.destino, proceso.parametros ?? {}, definicion)
+    .map((trazo) => ({
+      ...trazo,
+      estados: trazo.estados.filter((estado) => estadoResoluble(estado, dominio))
+    }))
+    .filter((trazo) => trazo.estados.length >= 2);
 }
 
 /**

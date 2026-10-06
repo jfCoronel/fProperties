@@ -18,7 +18,7 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (166 tests contra CoolProp real) |
+| Tests | Vitest (173 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -289,13 +289,18 @@ Los **tipos de proceso** del aire húmedo:
 | Mezcla adiabática | Balances de masa y energía, **dos orígenes** | Mezcla de exterior y retorno |
 | Otro (indeterminado) | Ninguna | Lo que no encaje en los anteriores |
 
+En el sensible y en la batería de frío la tabla no muestra Δh: sin trabajo de eje, q = Δh, y
+la columna solo repetía el mismo número. Queda q, que es la magnitud con la que se piensa una
+batería. Donde sí difieren, como en la humectación con vapor, Δh se mantiene.
+
 Todos ocurren a **presión total constante**, y que dos estados no la compartan es un error,
 no un aviso: no son el mismo sistema y no hay proceso que lo arregle. La entalpía y el caudal
 van **por kilo de aire seco**, que es lo que hace que los balances sean sumas.
 
 La **mezcla adiabática** es el único tipo con dos estados de origen, y la razón de que el
 modelo guarde `origenes` como array desde el primer día. Su caudal no se pide: es el resultado
-de sumar los dos que entran. Se dibuja la recta de mezcla completa, pasando por el segundo
+de sumar los dos que entran, y la tabla lo enseña en la misma columna ṁ que el de los demás
+procesos. Se dibuja la recta de mezcla completa, pasando por el segundo
 origen; como el punto de mezcla cae sobre ella, el tramo de vuelta se superpone y no se ve —y
 cuando el enunciado **no** cuadra, deja de solaparse y la incoherencia se ve en el diagrama
 antes que en la tabla.
@@ -304,6 +309,19 @@ Del **enfriamiento con deshumidificación** salen las cifras con las que se dime
 equipo: el calor **sensible** y el **latente**, su cociente (SHR) y el caudal de condensados.
 El reparto es el de libro —se pasa por el estado intermedio (T final, w inicial)— y por
 construcción los dos suman el calor total.
+
+Salen también el **punto de rocío del equipo** (T_ADP) y el **factor de by-pass** (BF). El ADP
+es donde la recta entrada→salida, prolongada más allá de la salida, corta la curva de
+saturación: la temperatura de superficie efectiva de la batería. El factor de by-pass es
+`BF = (T₂ − T_ADP)/(T₁ − T_ADP)`, la fracción del aire que en el modelo de libro atraviesa la
+batería sin tocarla, mientras el resto sale saturado a T_ADP. Son **columnas derivadas**: salen
+del par de estados y no piden ningún dato más. Un aire que sale saturado es su propio ADP y da
+BF = 0. La recta se traza en el plano (T, w), el del diagrama; los libros a veces la trazan en
+(h, w), y la diferencia no se aprecia.
+
+El diagrama dibuja esa construcción: desde la salida, una **prolongación discontinua** del color
+del proceso que acaba en un punto rotulado *ADP* sobre la curva de saturación. El cociente de
+los dos tramos —salida→ADP frente a entrada→ADP— es literalmente el factor de by-pass.
 
 ### 1.8 Sacar los resultados de la aplicación
 
@@ -473,15 +491,22 @@ registro `clave → funciones`, al que el JSON referencia **por nombre**. Se des
 ecuaciones ejecutables en el JSON: obligaría a `eval` o a un mini-intérprete propio. Una
 futura versión en Python podría leer el mismo JSON y reimplementar el mismo registro.
 
-**b) Cada resolvedor implementa hasta cuatro operaciones independientes**, y el motor tolera
+**b) Cada resolvedor implementa hasta cinco operaciones independientes**, y el motor tolera
 la ausencia de cualquiera de ellas:
 
 ```js
-verificar(origenes, destino, parametros, definicion) -> [avisos]   // ¿encaja la pareja?
-derivados(origenes, destino, parametros, definicion) -> { ... }    // columnas de resultado
-trazar(origenes, destino, parametros, definicion)    -> [estados]  // curva del diagrama
-destino(origenes, parametros, definicion)            -> pareja     // modo calculado
+verificar(origenes, destino, parametros, definicion)  -> [avisos]   // ¿encaja la pareja?
+derivados(origenes, destino, parametros, definicion)  -> { ... }    // columnas de resultado
+trazar(origenes, destino, parametros, definicion)     -> [estados]  // curva del diagrama
+auxiliares(origenes, destino, parametros, definicion) -> [trazos]   // construcciones de apoyo
+destino(origenes, parametros, definicion)             -> pareja     // modo calculado
 ```
+
+`auxiliares` es la más reciente y la única que solo implementa, de momento, un tipo: la
+batería de frío, que devuelve la prolongación de la salida a su ADP. Cada trazo es
+`{ estados, rotuloFinal? }`, con estados completos por la misma razón que `trazar`, y el
+diagrama lo dibuja fino, discontinuo y del color del proceso, con el extremo marcado. Está
+pensada también para la expansión ideal junto a la real en el futuro diagrama h-s (§6.1).
 
 **b bis) El tipo lo declara el usuario; el programa solo sugiere.** `deteccion.js` sabe qué
 tipo encaja con una pareja de estados, y ese conocimiento se usa en tres sitios: el tipo
@@ -543,7 +568,7 @@ llega a existir en vez de tener que romperse.
 | `procesos/dominios.js` | El adaptador de dominio: las cinco operaciones que separan un fluido puro del aire húmedo. Puro —sin hookstate y sin detección— para que el motor siga siendo testeable solo y para no cerrar el ciclo de imports. |
 | `listasDominio.js` | El enlace con el estado vivo: qué lista hookstate, qué índice y qué constructor tiene cada dominio, y con qué claves de configuración se entiende su interfaz. |
 | `procesos/definiciones.json` | La tabla de tipos: parámetros (con unidad, obligatoriedad, valor por defecto y rango), tolerancias de validación, número de puntos y escala del trazado, y columnas de resultado. Incluye el **catálogo de columnas** —símbolo, unidad, si exige caudal—, que además fija el orden en que se muestran, para que una columna compartida por varios tipos no salte de sitio. Añadir un tipo nuevo es añadir una entrada aquí y su resolvedor. |
-| `procesos/resolvedoresAire.js` | La física de los seis tipos de aire húmedo, con el mismo contrato de cuatro operaciones. Va aparte de la de fluidos solo por tamaño: el motor ve los dos registros como uno. |
+| `procesos/resolvedoresAire.js` | La física de los seis tipos de aire húmedo, con el mismo contrato de operaciones. Va aparte de la de fluidos solo por tamaño: el motor ve los dos registros como uno. |
 | `procesos/resolvedores.js` | La física de los siete tipos de fluido. Incluye la tolerancia mixta (absoluta más relativa, porque h y s llevan desplazamiento de referencia y T va en ºC) y el cálculo del rendimiento isentrópico real de una pareja de estados, en sus dos definiciones —compresión y expansión—. |
 | `procesos/deteccion.js` | Qué tipo encaja con una pareja de estados. Puro y sin estado: lo usan la creación de procesos, el editor y el aviso de la tabla, siempre como sugerencia. |
 | `procesos/proceso.js` | El motor, sin dependencias de React: resuelve las referencias a estados, valida (aridad, referencias rotas, fluidos distintos, estados fuera de rango, parámetros que faltan), calcula las magnitudes derivadas, genera el trazado, comprueba el cierre de los procesos calculados y ordena topológicamente la propagación. Distingue **errores** estructurales de **avisos** de coherencia. |
@@ -633,14 +658,14 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**166 tests en 11 ficheros:**
+**173 tests en 11 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
 | `propFluidos/coolprop.entorno.test.js` | 3 | Que CoolProp arranca en Node y que un estado irresoluble devuelve `NaN`. Es la sonda de la que depende todo lo demás. |
 | `procesos/proceso.test.js` | 51 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. Compresión y expansión se comprueban en espejo, incluido que cada una recupera el rendimiento con el que se construyó su estado destino. |
 | `procesos/dominios.test.js` | 10 | El contrato del adaptador de dominio: que los dos implementan las mismas cinco operaciones, que construyen el mismo estado que la tabla y que cada uno sabe qué hace incompatibles a dos estados —fluidos distintos, presiones totales distintas—. |
-| `procesos/aire.test.js` | 33 | La física psicrométrica, centrada en los balances, que es donde un signo cambiado no se ve a ojo: que sensible más latente suman el calor total, que el condensado sale con signo negativo, que la eficacia de saturación vale 1 al saturar, y que la mezcla cumple masa y energía y cae entre las dos corrientes. Más la detección de tipo y la incompatibilidad de presiones. |
+| `procesos/aire.test.js` | 40 | La física psicrométrica, centrada en los balances, que es donde un signo cambiado no se ve a ojo: que sensible más latente suman el calor total, que el condensado sale con signo negativo, que la eficacia de saturación vale 1 al saturar, que la mezcla cumple masa y energía y cae entre las dos corrientes, y que de una batería construida con ADP y factor de by-pass conocidos se recuperan los dos, junto con la prolongación que se dibuja hasta el ADP. Más la detección de tipo y la incompatibilidad de presiones. |
 | `procesos/propagacion.test.js` | 8 | El modo calculado sobre un ciclo frigorífico completo: la cadena se genera entera, el ciclo se cierra sin bucle, propagar dos veces no cambia nada, mover el estado de partida arrastra la cadena y editar a mano rompe el vínculo. |
 | `procesos/propagacionAire.test.js` | 7 | Lo mismo sobre una climatizadora —mezcla de exterior y retorno, batería de frío y recalentamiento—, que junta los tres tipos y el único con dos orígenes. Comprueba además que la propagación escribe en la lista de aires y deja intacta la de fluidos, que es lo que estrena el registro de dominios. |
 | `procesos/ciclo.test.js` | 15 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. Sobre un Rankine completo fija además lo contrario: que produce trabajo neto y da rendimiento térmico, y que declarar su turbina como conducto vuelve a romperlo. |
@@ -666,18 +691,13 @@ curvas y la propagación al editar un estado. Esos guiones no forman parte del r
 
 Lo que falta o conviene arreglar, en orden de importancia:
 
-1. **Factor de by-pass de la batería de frío.** Es lo único del catálogo psicrométrico
-   original que se quedó fuera en la 2.3.0. Pedía decidir antes si el punto de rocío del
-   equipo es un parámetro más del tipo o un tipo aparte, y no merecía la pena resolverlo a la
-   vez que todo lo demás. Con el tipo de enfriamiento ya en su sitio, añadirlo es una columna
-   derivada más.
-2. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
+1. **Aviso de título mínimo a la salida de la turbina.** En una turbina de vapor, un título
    por debajo de ~0,88 erosiona los álabes, y señalarlo sería de lo más didáctico. Se dejó
    fuera a propósito al añadir el tipo de expansión: sería el primer aviso que depende del
    fluido y del componente, y no de la coherencia termodinámica de la pareja, que es lo único
    que juzgan hoy los resolvedores. Entra cuando se decida si ese umbral es un parámetro más
    del tipo o un criterio aparte.
-3. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
+2. **El bundle pasa de 1,6 MB** (480 kB comprimido), casi todo CoolProp y Ant Design. Con la
    PWA cacheando no molesta en uso normal, pero la primera visita lo nota.
 
 ---

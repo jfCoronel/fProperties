@@ -161,6 +161,74 @@ export function getIsolineaAire(propiedad1, valor1, propiedadFija, valorFijo, tM
   return puntos;
 }
 
+// Punto de rocío del equipo (ADP) de una batería de frío: donde la recta que une
+// la entrada (t1, w1) con la salida (t2, w2), prolongada más allá de la salida,
+// corta la curva de saturación. Es la temperatura de superficie efectiva de la
+// batería y el extremo contra el que se mide el factor de by-pass. Devuelve
+// { T, W } o null si no hay enfriamiento o la recta no llega a saturar.
+//
+// La recta es la del diagrama (T, w). Los libros la trazan a veces en (h, w);
+// como h es casi lineal en T a w fija, la diferencia no se ve en el diagrama.
+const PASO_BUSQUEDA_ADP = 2;
+const T_MINIMA_ADP = -60;
+
+export function getPuntoRocioEquipo(presion, t1, w1, t2, w2) {
+  if (!(t1 - t2 > 1e-9)) return null;
+  const pendiente = (w1 - w2) / (t1 - t2);
+  // Margen hasta saturación a lo largo de la recta: positivo mientras la recta va
+  // por debajo de la curva de saturación, negativo una vez la cruza.
+  const margen = (t) =>
+    getPropAireHumedo("W", "P", presion, "T", t, "HR", 100) - (w2 + pendiente * (t - t2));
+
+  // En la salida la recta está por debajo de la saturación (o sobre ella, si
+  // sale saturado: entonces la salida ES el ADP).
+  let tAlta = t2;
+  let fAlta = margen(t2);
+  if (!Number.isFinite(fAlta) || fAlta < -1e-6) return null;
+  if (fAlta <= 1e-6) return { T: t2, W: w2 };
+
+  // Se baja a pasos hasta pasar al otro lado de la saturación y se afina
+  // dentro de ese intervalo, donde la raíz está garantizada.
+  let tBaja = t2 - PASO_BUSQUEDA_ADP;
+  let fBaja = margen(tBaja);
+  while (Number.isFinite(fBaja) && fBaja > 0 && tBaja > T_MINIMA_ADP) {
+    [tAlta, fAlta] = [tBaja, fBaja];
+    tBaja -= PASO_BUSQUEDA_ADP;
+    fBaja = margen(tBaja);
+  }
+  if (!Number.isFinite(fBaja) || fBaja > 0) return null;
+
+  const t = regulaFalsi(margen, tBaja, fBaja, tAlta, fAlta);
+  return Number.isFinite(t) ? { T: t, W: w2 + pendiente * (t - t2) } : null;
+}
+
+// Raíz de f en [a, b], con f(a) y f(b) de signo contrario, por regula falsi en
+// su variante de Illinois: siempre converge dentro del intervalo y, a diferencia
+// de la bisección, en pocas iteraciones (cada una es una llamada a CoolProp).
+function regulaFalsi(f, a, fa, b, fb, tolerancia = 1e-7, iteraciones = 60) {
+  // Un extremo puede quedarse fijo, así que no se espera a que el intervalo
+  // encoja: se para cuando la estimación deja de moverse.
+  let lado = 0;
+  let anterior = NaN;
+  for (let i = 0; i < iteraciones; i++) {
+    const c = (a * fb - b * fa) / (fb - fa);
+    const fc = f(c);
+    if (!Number.isFinite(fc)) return NaN;
+    if (fc === 0 || Math.abs(c - anterior) < tolerancia) return c;
+    anterior = c;
+    if (fc * fb > 0) {
+      [b, fb] = [c, fc];
+      if (lado === -1) fa /= 2;
+      lado = -1;
+    } else {
+      [a, fa] = [c, fc];
+      if (lado === 1) fb /= 2;
+      lado = 1;
+    }
+  }
+  return (a * fb - b * fa) / (fb - fa);
+}
+
 // Raíz de f por el método de la secante desde x0 y x1. NaN si no converge.
 function secante(f, x0, x1, tolerancia = 1e-9, iteraciones = 30) {
   let f0 = f(x0);

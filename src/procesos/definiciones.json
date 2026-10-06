@@ -27,7 +27,10 @@
     "Catálogo de columnas de resultado. Cada tipo elige las suyas en 'columnas';",
     "el orden de la tabla es el de este catálogo, no el de cada tipo, para que",
     "una columna compartida por varios tipos caiga siempre en el mismo sitio.",
-    "'requiereCaudal' oculta la columna mientras ningún proceso declare m_punto."
+    "'requiereCaudal' oculta la columna mientras ningún proceso declare m_punto.",
+    "'enColumnaCaudal' la saca de las de resultado y la muestra en la de caudal (ṁ):",
+    "el caudal resultante de la mezcla es el mismo concepto que el que se da en los",
+    "demás procesos, y en dos columnas se leía como un dato repetido."
   ],
 
   "columnasResultado": [
@@ -41,6 +44,8 @@
     { "clave": "q_sensible", "i18n": "col_q_sensible", "simbolo": "q<sub>s</sub>", "unidad": "kJ/kg" },
     { "clave": "q_latente", "i18n": "col_q_latente", "simbolo": "q<sub>l</sub>", "unidad": "kJ/kg" },
     { "clave": "shr", "i18n": "col_shr", "simbolo": "SHR", "unidad": "-" },
+    { "clave": "t_adp", "i18n": "col_t_adp", "simbolo": "T<sub>ADP</sub>", "unidad": "ºC" },
+    { "clave": "factor_bypass", "i18n": "col_factor_bypass", "simbolo": "BF", "unidad": "-" },
     {
       "clave": "rel_compresion",
       "i18n": "col_rel_compresion",
@@ -81,7 +86,7 @@
       "unidad": "kg/s",
       "requiereCaudal": true
     },
-    { "clave": "m_total", "i18n": "col_m_total", "simbolo": "ṁ", "unidad": "kg/s" }
+    { "clave": "m_total", "i18n": "col_m_total", "simbolo": "ṁ", "unidad": "kg/s", "enColumnaCaudal": true }
   ],
 
   "tipos": [
@@ -330,7 +335,7 @@
         "tolerancia": { "magnitud": "W", "rel": 0.002, "abs": 0.01 }
       },
       "trazado": { "nPuntos": 2, "escala": "lineal" },
-      "columnas": ["dh", "dt", "q_esp", "potencia"]
+      "columnas": ["dt", "q_esp", "potencia"]
     },
 
     {
@@ -365,7 +370,7 @@
       "restriccion": { "resolvedor": "enfriamientoDeshumidificacion" },
       "trazado": { "nPuntos": 2, "escala": "lineal" },
       "columnas": [
-        "dh", "dt", "dw", "q_esp", "q_sensible", "q_latente", "shr", "potencia", "m_agua"
+        "dt", "dw", "q_esp", "q_sensible", "q_latente", "shr", "t_adp", "factor_bypass", "potencia", "m_agua"
       ]
     },
 

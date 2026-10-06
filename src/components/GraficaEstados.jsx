@@ -8,7 +8,7 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { useMemo, useRef, useState } from 'react';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
-import { evaluarProceso, trazarProceso, dominioDeProceso } from '../procesos/proceso';
+import { evaluarProceso, trazarProceso, trazosAuxiliares, dominioDeProceso } from '../procesos/proceso';
 import formatear from '../util/formatear';
 
 // Andamiaje común a los dos diagramas: el de fluidos (p-h, T-s, p-T) y el
@@ -62,6 +62,7 @@ const COLOR_ESTADOS = "#0000FF";
 const FONDO_ESTADOS = "#FFFFFF";
 const RADIO_ESTADO = 6;
 const RADIO_ESTADO_SELECCIONADO = 10;
+const RADIO_MARCA_AUXILIAR = 3;
 const TECLA_MODIFICADORA = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'meta' : 'ctrl';
 
 // Rotula cada punto con su nombre. Va como plugin y no como opción de Chart.js
@@ -223,6 +224,35 @@ const GraficaEstados = ({
             const puntos = trazarProceso(proceso, evaluacion).map(proyectar);
             if (puntos.length < 2) return [];
 
+            // Los trazos auxiliares (la prolongación hasta el ADP, por ejemplo)
+            // van con el color del proceso pero finos y discontinuos, para que no
+            // se confundan con el camino del fluido. El punto final se marca y se
+            // rotula: es la construcción que se quiere enseñar.
+            const auxiliares = trazosAuxiliares(proceso, evaluacion).map((trazo) => {
+                const datos = trazo.estados.map(proyectar);
+                const ultimo = datos.length - 1;
+                // El rótulo, a la izquierda: el de la salida va arriba a la
+                // derecha y, con un by-pass pequeño, los dos puntos casi se tocan.
+                if (trazo.rotuloFinal) {
+                    datos[ultimo] = {
+                        ...datos[ultimo],
+                        nombre: trazo.rotuloFinal,
+                        posicionNombre: { align: 'right', dx: -7, dy: 0 }
+                    };
+                }
+                return {
+                    data: datos,
+                    borderColor: proceso.estilo.color,
+                    backgroundColor: proceso.estilo.color,
+                    borderWidth: 1,
+                    borderDash: [3, 3],
+                    showLine: true,
+                    pointRadius: datos.map((_, i) => (i === ultimo ? RADIO_MARCA_AUXILIAR : 0)),
+                    idProceso: proceso.id,
+                    auxiliar: true
+                };
+            });
+
             return [{
                 data: puntos,
                 borderColor: proceso.estilo.color,
@@ -233,7 +263,7 @@ const GraficaEstados = ({
                 // El id viaja dentro del dataset: es lo que permite volver de un
                 // clic en la curva a la fila de la tabla.
                 idProceso: proceso.id
-            }];
+            }, ...auxiliares];
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firmaProcesos, firmaEstados, firmaVista]);
@@ -289,9 +319,11 @@ const GraficaEstados = ({
     };
 
     const todasLasSeries = () => {
+        // Un trazo auxiliar se resalta menos: engordarlo tanto como la curva lo
+        // haría pasar por parte del camino.
         const seriesProcesos = curvasProcesos.map((curva) => (
             idsResaltados.has(curva.idProceso)
-                ? { ...curva, borderWidth: curva.borderWidth + 3 }
+                ? { ...curva, borderWidth: curva.borderWidth + (curva.auxiliar ? 1 : 3) }
                 : curva
         ));
         return [...curvasFondo, ...seriesProcesos, getSerieEstados()];
