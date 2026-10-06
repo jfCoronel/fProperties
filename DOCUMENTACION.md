@@ -668,8 +668,17 @@ Antes de desplegar, la acción hace de puerta:
 También se puede lanzar a mano desde la pestaña *Actions* (*Run workflow*), para volver a
 publicar sin etiquetar.
 
-Requiere, **una sola vez**, elegir en *Settings → Pages → Source* la opción *GitHub Actions*.
-Con ella Pages deja de mirar la carpeta `docs/`.
+Requiere, **una sola vez**, dos ajustes del repositorio:
+
+- En *Settings → Pages → Source*, la opción *GitHub Actions*. Con ella Pages deja de mirar la
+  carpeta `docs/`.
+- En *Settings → Environments → github-pages*, una regla de tipo **Tag** con el patrón `v*`.
+  Al activar Pages por Actions, GitHub crea ese entorno admitiendo solo despliegues desde
+  `main`, y sin la regla una etiqueta construye bien pero el despliegue se rechaza ("Tag is
+  not allowed to deploy to github-pages due to environment protection rules"). Fue lo que
+  pasó con la v2.4.0.
+
+Ambos están ya hechos.
 
 #### La vía anterior: `docs/` y `npm run publicar`
 
