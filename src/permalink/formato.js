@@ -9,6 +9,8 @@
 // campo a campo evita que un hash manipulado inyecte claves arbitrarias en el
 // estado de la aplicación.
 
+import { normalizarLineasFondo } from '../diagramas/familiasFondo';
+
 export const ESQUEMA_PROBLEMA = 1;
 
 // El permalink va en el fragmento (#): no viaja al servidor y no necesita
@@ -37,7 +39,8 @@ export const CLAVES_CONFIGURACION = [
   'fluidoDiagrama',
   'tipoPsicrometrico',
   'opcionPsicrometrico',
-  'valorOpcionPsicrometrico'
+  'valorOpcionPsicrometrico',
+  'lineasFondo'
 ];
 
 const hayCompresion =
@@ -178,12 +181,19 @@ function normalizarProceso(proceso) {
   };
 }
 
+// Las claves con estructura propia no se copian tal cual: pasan por su
+// normalizador, que descarta lo que no tenga la forma esperada.
+const NORMALIZADORES_CONFIGURACION = {
+  lineasFondo: normalizarLineasFondo
+};
+
 function normalizarConfiguracion(configuracion) {
   const limpia = {};
   if (!esObjeto(configuracion)) return limpia;
   CLAVES_CONFIGURACION.forEach((clave) => {
     if (configuracion[clave] !== undefined) {
-      limpia[clave] = configuracion[clave];
+      const normalizar = NORMALIZADORES_CONFIGURACION[clave];
+      limpia[clave] = normalizar ? normalizar(configuracion[clave]) : configuracion[clave];
     }
   });
   return limpia;

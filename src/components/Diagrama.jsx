@@ -6,6 +6,9 @@ import { listaFluidos } from '../listaFluidos';
 import { getListaFluidos, getPropFluido } from '../propFluidos/fluidos';
 import { useCallback, useMemo } from 'react';
 import GraficaEstados from './GraficaEstados';
+import PanelLineasFondo from './PanelLineasFondo';
+import { curvasFondoFluido, contextoFluido, valoresAutomaticosFluido } from '../diagramas/lineasFondo';
+import { leyendaFondo } from '../diagramas/leyendaFondo';
 
 // Diagramas de fluido puro (p-h, T-s, p-T). Todo el andamiaje —zoom, clic sobre
 // curvas, rótulos, resaltado— vive en GraficaEstados; aquí queda solo lo propio
@@ -29,7 +32,7 @@ const ETIQUETAS_Y = { "p-T": "p [kPa]", "p-h": "p [kPa]", "T-s": "T [ºC]" };
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
-    const { tipoDiagrama, fluidoDiagrama, fluidosSeleccionados } = useHookstate(configuracion);
+    const { tipoDiagrama, fluidoDiagrama, fluidosSeleccionados, lineasFondo, idioma } = useHookstate(configuracion);
 
     const fluidoActual = fluidoDiagrama.get();
     const tipoActual = tipoDiagrama.get();
@@ -86,9 +89,25 @@ const Diagrama = () => {
         };
     }, [fluidoActual, tipoActual])
 
-    // La curva de saturación son ~200 llamadas a CoolProp: se recalcula solo cuando
-    // cambia algo de lo que depende, no en cada render.
-    const curvasFondo = useMemo(() => [getCurvaSat(3)], [getCurvaSat]);
+    // La curva de saturación son ~200 llamadas a CoolProp, y las líneas de fondo
+    // cientos más: se recalculan solo cuando cambia algo de lo que dependen
+    // (fluido, tipo, su configuración, el idioma de los rótulos), no en cada render.
+    const lineasGuardadas = lineasFondo.get({ noproxy: true });
+    const firmaFondo = JSON.stringify(lineasGuardadas[tipoActual] ?? {});
+    const idiomaActual = idioma.get();
+    const curvasFondo = useMemo(() => [
+        ...curvasFondoFluido(fluidoActual, tipoActual, lineasGuardadas, idiomaActual),
+        getCurvaSat(3)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    ], [getCurvaSat, firmaFondo, idiomaActual]);
+
+    // Los valores automáticos dependen del fluido: el contexto (puntos triple y
+    // crítico) se calcula una vez por fluido. Solo con diagrama: sin él, este
+    // componente se pinta antes de que CoolProp haya terminado de cargar.
+    const contexto = useMemo(
+        () => (tipoActual === "ninguno" ? null : contextoFluido(fluidoActual)),
+        [fluidoActual, tipoActual]
+    );
 
     function getPuntosCaracteristicos() {
         const pTriple = formatear(getPropFluido(fluidoActual, "PTRIPLE", "T", 0, "X", 50), 3);
@@ -162,9 +181,20 @@ const Diagrama = () => {
             curvasFondo={curvasFondo}
             titulo={getTextoUI("titulo_diagrama")}
             selectores={[selectorTipo, selectorFluido]}
-            pie={<p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
-                {getPuntosCaracteristicos()}
-            </p>}
+            panelFondo={<PanelLineasFondo
+                diagrama={tipoActual}
+                valoresAutomaticos={(familia) => valoresAutomaticosFluido(familia, contexto)}
+            />}
+            pie={<>
+                <p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
+                    {getPuntosCaracteristicos()}
+                </p>
+                {leyendaFondo(tipoActual, lineasGuardadas) && (
+                    <p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
+                        {leyendaFondo(tipoActual, lineasGuardadas)}
+                    </p>
+                )}
+            </>}
         />
     );
 }

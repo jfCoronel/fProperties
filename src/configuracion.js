@@ -25,6 +25,10 @@ const configuracionInicial = {
   // no hace falta un botón aparte para mostrarlo u ocultarlo.
   tipoDiagrama: "ninguno",
   fluidoDiagrama: "Agua",
+  // Líneas de fondo de cada tipo de diagrama, solo lo que el usuario ha cambiado
+  // respecto a lo de por defecto (ver diagramas/familiasFondo.js). Viaja en el
+  // permalink: quien comparte un problema decide qué líneas se ven.
+  lineasFondo: {},
   airesSeleccionados: [],
   fluidosSeleccionados: [],
   idProcesoActual: null,

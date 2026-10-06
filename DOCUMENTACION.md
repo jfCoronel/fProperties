@@ -18,7 +18,7 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, p-T y psicr
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (173 tests contra CoolProp real) |
+| Tests | Vitest (191 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -127,9 +127,36 @@ sesión: se duplica con la fila, se borra con ella y viaja en el enlace comparti
 contrario que la selección. Ocultar un estado no oculta los procesos que lo tocan —la curva
 sigue terminando ahí— y ocultar un proceso no oculta sus extremos. Los ejes se ajustan
 solos a lo dibujado, y la curva de saturación se recorre siempre entre el punto triple y el
-crítico. Todo lo que antes se elegía en un panel lateral (color de los puntos, series
-guardadas a mano, límites de los ejes) es ahora una decisión fija: el diagrama sirve para
-ver los estados y los procesos, y no pide nada más al usuario.
+crítico. El color de los puntos y el de la campana son decisiones fijas: el diagrama sirve
+para ver los estados y los procesos.
+
+**Líneas de fondo.** Cada diagrama dibuja de fondo familias de isolíneas, en grises y
+distinguidas por el trazo, contra las que leer un estado. El botón del engranaje abre el
+diálogo *Configurar el diagrama*, cuya primera pestaña enciende o apaga cada familia y elige
+sus valores; la segunda fija a mano los límites de los ejes.
+
+| Diagrama | Familias (✓ = encendida por defecto) |
+|---|---|
+| p-h | isotermas ✓, isentrópicas ✓, título constante ✓, isócoras |
+| T-s | isobaras ✓, título constante ✓, isentálpicas, isócoras |
+| p-T | isócoras |
+| Psicrométrico | humedad relativa ✓, bulbo húmedo ✓, entalpía ✓, volumen específico |
+
+Los valores son **automáticos** por defecto: valores redondos que cubren el diagrama y se
+adaptan al fluido (o a la presión total, en el psicrométrico). Con **valores propios** se
+dibujan los que se escriban, separados por punto y coma o espacios y con el decimal con coma
+o con punto; se aplican al salir del campo o con Intro, porque cada redibujado son cientos de
+llamadas a CoolProp. La configuración es **por tipo de diagrama**, no por fluido: al cambiar
+de fluido se conservan las familias encendidas y los automáticos se recalculan. Viaja en el
+**enlace compartido**, de modo que quien comparte un problema decide qué líneas se ven, y
+solo guarda lo que difiere de lo de por defecto. Al pie del diagrama, una leyenda dice qué
+familias hay y con qué trazo. Los límites de los ejes solo se aplican si se han tocado: abrir
+el diálogo para cambiar las líneas no congela el encuadre.
+
+Las isolíneas se recortan a una **ventana** por fluido: del punto triple a un 60 % del rango
+triple-crítico por encima del crítico en temperatura, y hasta el doble de la presión crítica.
+Como los ejes se ajustan a lo dibujado, con líneas de fondo el encuadre por defecto es esa
+ventana y no solo la campana.
 
 ### 1.4 Procesos
 
@@ -262,7 +289,8 @@ estados, tabla de procesos con diagnóstico, panel de ciclos, diagrama y modo ca
 un parecido de fachada: es literalmente el mismo motor y el mismo componente de gráfica, con
 un **dominio** distinto ([§3.4](#34-el-motor-de-procesos)).
 
-El **diagrama psicrométrico** dibuja de fondo tres familias de isolíneas: la humedad
+El **diagrama psicrométrico** dibuja de fondo, por defecto, tres familias de isolíneas
+(configurables, como en los de fluido: [§1.3](#13-diagramas)): la humedad
 relativa al 25, 50, 75 y 100 % (continuas), la temperatura de **bulbo húmedo** de 5 a 35 ºC
 (discontinuas, rotuladas sobre la campana) y la **entalpía** de 0 a 130 kJ/kg (las más
 claras, rotuladas en su extremo, sobre el eje w = 0 o en el borde derecho). Las de bulbo
@@ -442,11 +470,16 @@ src/
     ciclo.js                Detección de ciclos y balance global
     mensajes.js             Traducción de los mensajes del motor
 
+  diagramas/                Las líneas de fondo de los diagramas
+    familiasFondo.js        Catálogo de familias y configuración (datos puros)
+    lineasFondo.js          Valores automáticos, isolíneas y recorte
+    leyendaFondo.js         Texto de la leyenda del pie
+
   permalink/
     formato.js              Serialización, compresión y normalización
     problema.js             Puente entre el formato y el estado vivo
 
-  components/               La interfaz (11 componentes)
+  components/               La interfaz (12 componentes)
   util/formatear.js         Formato numérico
   test/setupCoolprop.js     Arranque de CoolProp en Node
 ```
@@ -597,6 +630,7 @@ llega a existir en vez de tener que romperse.
 | `Ciclos.jsx` | El panel de balance de los ciclos detectados. Solo se dibuja si hay ciclo, y declara el balance incompleto si alguno de sus procesos es de tipo indeterminado. |
 | `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
 | `GraficaEstados.jsx` | **El andamiaje común a los dos diagramas**: rótulos de los puntos, tooltip, zoom, arrastre y reencuadre, clic sobre una curva traducido a la fila de su proceso, armado de series y resaltado. Recibe del diagrama concreto la proyección a los ejes, las etiquetas y las curvas de fondo. Dos cosas van memorizadas y ninguna por capricho: las curvas de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |
+| `PanelLineasFondo.jsx` | La pestaña *Líneas de fondo* del diálogo de configuración, común a todos los diagramas: un interruptor por familia, automáticos o propios, y la vuelta a lo de por defecto. Escribe en `configuracion.lineasFondo`. |
 | `Diagrama.jsx` | Lo propio del diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación y la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los tres tipos de diagrama. |
 | `Psicrometrico.jsx` | Lo propio del psicrométrico: el selector de altitud o presión —que hace el papel del fluido en el otro diagrama— y las isolíneas de fondo (humedad relativa, bulbo húmedo y entalpía), con sus grises y la posición de sus rótulos. |
 | `Compartir.jsx` | Los tres botones de la cabecera: copiar enlace, descargar JSON e importar JSON. |
@@ -658,7 +692,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**173 tests en 11 ficheros:**
+**191 tests en 12 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
@@ -671,7 +705,8 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | `procesos/ciclo.test.js` | 15 | Detección de ciclos (incluidos dos que comparten un estado) y balance: signos, primer principio, COP frigorífico y de bomba —que difieren exactamente en uno—, potencias solo con caudal común y el balance que se declara incompleto ante un proceso indeterminado. Sobre un Rankine completo fija además lo contrario: que produce trabajo neto y da rendimiento térmico, y que declarar su turbina como conducto vuelve a romperlo. |
 | `procesos/deteccion.test.js` | 15 | La detección del tipo que encaja con una pareja de estados —incluida la frontera entre turbina y conducto, que un enfriamiento con pérdida de carga no debe cruzar— y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
 | `propFluidos/isolineasAire.test.js` | 6 | Las isolíneas de fondo del psicrométrico: que arrancan en la campana y llegan a w = 0 sin cruzar el eje, que respetan el recorte del fondo, que **todos** sus puntos tienen la propiedad de la etiqueta, que dependen de la presión total y que la de T_h = 0, sin extremo seco, no se inventa. |
-| `permalink/formato.test.js` | 11 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera. |
+| `diagramas/lineasFondo.test.js` | 17 | Las líneas de fondo: valores automáticos redondos (lineales y logarítmicos), el recorte a la ventana —también en eje logarítmico—, la lectura de lo que escribe el usuario, el filtrado de lo que llega por un enlace y la física: una isoterma del p-h cruza la campana horizontal a la presión de saturación, una isobara del T-s a la temperatura de saturación, las de título acaban junto al crítico y nada se sale de la ventana. |
+| `permalink/formato.test.js` | 12 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera, incluida la configuración de líneas de fondo. |
 | `permalink/problema.test.js` | 7 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. Incluye una mezcla adiabática —dos orígenes y dos caudales que sobrevivir al viaje— y un enlace de la 2.2.1 con claves de configuración ya retiradas, que debe abrirse igual. |
 
 Qué buscan estos tests, en una frase: fijar **el comportamiento del motor**, que es puro y
@@ -733,13 +768,10 @@ Dos decisiones que tomar antes:
    de la curva de vapor saturado; el líquido se queda aplastado contra el origen. El ajuste
    automático a lo dibujado ya lo resuelve si hay estados, pero falta decidir qué se encuadra
    cuando solo está la campana.
-2. **Isolíneas de fondo.** Sin isobaras (y, en menor medida, isotermas y líneas de título
-   constante) el h-s pierde buena parte de su utilidad: es contra ellas contra lo que se lee
-   un estado. El diagrama de fluidos hoy no dibuja ninguna, así que esto es una capacidad
-   nueva que aprovecharían también el p-h y el T-s. El psicrométrico ya tiene las suyas, y
-   con ellas el patrón a seguir: grises por jerarquía y rótulos con posición propia por
-   punto (`posicionNombre` en `GraficaEstados.jsx`). Se puede entregar el h-s sin ellas y
-   añadirlas después.
+2. **Isolíneas de fondo.** Ya existe el sistema ([§1.3](#13-diagramas)): el h-s solo tiene
+   que declarar sus familias en `familiasFondo.js` (isobaras, isotermas y título constante)
+   y sus ejes en `lineasFondo.js`. Las isolíneas ya se construyen como estados y se
+   proyectan, así que salen bien en cualquier par de ejes.
 
 Un complemento natural, ya en la frontera con la §6.2: dibujar en discontinua la
 **expansión ideal** asociada a cada expansión o compresión con rendimiento, de forma que los

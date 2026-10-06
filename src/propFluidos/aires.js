@@ -101,7 +101,7 @@ export function getObjetoAireHumedo(key1, val1, key2, val2, key3, val3) {
 }
 
 
-// Isolínea del psicrométrico para una propiedad fija (TH o H) como lista de
+// Isolínea del psicrométrico para una propiedad fija (TH, H o V) como lista de
 // puntos { T, W }, recortada a [tMin, tMax]. Va de la saturación (ϕ = 100 %) al
 // aire seco (w = 0), con esos dos extremos exactos y PUNTOS_ISOLINEA tramos entre
 // ellos.
@@ -114,7 +114,12 @@ export function getObjetoAireHumedo(key1, val1, key2, val2, key3, val3) {
 //     h + (w_sat − w)·h_agua(T_h) = h_sat, y con T_h fija h_agua es constante.
 // La recta h(w) sale de los dos extremos, y cada punto interior se resuelve con
 // una secante sobre (T, w) → h, la llamada más barata de CoolProp (~0,1 ms).
+//
+// Para cualquier otra propiedad (el volumen específico, V) no hay atajo, pero
+// tampoco hace falta: su llamada directa (T, w) → V es igual de barata, y la
+// secante se hace sobre ella.
 const PUNTOS_ISOLINEA = 10;
+const CON_ENTALPIA_LINEAL = new Set(["TH", "H"]);
 
 export function getIsolineaAire(propiedad1, valor1, propiedadFija, valorFijo, tMin, tMax) {
   const prop = (pedida, p2, v2, p3, v3) => getPropAireHumedo(pedida, propiedad1, valor1, p2, v2, p3, v3);
@@ -137,6 +142,9 @@ export function getIsolineaAire(propiedad1, valor1, propiedadFija, valorFijo, tM
   if (!Number.isFinite(tSeco)) return [];
   const pendiente = (hSaturacion - entalpia(tSeco, 0)) / wSaturacion;
   const hLinea = (w) => hSaturacion + pendiente * (w - wSaturacion);
+  const residuo = CON_ENTALPIA_LINEAL.has(propiedadFija)
+    ? (t, w) => entalpia(t, w) - hLinea(w)
+    : (t, w) => prop(propiedadFija, "T", t, "W", w) - valorFijo;
 
   const inicio = Math.max(tSaturacion, tMin);
   const fin = Math.min(tSeco, tMax);
@@ -152,7 +160,7 @@ export function getIsolineaAire(propiedad1, valor1, propiedadFija, valorFijo, tM
     else {
       // Primera aproximación: la recta T-w entre los extremos
       const w0 = wSaturacion * (tSeco - t) / (tSeco - tSaturacion);
-      w = secante((wi) => entalpia(t, wi) - hLinea(wi), w0, w0 * 1.02 + 0.01);
+      w = secante((wi) => residuo(t, wi), w0, w0 * 1.02 + 0.01);
     }
     // Junto al extremo seco la secante puede dar w = -1e-12: se fija a 0 para
     // que la línea toque el eje y no lo cruce.

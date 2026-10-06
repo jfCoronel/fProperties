@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Form, Button, InputNumber, Modal, Space, Tooltip } from 'antd';
+import { Row, Col, Form, Button, InputNumber, Modal, Space, Tooltip, Tabs } from 'antd';
 import { ExpandOutlined, SettingOutlined } from '@ant-design/icons';
 // Importado por su efecto: registra todos los controladores de Chart.js.
 import 'chart.js/auto';
@@ -114,11 +114,13 @@ const mostrarNombres = {
  * @param curvasFondo    datasets de fondo, ya memorizados por quien llama
  * @param selectores     <Col> propios del diagrama; el reencuadre lo añade este
  * @param pie            líneas informativas bajo los selectores
+ * @param panelFondo     contenido de la pestaña "Líneas de fondo" del diálogo de
+ *                       configuración (PanelLineasFondo), o nada si no tiene
  */
 const GraficaEstados = ({
     dominio, estados, seleccionados, visible, proyectar,
     etiquetaX, etiquetaY, escalaY = 'linear',
-    firmaVista, curvasFondo, titulo, selectores, pie
+    firmaVista, curvasFondo, titulo, selectores, pie, panelFondo
 }) => {
     const { procesosSeleccionados, idProcesoActual } = useHookstate(configuracion);
     const procesos = useHookstate(listaProcesos);
@@ -129,6 +131,9 @@ const GraficaEstados = ({
     const referenciaGrafico = useRef(null);
     const [dialogoEjesAbierto, setDialogoEjesAbierto] = useState(false);
     const [limitesEjes, setLimitesEjes] = useState(null);
+    // Los límites de los ejes solo se aplican si se han tocado: abrir el diálogo
+    // para cambiar las líneas de fondo no debe congelar el encuadre actual.
+    const [ejesEditados, setEjesEditados] = useState(false);
     const reencuadrar = () => { referenciaGrafico.current?.resetZoom(); };
 
     // Tirador de altura. Chart.js sigue al contenedor por su cuenta (responsive con
@@ -170,19 +175,27 @@ const GraficaEstados = ({
             yMin: grafico.scales.y.min,
             yMax: grafico.scales.y.max
         });
+        setEjesEditados(false);
         setDialogoEjesAbierto(true);
     };
 
-    const aplicarLimitesEjes = () => {
-        if (!limitesEjes
-            || !Object.values(limitesEjes).every(Number.isFinite)
-            || limitesEjes.xMin >= limitesEjes.xMax
-            || limitesEjes.yMin >= limitesEjes.yMax) return;
+    const limitesValidos = limitesEjes !== null
+        && Object.values(limitesEjes).every(Number.isFinite)
+        && limitesEjes.xMin < limitesEjes.xMax
+        && limitesEjes.yMin < limitesEjes.yMax;
+
+    const editarLimite = (clave, valor) => {
+        setLimitesEjes({ ...limitesEjes, [clave]: valor });
+        setEjesEditados(true);
+    };
+
+    const aplicarConfiguracion = () => {
         const grafico = referenciaGrafico.current;
-        if (!grafico) return;
-        Object.assign(grafico.options.scales.x, { min: limitesEjes.xMin, max: limitesEjes.xMax });
-        Object.assign(grafico.options.scales.y, { min: limitesEjes.yMin, max: limitesEjes.yMax });
-        grafico.update();
+        if (ejesEditados && limitesValidos && grafico) {
+            Object.assign(grafico.options.scales.x, { min: limitesEjes.xMin, max: limitesEjes.xMax });
+            Object.assign(grafico.options.scales.y, { min: limitesEjes.yMin, max: limitesEjes.yMax });
+            grafico.update();
+        }
         setDialogoEjesAbierto(false);
     };
 
@@ -434,48 +447,70 @@ const GraficaEstados = ({
         </Tooltip>
 
         <Modal
-            title={getTextoUI("titulo_configurar_ejes")}
+            title={getTextoUI("titulo_configurar_diagrama")}
             open={dialogoEjesAbierto}
             onCancel={() => { setDialogoEjesAbierto(false); }}
-            onOk={aplicarLimitesEjes}
+            onOk={aplicarConfiguracion}
             okText={getTextoUI("bot_aplicar")}
-            okButtonProps={{ disabled: !limitesEjes
-                || !Object.values(limitesEjes).every(Number.isFinite)
-                || limitesEjes.xMin >= limitesEjes.xMax
-                || limitesEjes.yMin >= limitesEjes.yMax }}
+            okButtonProps={{ disabled: ejesEditados && !limitesValidos }}
+            width={640}
         >
-            {limitesEjes && <Form layout="vertical">
-                <Row gutter={16}>
-                    <Col span={12}>
-                        <Form.Item label={`${etiquetaX} ${getTextoUI("lab_minimo")}`}>
-                            <InputNumber value={limitesEjes.xMin} onChange={(valor) => {
-                                setLimitesEjes({ ...limitesEjes, xMin: valor });
-                            }} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item label={`${etiquetaX} ${getTextoUI("lab_maximo")}`}>
-                            <InputNumber value={limitesEjes.xMax} onChange={(valor) => {
-                                setLimitesEjes({ ...limitesEjes, xMax: valor });
-                            }} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item label={`${etiquetaY} ${getTextoUI("lab_minimo")}`}>
-                            <InputNumber value={limitesEjes.yMin} onChange={(valor) => {
-                                setLimitesEjes({ ...limitesEjes, yMin: valor });
-                            }} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                        <Form.Item label={`${etiquetaY} ${getTextoUI("lab_maximo")}`}>
-                            <InputNumber value={limitesEjes.yMax} onChange={(valor) => {
-                                setLimitesEjes({ ...limitesEjes, yMax: valor });
-                            }} style={{ width: "100%" }} />
-                        </Form.Item>
-                    </Col>
-                </Row>
-            </Form>}
+            <Tabs
+                defaultActiveKey={panelFondo ? "fondo" : "ejes"}
+                items={[
+                    ...(panelFondo ? [{
+                        key: "fondo",
+                        label: getTextoUI("tab_lineas_fondo"),
+                        children: panelFondo
+                    }] : []),
+                    {
+                        key: "ejes",
+                        label: getTextoUI("tab_ejes"),
+                        children: limitesEjes && (
+                            <Form layout="vertical">
+                                <Row gutter={16}>
+                                    <Col span={12}>
+                                        <Form.Item label={`${etiquetaX} ${getTextoUI("lab_minimo")}`}>
+                                            <InputNumber
+                                                value={limitesEjes.xMin}
+                                                onChange={(valor) => editarLimite('xMin', valor)}
+                                                style={{ width: "100%" }}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item label={`${etiquetaX} ${getTextoUI("lab_maximo")}`}>
+                                            <InputNumber
+                                                value={limitesEjes.xMax}
+                                                onChange={(valor) => editarLimite('xMax', valor)}
+                                                style={{ width: "100%" }}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item label={`${etiquetaY} ${getTextoUI("lab_minimo")}`}>
+                                            <InputNumber
+                                                value={limitesEjes.yMin}
+                                                onChange={(valor) => editarLimite('yMin', valor)}
+                                                style={{ width: "100%" }}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Form.Item label={`${etiquetaY} ${getTextoUI("lab_maximo")}`}>
+                                            <InputNumber
+                                                value={limitesEjes.yMax}
+                                                onChange={(valor) => editarLimite('yMax', valor)}
+                                                style={{ width: "100%" }}
+                                            />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </Form>
+                        )
+                    }
+                ]}
+            />
         </Modal>
     </div>);
 };

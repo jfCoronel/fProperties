@@ -72,6 +72,23 @@ describe('normalización', () => {
     expect(limpio.configuracion).toEqual({ nCifras: 5 });
   });
 
+  it('las líneas de fondo viajan, filtradas campo a campo', async () => {
+    const lineasFondo = {
+      'p-h': { isocoras: { activa: true, valores: [0.01, 0.1] } },
+      psicrometrico: { volumen: { activa: true, valores: null } }
+    };
+    const conFondo = { ...problema, configuracion: { ...problema.configuracion, lineasFondo } };
+    const vuelta = await decodificarProblema(await codificarProblema(conFondo));
+    expect(vuelta.configuracion.lineasFondo).toEqual(lineasFondo);
+
+    // Lo que no tenga la forma esperada no llega al estado de la aplicación
+    const manipulado = normalizarProblema({
+      ...problema,
+      configuracion: { lineasFondo: { 'p-h': { isotermas: { activa: 1, valores: 'todo' } }, malo: {} } }
+    });
+    expect(manipulado.configuracion.lineasFondo).toEqual({});
+  });
+
   it('descarta estados y procesos incompletos en vez de romperse', () => {
     const limpio = normalizarProblema({
       ...problema,
