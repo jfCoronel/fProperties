@@ -4,13 +4,17 @@ import { configuracion, getTextoUI } from '../configuracion';
 import formatear from '../util/formatear';
 import { listaFluidos } from '../listaFluidos';
 import { getListaFluidos, getPropFluido } from '../propFluidos/fluidos';
-import { useCallback, useMemo } from 'react';
+import { lazy, Suspense, useCallback, useMemo } from 'react';
 import GraficaEstados from './GraficaEstados';
 import PanelLineasFondo from './PanelLineasFondo';
 import { curvasFondoFluido, contextoFluido, valoresAutomaticosFluido } from '../diagramas/lineasFondo';
 import { leyendaFondo } from '../diagramas/leyendaFondo';
 
-// Diagramas de fluido puro (p-h, T-s, h-s, p-T). Todo el andamiaje —zoom, clic sobre
+// El 3D se carga aparte: arrastra Plotly, que pesa más que el resto de la app
+const Diagrama3D = lazy(() => import('./Diagrama3D'));
+const TIPO_3D = "p-v-T";
+
+// Diagramas de fluido puro (p-h, T-s, h-s, p-T, y p-v-T en 3D). Todo el andamiaje —zoom, clic sobre
 // curvas, rótulos, resaltado— vive en GraficaEstados; aquí queda solo lo propio
 // del dominio: qué ejes, cómo se proyecta un estado y qué curva de fondo se
 // dibuja. Ver DOCUMENTACION.md §3.6.
@@ -114,11 +118,11 @@ const Diagrama = () => {
     const lineasGuardadas = lineasFondo.get({ noproxy: true });
     const firmaFondo = JSON.stringify(lineasGuardadas[tipoActual] ?? {});
     const idiomaActual = idioma.get();
-    const curvasFondo = useMemo(() => [
+    const curvasFondo = useMemo(() => (tipoActual === TIPO_3D ? [] : [
         ...curvasFondoFluido(fluidoActual, tipoActual, lineasGuardadas, idiomaActual),
         getCurvaSat(3)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    ], [getCurvaSat, firmaFondo, idiomaActual]);
+    ]), [getCurvaSat, firmaFondo, idiomaActual]);
 
     // Los valores automáticos dependen del fluido: el contexto (puntos triple y
     // crítico) se calcula una vez por fluido. Solo con diagrama: sin él, este
@@ -157,6 +161,7 @@ const Diagrama = () => {
                     <Option value="p-h">{getTextoUI("tipo_p-h")}</Option>
                     <Option value="T-s">{getTextoUI("tipo_T-s")}</Option>
                     <Option value="h-s">{getTextoUI("tipo_h-s")}</Option>
+                    <Option value={TIPO_3D}>{getTextoUI("tipo_p-v-T")}</Option>
                 </Select>
             </Form.Item>
         </Col>
@@ -187,6 +192,28 @@ const Diagrama = () => {
         </Col>
     );
 
+    const puntosCaracteristicos = (
+        <p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
+            {getPuntosCaracteristicos()}
+        </p>
+    );
+
+    if (tipoActual === TIPO_3D) {
+        return (
+            <Suspense fallback={null}>
+                <Diagrama3D
+                    estados={estadosActuales}
+                    seleccionados={fluidosSeleccionados}
+                    visible={(estado) => estado.fluido === fluidoActual}
+                    fluido={fluidoActual}
+                    titulo={getTextoUI("titulo_diagrama")}
+                    selectores={[selectorTipo, selectorFluido]}
+                    pie={puntosCaracteristicos}
+                />
+            </Suspense>
+        );
+    }
+
     return (
         <GraficaEstados
             dominio="fluido"
@@ -206,9 +233,7 @@ const Diagrama = () => {
                 valoresAutomaticos={(familia) => valoresAutomaticosFluido(familia, contexto)}
             />}
             pie={<>
-                <p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
-                    {getPuntosCaracteristicos()}
-                </p>
+                {puntosCaracteristicos}
                 {leyendaFondo(tipoActual, lineasGuardadas) && (
                     <p className='comentario' style={{ marginTop: 0, marginBottom: 4 }}>
                         {leyendaFondo(tipoActual, lineasGuardadas)}

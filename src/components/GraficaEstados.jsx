@@ -8,7 +8,9 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { useMemo, useRef, useState } from 'react';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
-import { evaluarProceso, trazarProceso, trazosAuxiliares, dominioDeProceso } from '../procesos/proceso';
+import { dominioDeProceso } from '../procesos/proceso';
+import { trazosProcesos } from '../diagramas/trazosProcesos';
+import { refinarTrazo } from '../diagramas/refinarTrazo';
 import formatear from '../util/formatear';
 
 // Andamiaje común a los dos diagramas: el de fluidos (p-h, T-s, p-T) y el
@@ -228,21 +230,18 @@ const GraficaEstados = ({
     const firmaEstados = JSON.stringify(estados.map((estado) => [estado.id, proyectar(estado)]));
 
     const curvasProcesos = useMemo(() => {
-        return procesosActuales.flatMap((proceso) => {
-            if (proceso.enDiagrama === false) return [];
-            const evaluacion = evaluarProceso(proceso, estados);
-            // Un proceso de otra sustancia (u otra presión) no pinta nada aquí
-            if (!evaluacion.valido || !visible(evaluacion.destino)) return [];
-
-            const puntos = trazarProceso(proceso, evaluacion).map(proyectar);
-            if (puntos.length < 2) return [];
+        return trazosProcesos(procesosActuales, estados, visible).map((trazo) => {
+            // En los de fluido, la curva dobla justo sobre la campana en vez de
+            // recortar la esquina (el psicrométrico no tiene campana)
+            const camino = dominio === 'fluido' ? refinarTrazo(trazo.estados) : trazo.estados;
+            const datos = camino.map(proyectar);
+            const { color, grosor, trazo: tipoTrazo } = trazo.estilo;
 
             // Los trazos auxiliares (la prolongación hasta el ADP, por ejemplo)
             // van con el color del proceso pero finos y discontinuos, para que no
             // se confundan con el camino del fluido. El punto final se marca y se
             // rotula: es la construcción que se quiere enseñar.
-            const auxiliares = trazosAuxiliares(proceso, evaluacion).map((trazo) => {
-                const datos = trazo.estados.map(proyectar);
+            if (trazo.auxiliar) {
                 const ultimo = datos.length - 1;
                 // El rótulo, a la izquierda: el de la salida va arriba a la
                 // derecha y, con un by-pass pequeño, los dos puntos casi se tocan.
@@ -255,28 +254,28 @@ const GraficaEstados = ({
                 }
                 return {
                     data: datos,
-                    borderColor: proceso.estilo.color,
-                    backgroundColor: proceso.estilo.color,
+                    borderColor: color,
+                    backgroundColor: color,
                     borderWidth: 1,
                     borderDash: [3, 3],
                     showLine: true,
                     pointRadius: datos.map((_, i) => (i === ultimo ? RADIO_MARCA_AUXILIAR : 0)),
-                    idProceso: proceso.id,
+                    idProceso: trazo.idProceso,
                     auxiliar: true
                 };
-            });
+            }
 
-            return [{
-                data: puntos,
-                borderColor: proceso.estilo.color,
-                borderWidth: proceso.estilo.grosor,
-                borderDash: proceso.estilo.trazo === "dashed" ? [8, 4] : [],
+            return {
+                data: datos,
+                borderColor: color,
+                borderWidth: grosor,
+                borderDash: tipoTrazo === "dashed" ? [8, 4] : [],
                 showLine: true,
                 pointRadius: 0,
                 // El id viaja dentro del dataset: es lo que permite volver de un
                 // clic en la curva a la fila de la tabla.
-                idProceso: proceso.id
-            }, ...auxiliares];
+                idProceso: trazo.idProceso
+            };
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [firmaProcesos, firmaEstados, firmaVista]);

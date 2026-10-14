@@ -26,7 +26,7 @@ npm run preview      # Preview production build locally
 - **UI Framework**: React 18.3 (no React Router - single-page app with state-based navigation)
 - **State Management**: @hookstate/core v4.0.1 (reactive state management)
 - **Component Library**: Ant Design 5.19 (antd)
-- **Charts**: Chart.js 4.4.4 with react-chartjs-2
+- **Charts**: Chart.js 4.4.4 with react-chartjs-2; Plotly (`plotly.js-gl3d-dist-min`, lazy-loaded) for the 3D p-v-T diagram
 - **Build Tool**: Vite 5.3
 - **Physics Engine**: CoolProp 6.4.1 WebAssembly module ([src/propFluidos/coolprop.js](src/propFluidos/coolprop.js))
 
@@ -60,7 +60,8 @@ npm run preview      # Preview production build locally
 **Components** ([src/components/](src/components/)):
 - [TablaFluidos.jsx](src/components/TablaFluidos.jsx): Main table for fluid properties with configurable columns
 - [TablaAires.jsx](src/components/TablaAires.jsx): Table for humid air properties
-- [Diagrama.jsx](src/components/Diagrama.jsx): Thermodynamic diagrams (p-h, T-s, h-s, p-T) using Chart.js
+- [Diagrama.jsx](src/components/Diagrama.jsx): Thermodynamic diagrams (p-h, T-s, h-s, p-T) using Chart.js; for `p-v-T` it mounts [Diagrama3D.jsx](src/components/Diagrama3D.jsx) (Plotly; surface in [src/diagramas/superficiePvT.js](src/diagramas/superficiePvT.js))
+- Process curves: shared in [src/diagramas/trazosProcesos.js](src/diagramas/trazosProcesos.js); [src/diagramas/refinarTrazo.js](src/diagramas/refinarTrazo.js) inserts the exact saturation crossings (and, in 3D, subdivides large jumps in v)
 - [GraficaEstados.jsx](src/components/GraficaEstados.jsx): Chart scaffolding shared by all diagrams (zoom, labels, process curves, auxiliary traces, height handle, settings dialog)
 - [PanelLineasFondo.jsx](src/components/PanelLineasFondo.jsx): "Background lines" tab of the diagram settings dialog
 - Background isolines: catalog in [src/diagramas/familiasFondo.js](src/diagramas/familiasFondo.js), computation in [src/diagramas/lineasFondo.js](src/diagramas/lineasFondo.js); config lives in `configuracion.lineasFondo` (per diagram type, travels in the permalink)

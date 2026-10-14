@@ -70,6 +70,7 @@
     "tipo_p-h": "log p[kPa] - h[kJ/kg]",
     "tipo_T-s": "T[°C] - s[kJ/(kg·K)]",
     "tipo_h-s": "h[kJ/kg] - s[kJ/(kg·K)] (Mollier)",
+    "tipo_p-v-T": "p[kPa] - v[m³/kg] - T[°C] (3D)",
     "configuracion_psicrometrico": "Configuración Psicrométrico",
     "ejes_max_min": "Máximos y Mínimos de los ejes: ",
     "lab_add_puntos": "Añadir datos",
@@ -114,6 +115,7 @@
     "lab_maximo": "máximo",
     "bot_aplicar": "Aplicar",
     "ayuda_zoom": "Cmd/Ctrl+rueda: acercar · Cmd/Ctrl+arrastrar: mover · Mayús+arrastrar: encuadrar una zona · Doble clic: reencuadrar",
+    "ayuda_3d": "Arrastrar: girar · Rueda: acercar · Botón derecho+arrastrar: mover · Pasar sobre un estado o un proceso: leer v, T, p",
     "lab_punto_triple": "Punto triple",
     "lab_punto_critico": "Punto crítico",
 

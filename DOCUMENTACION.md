@@ -1,13 +1,14 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.4.0**.
+Estado del proyecto en la **versión 2.5.0**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
 WebAssembly, así que no hay servidor: ni cálculos en remoto, ni cuentas de usuario, ni datos
 que salgan del equipo.
 
-Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, h-s, p-T y psicrométrico),
+Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, h-s, p-T, p-v-T en 3D y
+psicrométrico),
 **procesos** que conectan dos estados y comprueban o calculan su coherencia termodinámica, y
 **ciclos**, que aparecen solos cuando los procesos cierran un camino.
 
@@ -15,10 +16,10 @@ Sobre esa base tabular hay tres capas más: **diagramas** (p-h, T-s, h-s, p-T y 
 |---|---|
 | Interfaz | React 18 + Ant Design 5, sin router (navegación por estado) |
 | Estado | @hookstate/core 4 |
-| Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre |
+| Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre; Plotly (bundle gl3d) para el diagrama 3D, cargado solo al abrirlo |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (196 tests contra CoolProp real) |
+| Tests | Vitest (207 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -95,9 +96,9 @@ estado queda fuera del rango de la ecuación de estado, y los procesos que lo us
 Bajo la tabla de procesos hay dos desplegables, y son toda la configuración del **diagrama de
 fluidos**:
 
-- **Tipo**: *ninguno*, `log p – h`, `T – s`, `h – s` (Mollier) o `p – T`. *Ninguno* hace de
-  interruptor: no hay un botón aparte para mostrar u ocultar el diagrama, y con él no se
-  dibuja nada.
+- **Tipo**: *ninguno*, `log p – h`, `T – s`, `h – s` (Mollier), `p – T` o `p – v – T` (3D).
+  *Ninguno* hace de interruptor: no hay un botón aparte para mostrar u ocultar el diagrama, y
+  con él no se dibuja nada.
 - **Fluido** del diagrama; debajo se recuerdan sus puntos triple y crítico.
 
 El diagrama muestra la curva de saturación del fluido elegido, los **estados de la tabla**
@@ -166,6 +167,35 @@ Las isolíneas se recortan a una **ventana** por fluido: del punto triple a un 6
 triple-crítico por encima del crítico en temperatura, y hasta el doble de la presión crítica.
 Como los ejes se ajustan a lo dibujado, con líneas de fondo el encuadre por defecto es esa
 ventana y no solo la campana.
+
+**Las curvas doblan sobre la campana.** Los procesos se trazan con unos 25 puntos, y ninguno
+cae justo en la saturación: sin más, un isobárico llegaba en diagonal a la línea de vapor
+saturado en vez de doblar sobre ella. Antes de dibujar, en cada tramo que entra o sale de la
+campana se inserta el estado saturado exacto (`diagramas/refinarTrazo.js`, interpolando en
+(p, h) entre los dos puntos y por bisección). Es exacto en los isobáricos e isentálpicos, y
+una aproximación muy buena en el resto. No se aplica al psicrométrico.
+
+**Diagrama p-v-T (3D).** Dibuja la **superficie p-v-T** del fluido en gris, con las isotermas
+marcadas, la campana en negro, y los estados y procesos como en los planos (mismos colores,
+resaltado y clic sobre una curva para seleccionar su proceso). v y p van en escala
+logarítmica. Se gira arrastrando, se acerca con la rueda y se mueve con el botón derecho;
+*Reencuadrar* vuelve a la vista inicial (p hacia arriba, v a la derecha, T hacia el fondo).
+Al pasar sobre un estado o un proceso se leen v, T y p; la superficie no responde al ratón
+para no tapar lo que importa.
+
+La superficie va del punto triple al mismo 60 % por encima del crítico que la ventana de los
+planos, y en presión hasta el doble de la crítica en el líquido. **No hay fase sólida**:
+CoolProp no la modela. La malla es paramétrica (`diagramas/superficiePvT.js`): cada fila es
+una isoterma con tres tramos fijos —líquido comprimido, mezcla y vapor—, de modo que la
+superficie se pliega justo por la saturación; con una rejilla regular en (v, T) el líquido,
+casi incompresible, se quedaba en una o dos columnas. Son unas 2000 llamadas a CoolProp
+(≈0,3 s) y se recalcula solo al cambiar de fluido. Con v logarítmico, además, las curvas de
+los procesos se subdividen allí donde v salta mucho (dentro de la campana, cerca del líquido
+saturado), para que sigan la superficie en vez de atravesarla.
+
+Lo que el 3D no tiene, de momento: tirador de altura, diálogo de ejes ni líneas de fondo
+configurables. Plotly pesa ~1,7 MB y va en un bloque aparte que solo se descarga al elegir
+este tipo; la PWA lo guarda igualmente para funcionar sin conexión.
 
 ### 1.4 Procesos
 
@@ -640,7 +670,8 @@ llega a existir en vez de tener que romperse.
 | `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
 | `GraficaEstados.jsx` | **El andamiaje común a los dos diagramas**: rótulos de los puntos, tooltip, zoom, arrastre y reencuadre, clic sobre una curva traducido a la fila de su proceso, armado de series y resaltado. Recibe del diagrama concreto la proyección a los ejes, las etiquetas y las curvas de fondo. Dos cosas van memorizadas y ninguna por capricho: las curvas de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |
 | `PanelLineasFondo.jsx` | La pestaña *Líneas de fondo* del diálogo de configuración, común a todos los diagramas: un interruptor por familia, automáticos o propios, y la vuelta a lo de por defecto. Escribe en `configuracion.lineasFondo`. |
-| `Diagrama.jsx` | Lo propio del diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación y la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los cuatro tipos de diagrama. Las líneas de fondo las calcula `diagramas/lineasFondo.js`; aquí solo se piden y se pasa el panel de su configuración. |
+| `Diagrama.jsx` | Lo propio del diagrama de fluidos: sus dos desplegables (tipo y fluido), la curva de saturación y la **proyección** de un estado a los ejes, que es lo que hace que un mismo trazado valga para los cuatro tipos de diagrama. Las líneas de fondo las calcula `diagramas/lineasFondo.js`; aquí solo se piden y se pasa el panel de su configuración. Con el tipo p-v-T monta `Diagrama3D` en su lugar, cargado con `lazy`. |
+| `Diagrama3D.jsx` | El diagrama p-v-T con Plotly, que se importa al montarlo. No usa `GraficaEstados` —Chart.js no dibuja en 3D— pero comparte con él los trazos de los procesos (`diagramas/trazosProcesos.js`), el resaltado y el clic sobre una curva. Dos rodeos a fallos de Plotly 3D, comentados en el código: los rótulos de los estados van en una serie aparte de los puntos, y esa serie lleva un `uid` que cambia con la lista de nombres, porque los rótulos añadidos a una serie ya pintada salían diminutos. |
 | `Psicrometrico.jsx` | Lo propio del psicrométrico: el selector de altitud o presión —que hace el papel del fluido en el otro diagrama— y las isolíneas de fondo (humedad relativa, bulbo húmedo y entalpía), con sus grises y la posición de sus rótulos. |
 | `Compartir.jsx` | Los tres botones de la cabecera: copiar enlace, descargar JSON e importar JSON. |
 
@@ -711,7 +742,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**196 tests en 12 ficheros:**
+**207 tests en 14 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
@@ -725,6 +756,8 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | `procesos/deteccion.test.js` | 15 | La detección del tipo que encaja con una pareja de estados —incluida la frontera entre turbina y conducto, que un enfriamiento con pérdida de carga no debe cruzar— y los dos tipos comodín: q = Δh con caída de presión, el aviso de presión que sube sin trabajo, el cálculo del destino con calor y pérdida de carga, y el indeterminado, que ni avisa, ni inventa camino, ni genera destino. |
 | `propFluidos/isolineasAire.test.js` | 6 | Las isolíneas de fondo del psicrométrico: que arrancan en la campana y llegan a w = 0 sin cruzar el eje, que respetan el recorte del fondo, que **todos** sus puntos tienen la propiedad de la etiqueta, que dependen de la presión total y que la de T_h = 0, sin extremo seco, no se inventa. |
 | `diagramas/lineasFondo.test.js` | 20 | Las líneas de fondo: valores automáticos redondos (lineales y logarítmicos), el recorte a la ventana —también en eje logarítmico—, la lectura de lo que escribe el usuario, el filtrado de lo que llega por un enlace y la física: una isoterma del p-h cruza la campana horizontal a la presión de saturación, una isobara del T-s a la temperatura de saturación, las de título acaban junto al crítico, nada se parte al cruzar la saturación ni se sale de la ventana, y en el h-s las isobaras son, dentro de la campana, rectas de pendiente T. |
+| `diagramas/superficiePvT.test.js` | 6 | La superficie del 3D: malla rectangular y casi sin huecos en agua, R134a y CO₂, cada punto sobre la superficie, el tramo de mezcla plano a la presión de saturación, v creciente a lo largo de cada isoterma y la campana del triple al crítico y de vuelta. |
+| `diagramas/refinarTrazo.test.js` | 5 | Que un isobárico de líquido a vapor pasa por los dos estados saturados exactos —también en entropía, que es lo que ve el T-s—, que con subdivisión v no salta más de lo permitido, y que un tramo todo en vapor queda como estaba. |
 | `permalink/formato.test.js` | 12 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera, incluida la configuración de líneas de fondo. |
 | `permalink/problema.test.js` | 7 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. Incluye una mezcla adiabática —dos orígenes y dos caudales que sobrevivir al viaje— y un enlace de la 2.2.1 con claves de configuración ya retiradas, que debe abrirse igual. |
 
@@ -774,6 +807,12 @@ crecer**. Van de menor a mayor alcance, que es también el orden propuesto.
 Entró en la 2.4.0 junto con las líneas de fondo configurables y el trazo auxiliar del estado
 ideal *2s* ([§1.3](#13-diagramas)). Queda de este bloque el aviso de título mínimo a la salida
 de la turbina, que sigue en la [§5](#5-estado-y-deuda-conocida).
+
+### 6.1 bis Diagrama p-v-T en 3D — hecho en la 2.5.0
+
+Versión básica: superficie, campana, estados y procesos ([§1.3](#13-diagramas)). Queda por
+hacer, si se ve que compensa: el tirador de altura, isolíneas configurables sobre la
+superficie y que los rótulos de los estados no queden atenuados cuando caen detrás de ella.
 
 ### 6.2 Análisis exergético — 2.x
 
