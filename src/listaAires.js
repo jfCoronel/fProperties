@@ -25,21 +25,25 @@ export const indiceAire = (id) => {
 }
 
 // Devuelve el id del estado creado: el modo calculado necesita apuntar a él
-// nada más crearlo.
-export const nuevoAire = () => {
-  const objetoAire = getObjetoAireHumedo('A', 0, 'T', 25, 'HR', 50);
-  const aireNuevo = {
-    id: nuevoIdAire(),
-    nombre: nuevoNombreAire(),
+// nada más crearlo. Sin argumentos es aire a nivel del mar, 25 ºC y 50 %; un
+// proceso que crea su destino le pasa el estado ya calculado y su nombre.
+export const nuevoAire = (inicial = {}) => {
+  const porDefecto = inicial.in1Id ? {} : {
     in1Id: "A",
     in2Id: "T",
     in3Id: "HR",
     in1Val: 0,
     in2Val: 25,
     in3Val: 50,
+    ...getObjetoAireHumedo('A', 0, 'T', 25, 'HR', 50)
+  };
+  const aireNuevo = {
+    ...porDefecto,
     // Un estado nuevo se dibuja: ocultarlo es la excepción, no la norma.
     enDiagrama: true,
-    ...objetoAire
+    ...inicial,
+    id: nuevoIdAire(),
+    nombre: inicial.nombre || nuevoNombreAire()
   };
   listaAires.merge([aireNuevo])
   return aireNuevo.id;

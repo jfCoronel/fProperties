@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Modal, Button, Row, Col, Select, InputNumber, Form, ColorPicker, Alert } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, InputNumber, Form, ColorPicker, Alert } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { getListaDominio } from '../listasDominio';
 import { listaProcesos, actualizarProceso, cambiarTipoProceso } from '../procesos/listaProcesos';
@@ -12,7 +12,7 @@ import {
     puedeCalcular
 } from '../procesos/proceso';
 import { detectarTipo } from '../procesos/deteccion';
-import { propagarProcesos } from '../procesos/propagacion';
+import { propagarProcesos, nombreDestinoPendiente } from '../procesos/propagacion';
 import { getRendimientoIsentropico, getRendimientoExpansion } from '../procesos/resolvedores';
 import { textoMensaje } from '../procesos/mensajes';
 import formatear from '../util/formatear';
@@ -21,7 +21,7 @@ const { Option } = Select;
 
 const DialogoProceso = ({ dominio = 'fluido' }) => {
     const procesos = useHookstate(listaProcesos);
-    const { lista, nuevoEstado } = getListaDominio(dominio);
+    const { lista, indice } = getListaDominio(dominio);
     const estados = useHookstate(lista);
     const { idProcesoActual, verDialogoProceso, nCifras } = useHookstate(configuracion);
 
@@ -112,11 +112,9 @@ const DialogoProceso = ({ dominio = 'fluido' }) => {
             return;
         }
 
-        // Sin estado destino no hay dónde dejar el resultado: se crea uno.
+        // Sin estado destino no se crea nada todavía: lo crea la propagación en
+        // cuanto el proceso tiene su origen y se puede calcular.
         const cambios = { modoDestino: "calculado" };
-        if (proceso.destino === null) {
-            cambios.destino = nuevoEstado();
-        }
         cambios.parametros = {
             ...getParametrosPorDefecto(definicion, "calculado"),
             ...sugerirParametros(),
@@ -153,6 +151,23 @@ const DialogoProceso = ({ dominio = 'fluido' }) => {
         const origenes = [...proceso.origenes];
         origenes[posicion] = nuevo;
         guardar({ origenes });
+    };
+
+    // En modo calculado el nombre del destino se decide aquí: antes de que
+    // exista queda pendiente en el proceso; después se edita en el propio estado.
+    const calculado = proceso.modoDestino === "calculado";
+    const estadoDestino = listaEstados.find((estado) => estado.id === proceso.destino);
+    const nombreDestino = estadoDestino
+        ? estadoDestino.nombre
+        : (proceso.nombreDestino ?? nombreDestinoPendiente(proceso, listaEstados) ?? "");
+
+    const cambiarNombreDestino = (evento) => {
+        const nombre = evento.target.value;
+        if (estadoDestino) {
+            estados[indice(estadoDestino.id)].nombre.set(nombre);
+        } else {
+            guardar({ nombreDestino: nombre });
+        }
     };
 
     const etiquetaOrigen = (posicion) => (proceso.origenes.length === 1
@@ -226,14 +241,24 @@ const DialogoProceso = ({ dominio = 'fluido' }) => {
                     </Col>
                 ))}
                 <Col span={12}>
-                    <Form.Item
-                        label={getTextoUI("proc_destino")}
-                        extra={proceso.modoDestino === "calculado"
-                            ? <span className='comentario'>{getTextoUI("proc_destino_calculado")}</span>
-                            : null}
-                    >
-                        {selectorEstado(proceso.destino, (nuevo) => guardar({ destino: nuevo }))}
-                    </Form.Item>
+                    {/* En modo calculado el estado final lo pone el proceso: aquí
+                        solo se le da nombre. En manual se elige uno existente. */}
+                    {calculado
+                        ? <Form.Item
+                            label={getTextoUI("proc_destino")}
+                            extra={<span className='comentario'>
+                                {getTextoUI(estadoDestino ? "proc_destino_calculado" : "proc_destino_pendiente")}
+                            </span>}
+                        >
+                            <Input
+                                value={nombreDestino}
+                                placeholder={getTextoUI("proc_nombre_destino_vacio")}
+                                onChange={cambiarNombreDestino}
+                            />
+                        </Form.Item>
+                        : <Form.Item label={getTextoUI("proc_destino")}>
+                            {selectorEstado(proceso.destino, (nuevo) => guardar({ destino: nuevo }))}
+                        </Form.Item>}
                 </Col>
             </Row>
 

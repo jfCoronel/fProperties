@@ -25,21 +25,26 @@ export const indiceFluido = (id) => {
 }
 
 // Devuelve el id del estado creado: el modo calculado necesita apuntar a él
-// nada más crearlo.
-export const nuevoFluido = () => {
-  const objetoFluido = getObjetoFluido('Agua', 'T', 25, 'P', 101.325);
-
-  const fluidoNuevo = {
-    id: nuevoIdFluido(),
-    nombre: nuevoNombreFluido(),
+// nada más crearlo. Sin argumentos es agua a 25 ºC y 1 atm; un proceso que crea
+// su destino le pasa el estado ya calculado (fluido, entradas y propiedades) y
+// el nombre que ha elegido el usuario.
+export const nuevoFluido = (inicial = {}) => {
+  const porDefecto = inicial.in1Id ? {} : {
     fluido: "Agua",
     in1Id: "T",
     in2Id: "P",
     in1Val: 25.0,
     in2Val: 101.325,
+    ...getObjetoFluido('Agua', 'T', 25, 'P', 101.325)
+  };
+
+  const fluidoNuevo = {
+    ...porDefecto,
     // Un estado nuevo se dibuja: ocultarlo es la excepción, no la norma.
     enDiagrama: true,
-    ...objetoFluido
+    ...inicial,
+    id: nuevoIdFluido(),
+    nombre: inicial.nombre || nuevoNombreFluido()
   };
   listaFluidos.merge([fluidoNuevo])
   return fluidoNuevo.id;

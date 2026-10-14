@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.6.0**.
+Estado del proyecto en la **versión 2.6.1**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -293,7 +293,12 @@ Cada proceso decide quién pone el estado de destino:
 - **Dado por mí** (modo manual): el usuario crea los dos estados y el proceso los *comprueba*.
 - **Calculado**: el usuario da los **parámetros** —presión final, temperatura final, título
   final, rendimiento isentrópico, o el calor aportado y la pérdida de carga del conducto— y el
-  proceso **genera** el estado de destino. Si no había estado de destino, se crea uno. Los
+  proceso **genera** el estado de destino. En este modo el diálogo no ofrece elegir el estado
+  final: pide su **nombre** (propone el siguiente al inicial: "1" → "2", "3a" → "4a", "A" →
+  "A'"). Si no había estado de destino, no se crea al cambiar de modo sino en la propagación
+  (`crearDestinosPendientes`, en `propagacion.js`), en cuanto hay estado inicial y parámetros
+  suficientes: nace ya con el fluido y las propiedades que le tocan. Hasta entonces el nombre
+  elegido queda en el proceso como `nombreDestino`, que viaja en el permalink. Los
   tipos que no saben generarlo (el indeterminado) no ofrecen esta opción.
 
 Al cambiar de manual a calculado, los parámetros se rellenan con lo que ya describía la
@@ -693,7 +698,7 @@ llega a existir en vez de tener que romperse.
 | `ConfiguracionFluidos.jsx` | Panel lateral de columnas de la tabla de fluidos y cifras significativas. |
 | `TablaAires.jsx`, `DialogoAire.jsx`, `ConfiguracionAires.jsx` | Los tres equivalentes para el aire húmedo, con la misma columna del ojo, la misma selección sincronizada y la misma marca de estado calculado. |
 | `TablaProcesos.jsx` | La tabla de procesos: columnas de resultado por tipo, diagnóstico con sus mensajes, selección sincronizada, ojo de visibilidad, CSV y disparo de la propagación al crear, borrar o duplicar. **Recibe el dominio como prop** y sirve igual para fluidos y para aire; monta también el panel de ciclos y el editor. |
-| `DialogoProceso.jsx` | Alta y edición de un proceso: tipo, modo del estado destino, extremos, parámetros y estilo. Monta **tantos selectores de origen como diga la aridad** del tipo, que es lo que necesita la mezcla adiabática. Rellena los parámetros al pasar a modo calculado —cada uno sabe leerse de la pareja de estados— y crea el estado destino si no lo hay. |
+| `DialogoProceso.jsx` | Alta y edición de un proceso: tipo, modo del estado destino, extremos, parámetros y estilo. Monta **tantos selectores de origen como diga la aridad** del tipo, que es lo que necesita la mezcla adiabática. Rellena los parámetros al pasar a modo calculado —cada uno sabe leerse de la pareja de estados— En modo calculado sustituye el selector del estado final por su nombre; el estado lo crea la propagación cuando se puede calcular. |
 | `Ciclos.jsx` | El panel de balance de los ciclos detectados. Solo se dibuja si hay ciclo, y declara el balance incompleto si alguno de sus procesos es de tipo indeterminado. |
 | `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
 | `GraficaEstados.jsx` | **El andamiaje común a los dos diagramas**: rótulos de los puntos, tooltip, zoom, arrastre y reencuadre, clic sobre una curva traducido a la fila de su proceso, armado de series y resaltado. Recibe del diagrama concreto la proyección a los ejes, las etiquetas y las curvas de fondo. Dos cosas van memorizadas y ninguna por capricho: las curvas de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |

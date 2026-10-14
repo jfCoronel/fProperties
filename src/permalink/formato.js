@@ -173,6 +173,10 @@ function normalizarProceso(proceso) {
     destino: typeof proceso.destino === 'string' ? proceso.destino : null,
     tipo: proceso.tipo,
     modoDestino: proceso.modoDestino === 'calculado' ? 'calculado' : 'manual',
+    // Nombre elegido para un destino calculado que aún no se ha podido crear
+    ...(typeof proceso.nombreDestino === 'string' && proceso.destino == null
+      ? { nombreDestino: proceso.nombreDestino }
+      : {}),
     parametros: normalizarParametros(proceso.parametros),
     enDiagrama: proceso.enDiagrama !== false,
     estilo: {

@@ -124,3 +124,46 @@ describe('editar un estado calculado', () => {
     expect(romperVinculo('f1')).toBeNull();
   });
 });
+
+describe('destino creado por el proceso', () => {
+  const calculadoSinDestino = (origen, extra = {}) => ({
+    ...proceso('p1', 'isobarico', origen, null, { x_final: 0 }), ...extra
+  });
+
+  it('no crea el estado mientras falta el origen', () => {
+    listaFluidos.set([]);
+    listaProcesos.set([calculadoSinDestino(null)]);
+    propagarProcesos();
+
+    expect(listaFluidos.get({ noproxy: true })).toHaveLength(0);
+    expect(listaProcesos[0].destino.get()).toBeNull();
+  });
+
+  it('lo crea al dar el origen, con su fluido y el nombre que sigue', () => {
+    listaFluidos.set([{
+      id: 'f1', nombre: '1', fluido: 'R134a', in1Id: 'T', in1Val: 40, in2Id: 'X', in2Val: 100,
+      ...getObjetoFluido('R134a', 'T', 40, 'X', 100)
+    }]);
+    listaProcesos.set([calculadoSinDestino('f1')]);
+    propagarProcesos();
+
+    const id = listaProcesos[0].destino.get();
+    const destino = porId(id);
+    expect(destino.nombre).toBe('2');
+    expect(destino.fluido).toBe('R134a');
+    expect(destino.X).toBeCloseTo(0, 6);
+    expect(esDerivado(destino)).toBe(true);
+  });
+
+  it('usa el nombre elegido por el usuario y lo retira del proceso', () => {
+    listaFluidos.set([{
+      id: 'f1', nombre: '1', fluido: 'R134a', in1Id: 'T', in1Val: 40, in2Id: 'X', in2Val: 100,
+      ...getObjetoFluido('R134a', 'T', 40, 'X', 100)
+    }]);
+    listaProcesos.set([calculadoSinDestino('f1', { nombreDestino: ' Salida condensador ' })]);
+    propagarProcesos();
+
+    expect(porId(listaProcesos[0].destino.get()).nombre).toBe('Salida condensador');
+    expect(listaProcesos[0].get({ noproxy: true }).nombreDestino).toBeUndefined();
+  });
+});

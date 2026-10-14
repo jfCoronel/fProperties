@@ -7,6 +7,7 @@ import { getListaDominio, dominioDeEstado } from '../listasDominio';
 import { getDominio, CLAVES_DOMINIO } from './dominios';
 import { listaProcesos, indiceProceso } from './listaProcesos';
 import { planificarPropagacion, parejaDestino, dominioDeProceso } from './proceso';
+import { sugerirNombreDestino } from './nombres';
 
 // Un estado generado se marca con el proceso que lo genera. La marca no viaja en
 // el permalink: se vuelve a deducir de los procesos al propagar.
@@ -63,6 +64,55 @@ function propagarDominio(clave, procesos) {
 }
 
 /**
+ * Nombre con el que nacerá el destino de un proceso calculado que aún no lo
+ * tiene: el que haya escrito el usuario o, si no, el que sigue al del origen.
+ * Es lo que muestra el diálogo y lo que usa la creación, para que coincidan.
+ */
+export function nombreDestinoPendiente(proceso, estados) {
+  const elegido = proceso.nombreDestino?.trim();
+  if (elegido) return elegido;
+  const nombre = (id) => estados.find((estado) => estado.id === id)?.nombre;
+  return sugerirNombreDestino(
+    proceso.origenes.map(nombre), estados.map((estado) => estado.nombre)
+  );
+}
+
+/**
+ * Crea el estado destino de los procesos calculados que todavía no lo tienen.
+ *
+ * El destino no se crea al pasar a modo calculado sino aquí, cuando ya se puede
+ * calcular: así nace con el fluido y las propiedades que le corresponden, y no
+ * queda en la tabla un estado de relleno mientras falta el origen.
+ */
+function crearDestinosPendientes() {
+  listaProcesos.get({ noproxy: true }).forEach((proceso) => {
+    if (proceso.modoDestino !== 'calculado' || proceso.destino) return;
+
+    const clave = dominioDeProceso(proceso);
+    const { lista, nuevoEstado } = getListaDominio(clave);
+    const estados = lista.get({ noproxy: true });
+    const origenes = proceso.origenes.map((id) => estados.find((estado) => estado.id === id));
+    if (origenes.length === 0 || origenes.some((origen) => origen === undefined)) return;
+
+    const entradas = parejaDestino(proceso, origenes);
+    if (entradas === null) return;
+
+    const dominio = getDominio(clave);
+    const destino = nuevoEstado({
+      nombre: nombreDestinoPendiente(proceso, estados),
+      ...dominio.identidad(origenes[0]),
+      ...entradas,
+      ...dominio.construir(entradas, origenes[0])
+    });
+
+    // El nombre pendiente ya está en el estado: el proceso no lo necesita más.
+    // eslint-disable-next-line no-unused-vars
+    const { nombreDestino, ...resto } = proceso;
+    listaProcesos[indiceProceso(proceso.id)].set({ ...resto, destino });
+  });
+}
+
+/**
  * Recalcula todos los estados generados por procesos en modo calculado.
  *
  * El orden topológico se planifica sobre la lista COMPLETA de procesos, que es
@@ -74,6 +124,7 @@ function propagarDominio(clave, procesos) {
  * Devuelve el número de estados regenerados.
  */
 export function propagarProcesos() {
+  crearDestinosPendientes();
   const { orden } = planificarPropagacion(listaProcesos.get({ noproxy: true }));
 
   return CLAVES_DOMINIO.reduce((total, clave) => total + propagarDominio(
