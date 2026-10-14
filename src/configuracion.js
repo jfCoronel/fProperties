@@ -9,6 +9,10 @@ const configuracionInicial = {
   columnasTablaAires: ["RO", "HR", "TH", "TR", "H", "NO", "NO"],
   verConfiguracion: false,
   nCifras: 4,
+  // Estado de referencia de h y s. Tiene que coincidir con el valor inicial de
+  // propFluidos/fluidos.js, que es quien lo aplica; se cambia siempre con
+  // cambiarReferenciaHS (referenciaHS.js), que mantiene los dos a la par.
+  referenciaHS: "auto",
   idioma: "es",
   textosUI: {},
   textosCargados: false,

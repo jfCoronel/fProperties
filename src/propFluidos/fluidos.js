@@ -330,6 +330,87 @@ function cambiarNombrePropiedadFluido(propiedad) {
   }
 }
 
+// Estado de referencia de h y s. CoolProp trae el suyo, distinto según el
+// fluido; la aplicación lo sustituye por uno de los convenios de las tablas:
+//   IIR     h = 200 kJ/kg, s = 1 kJ/(kg·K) en líquido saturado a 0 ºC
+//   ASHRAE  h = 0, s = 0 en líquido saturado a −40 ºC
+//   NBP     h = 0, s = 0 en líquido saturado a 101,325 kPa
+//   TRIPLE  u = 0, s = 0 en líquido saturado en el punto triple (IAPWS, el de
+//           las tablas de vapor de los libros)
+//   auto    TRIPLE para el agua e IIR para el resto
+// Si el fluido no tiene ese estado (0 ºC por encima de su crítica, CO2 sin
+// líquido a 1 atm), se queda con la referencia de CoolProp.
+//
+// La referencia vive aquí, y no en la configuración, porque este módulo no
+// depende de hookstate. La aplicación la fija con setReferenciaHS al arrancar,
+// al cargar un problema y al cambiarla el usuario (referenciaHS.js).
+export const REFERENCIAS_HS = ["auto", "IIR", "ASHRAE", "NBP", "TRIPLE"];
+
+// Para cada una: el valor que toman h y s, y el líquido saturado donde lo toman
+// (propiedad de entrada y su valor en SI, con Q = 0).
+const PUNTOS_REFERENCIA = {
+  IIR: { h0: 200e3, s0: 1e3, entrada: () => ["T", T0C] },
+  ASHRAE: { h0: 0, s0: 0, entrada: () => ["T", T0C - 40] },
+  NBP: { h0: 0, s0: 0, entrada: () => ["P", 101325] },
+  // Aquí la que vale cero es u, no h: en el punto triple del agua h = p·v,
+  // 0,0006 kJ/kg, y las tablas de vapor dan u = 0
+  TRIPLE: {
+    h0: 0, s0: 0, conU: true,
+    entrada: (fluido) => ["T", Module.PropsSI("TTRIPLE", "T", T0C, "Q", 0.5, fluido)]
+  }
+};
+
+let referenciaHS = "auto";
+const cacheDesplazamientos = new Map();
+
+export function getReferenciaHS() {
+  return referenciaHS;
+}
+
+export function setReferenciaHS(clave) {
+  referenciaHS = REFERENCIAS_HS.includes(clave) ? clave : "IIR";
+}
+
+// La que se aplica de verdad a un fluido (nombre de CoolProp), resuelta la automática
+function referenciaDeFluido(fluido, clave = referenciaHS) {
+  if (clave !== "auto") return clave;
+  return fluido === "Water" ? "TRIPLE" : "IIR";
+}
+
+// SI = valor de la tabla en SI + desplazamiento. Memorizado: antes se pedía a
+// CoolProp en cada conversión de h o s.
+function desplazamientoReferencia(fluido, clave = referenciaHS) {
+  const referencia = referenciaDeFluido(fluido, clave);
+  const llave = `${fluido}|${referencia}`;
+  if (!cacheDesplazamientos.has(llave)) {
+    const { h0, s0, conU, entrada } = PUNTOS_REFERENCIA[referencia];
+    const [propiedad, valor] = entrada(fluido);
+    const hRef = Module.PropsSI(conU ? "U" : "H", propiedad, valor, "Q", 0, fluido);
+    const sRef = Module.PropsSI("S", propiedad, valor, "Q", 0, fluido);
+    cacheDesplazamientos.set(llave, Number.isFinite(hRef) && Number.isFinite(sRef)
+      ? { h: hRef - h0, s: sRef - s0, valida: true }
+      : { h: 0, s: 0, valida: false });
+  }
+  return cacheDesplazamientos.get(llave);
+}
+
+/** Si el fluido tiene el estado de la referencia elegida (si no, va con la de CoolProp). */
+export function tieneReferencia(fluidoSpain, clave = referenciaHS) {
+  return desplazamientoReferencia(cambiarNombreFluido(fluidoSpain), clave).valida;
+}
+
+/**
+ * Un valor de h o s escrito con una referencia, pasado a otra: el mismo estado
+ * físico. Lo demás pasa tal cual.
+ */
+export function convertirReferencia(fluidoSpain, propiedad, valor, desde, hasta) {
+  if (propiedad !== "H" && propiedad !== "S") return valor;
+  const fluido = cambiarNombreFluido(fluidoSpain);
+  const clave = propiedad === "H" ? "h" : "s";
+  const si = valor * 1000 + desplazamientoReferencia(fluido, desde)[clave];
+  return (si - desplazamientoReferencia(fluido, hasta)[clave]) / 1000;
+}
+
 function cambiarUnidadEntradaFluido(propiedad, valor, fluido) {
   if (propiedad === "T") {
     //ºC a K
@@ -341,21 +422,11 @@ function cambiarUnidadEntradaFluido(propiedad, valor, fluido) {
     // % a fraccion
     return valor / 100;
   } else if (propiedad === "H") {
-    // kJ/kg a J/kg
-    var hRef = Module.PropsSI("H", "T", T0C, "Q", 0, fluido);
-    if (isFinite(hRef)) {
-      return valor * 1000 + hRef - 200000;
-    } else {
-      return valor * 1000;
-    }
+    // kJ/kg a J/kg, con el desplazamiento de la referencia
+    return valor * 1000 + desplazamientoReferencia(fluido).h;
   } else if (propiedad === "S") {
-    // kJ/(kg·K) a J/(kg·K)
-    var sRef = Module.PropsSI("S", "T", T0C, "Q", 0, fluido);
-    if (isFinite(sRef)) {
-      return valor * 1000 + sRef - 1000;
-    } else {
-      return valor * 1000;
-    }
+    // kJ/(kg·K) a J/(kg·K), con el desplazamiento de la referencia
+    return valor * 1000 + desplazamientoReferencia(fluido).s;
   } else {
     return valor;
   }
@@ -377,20 +448,10 @@ function cambiarUnidadSalidaFluido(propiedad, valor, fluido) {
     }
   } else if (propiedad === "H") {
     // J/kg a kJ/kg
-    var hRef = Module.PropsSI("H", "T", T0C, "Q", 0, fluido);
-    if (isFinite(hRef)) {
-      return valor / 1000 - hRef / 1000 + 200;
-    } else {
-      return valor / 1000;
-    }
+    return (valor - desplazamientoReferencia(fluido).h) / 1000;
   } else if (propiedad === "S") {
     // J/(kg·K) a kJ/(kg·K)
-    var sRef = Module.PropsSI("S", "T", T0C, "Q", 0, fluido);
-    if (isFinite(sRef)) {
-      return valor / 1000 - sRef / 1000 + 1;
-    } else {
-      return valor / 1000;
-    }
+    return (valor - desplazamientoReferencia(fluido).s) / 1000;
   } else if (propiedad === "ESTADO") {
     // Estado
     let estado = "Desconocido";

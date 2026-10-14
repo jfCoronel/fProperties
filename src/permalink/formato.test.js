@@ -25,7 +25,7 @@ const problema = {
       estilo: { color: '#1890FF', grosor: 2, trazo: 'solid' }
     }
   ],
-  configuracion: { idioma: 'es', nCifras: 4, tipoDiagrama: 'p-h' }
+  configuracion: { idioma: 'es', nCifras: 4, referenciaHS: 'auto', tipoDiagrama: 'p-h' }
 };
 
 describe('codificación del problema', () => {
@@ -69,7 +69,18 @@ describe('normalización', () => {
       ...problema,
       configuracion: { nCifras: 5, verDialogoFluido: true, inventada: 1 }
     });
-    expect(limpio.configuracion).toEqual({ nCifras: 5 });
+    // La referencia se añade siempre: ver el test siguiente
+    expect(limpio.configuracion).toEqual({ nCifras: 5, referenciaHS: 'IIR' });
+  });
+
+  it('la referencia de h y s: un enlace sin ella es de antes de poder elegir, y va con la IIR', () => {
+    const conReferencia = (referenciaHS) => normalizarProblema({
+      ...problema, configuracion: { referenciaHS }
+    }).configuracion.referenciaHS;
+    expect(conReferencia('ASHRAE')).toBe('ASHRAE');
+    expect(conReferencia('auto')).toBe('auto');
+    expect(conReferencia('inventada')).toBe('IIR');
+    expect(normalizarProblema({ ...problema, configuracion: {} }).configuracion.referenciaHS).toBe('IIR');
   });
 
   it('las líneas de fondo viajan, filtradas campo a campo', async () => {

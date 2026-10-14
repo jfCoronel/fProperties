@@ -37,10 +37,12 @@ const ETIQUETAS_Y = { "p-T": "p [kPa]", "p-h": "p [kPa]", "T-s": "T [ºC]", "h-s
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
-    const { tipoDiagrama, fluidoDiagrama, fluidosSeleccionados, lineasFondo, idioma } = useHookstate(configuracion);
+    const { tipoDiagrama, fluidoDiagrama, fluidosSeleccionados, lineasFondo, idioma, referenciaHS } = useHookstate(configuracion);
 
     const fluidoActual = fluidoDiagrama.get();
     const tipoActual = tipoDiagrama.get();
+    // La campana y las líneas de fondo en h y s se mueven con la referencia
+    const referenciaActual = referenciaHS.get();
     const estadosActuales = lista.get({ noproxy: true });
 
     // La campana (o la línea de saturación en p-T) se recorre siempre entre el
@@ -110,7 +112,8 @@ const Diagrama = () => {
             pointRadius: 0,
             borderWidth: grosor
         };
-    }, [fluidoActual, tipoActual])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fluidoActual, tipoActual, referenciaActual])
 
     // La curva de saturación son ~200 llamadas a CoolProp, y las líneas de fondo
     // cientos más: se recalculan solo cuando cambia algo de lo que dependen
@@ -122,7 +125,7 @@ const Diagrama = () => {
         ...curvasFondoFluido(fluidoActual, tipoActual, lineasGuardadas, idiomaActual),
         getCurvaSat(3)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), [getCurvaSat, firmaFondo, idiomaActual]);
+    ]), [getCurvaSat, firmaFondo, idiomaActual, referenciaActual]);
 
     // Los valores automáticos dependen del fluido: el contexto (puntos triple y
     // crítico) se calcula una vez por fluido. Solo con diagrama: sin él, este

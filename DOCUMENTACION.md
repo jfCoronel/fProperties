@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.5.0**.
+Estado del proyecto en la **versión 2.6.0**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -19,7 +19,7 @@ psicrométrico),
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre; Plotly (bundle gl3d) para el diagrama 3D, cargado solo al abrirlo |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (207 tests contra CoolProp real) |
+| Tests | Vitest (218 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -90,6 +90,28 @@ Un **estado** es un punto termodinámico: un fluido más dos propiedades indepen
 
 Si CoolProp no puede resolver la pareja de propiedades pedida, las celdas muestran `NaN`: el
 estado queda fuera del rango de la ecuación de estado, y los procesos que lo usen lo dirán.
+
+**Referencia de h y s.** Al final del panel de la rueda dentada se elige el estado de
+referencia de la entalpía y la entropía (y con ellas de u):
+
+| Opción | Convenio | Dónde se usa |
+|---|---|---|
+| **Automática** (por defecto) | Punto triple para el agua, IIR para el resto | Que el agua coincida con los libros sin tocar nada |
+| IIR | h = 200 kJ/kg, s = 1 kJ/(kg·K) en líquido saturado a 0 ºC | Refrigerantes, tablas europeas. Era la única hasta la 2.5.0 |
+| ASHRAE | h = 0, s = 0 en líquido saturado a −40 ºC | Tablas de refrigerantes norteamericanas |
+| NBP | h = 0, s = 0 en líquido saturado a 101,325 kPa | Criogenia, hidrocarburos |
+| Punto triple (IAPWS) | u = 0, s = 0 en líquido saturado en el punto triple | Tablas de vapor: Çengel, Moran… |
+
+Con la del punto triple, el agua a 100 ºC da h_f = 419,17 kJ/kg y s_f = 1,3072 kJ/(kg·K),
+como en las tablas; con la IIR daba 619,2. Si un fluido no tiene el estado de referencia
+elegido —0 ºC por encima de su crítica, como el helio, o sin líquido a 1 atm, como el CO₂—,
+se queda con la referencia de CoolProp, y el panel lo avisa con los fluidos afectados.
+
+Cambiar de referencia **no mueve ningún estado físico**: los definidos por h o s convierten
+esas entradas al nuevo convenio, los calculados por un proceso se regeneran, y procesos y
+ciclos, que solo usan diferencias, no cambian. Lo que no se convierte son los valores propios
+que se hayan escrito para las isentálpicas o isentrópicas de fondo. La referencia viaja en el
+enlace. El aire húmedo tiene la suya y no le afecta.
 
 ### 1.3 Diagramas
 
@@ -423,7 +445,7 @@ columna nueva a la tabla.
 | Versión del formato | Propiedades calculadas (se recalculan) |
 | Estados de fluido y de aire (solo sus entradas, más su visibilidad en el diagrama) | Filas seleccionadas y diálogos abiertos |
 | Procesos completos: tipo, extremos, modo, parámetros, estilo y visibilidad | La marca de "estado calculado" (se vuelve a deducir) |
-| Configuración: idioma, cifras, columnas, tipo de diagrama, fluido, ejes del psicrométrico… | Series guardadas a mano en el psicrométrico |
+| Configuración: idioma, cifras, referencia de h y s, columnas, tipo de diagrama, fluido, ejes del psicrométrico… | Series guardadas a mano en el psicrométrico |
 
 La lista de claves de configuración que viajan es **explícita**: lo que no está en ella se
 considera estado de sesión y no se comparte.
@@ -433,6 +455,11 @@ seguro. `enDiagrama` es el primer caso: se normaliza como *visible salvo que dig
 modo que un enlace de la 2.1.0 —que no lo lleva— sigue abriéndose con todo dibujado. Subir
 `ESQUEMA_PROBLEMA` habría roto todos los enlaces anteriores, porque el cargador rechaza lo que
 no coincide con su versión.
+
+`referenciaHS` es el caso contrario: su valor por defecto en la aplicación (la automática) **no**
+es el seguro para un enlace antiguo, cuyas h y s están escritas con la IIR, la única que había
+hasta la 2.5.0. Por eso el normalizador le pone `IIR` cuando falta, y el cargador fija la
+referencia **antes** de recalcular los estados.
 
 ### 2.2 Cómo se codifica
 
@@ -540,7 +567,7 @@ mismas claves en los dos ficheros.
 | Fichero | Función |
 |---|---|
 | `propFluidos/coolprop.js` | El módulo emscripten de CoolProp 6.4.1, ~470 kB. Es código vendorizado: **no se toca ni se lee**. Se instancia de forma asíncrona. |
-| `propFluidos/fluidos.js` | La envoltura de CoolProp para fluidos puros. Traduce los nombres españoles a los de CoolProp (121 fluidos), convierte unidades (ºC↔K, kPa↔Pa, kJ/kg↔J/kg), aplica los desplazamientos de referencia de h y s, y devuelve `NaN` cuando el estado no es resoluble. `getPropFluido()` da una propiedad; `getObjetoFluido()` devuelve el estado completo. `esperarCoolprop()` espera a que el binario esté instanciado. |
+| `propFluidos/fluidos.js` | La envoltura de CoolProp para fluidos puros. Traduce los nombres españoles a los de CoolProp (121 fluidos), convierte unidades (ºC↔K, kPa↔Pa, kJ/kg↔J/kg), aplica el desplazamiento de la **referencia de h y s** elegida (memorizado por fluido y referencia; `setReferenciaHS`, `convertirReferencia`, `tieneReferencia`), y devuelve `NaN` cuando el estado no es resoluble. `getPropFluido()` da una propiedad; `getObjetoFluido()` devuelve el estado completo. `esperarCoolprop()` espera a que el binario esté instanciado. |
 | `propFluidos/aires.js` | Lo mismo para el aire húmedo, sobre `HAPropsSI`. Traduce entre altitud y presión con el modelo de atmósfera estándar. |
 | `util/formatear.js` | Formato de un número a un número dado de cifras significativas. |
 
@@ -551,6 +578,7 @@ ya calculadas**, más las entradas que los definen y un identificador estable:
 |---|---|
 | `listaFluidos.js` | Alta, baja, duplicado, actualización y reordenación de los estados de fluido. Los ids (`f1`, `f2`…) se derivan del máximo en uso, de modo que sobreviven a la carga de un permalink sin colisionar, y las operaciones reciben **ids, no índices**: por eso borrar o reordenar una fila no corrompe los procesos que la referencian. |
 | `listaAires.js` | Lo mismo para el aire húmedo (`a1`, `a2`…). |
+| `referenciaHS.js` | El cambio de referencia de h y s: convierte las entradas h y s de los estados, fija la referencia en `fluidos.js` y en la configuración a la vez, recalcula y propaga. Es la única vía para cambiarla, para que las dos no se desincronicen. |
 
 ### 3.4 El motor de procesos
 
@@ -742,7 +770,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**207 tests en 14 ficheros:**
+**218 tests en 15 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
@@ -758,7 +786,8 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | `diagramas/lineasFondo.test.js` | 20 | Las líneas de fondo: valores automáticos redondos (lineales y logarítmicos), el recorte a la ventana —también en eje logarítmico—, la lectura de lo que escribe el usuario, el filtrado de lo que llega por un enlace y la física: una isoterma del p-h cruza la campana horizontal a la presión de saturación, una isobara del T-s a la temperatura de saturación, las de título acaban junto al crítico, nada se parte al cruzar la saturación ni se sale de la ventana, y en el h-s las isobaras son, dentro de la campana, rectas de pendiente T. |
 | `diagramas/superficiePvT.test.js` | 6 | La superficie del 3D: malla rectangular y casi sin huecos en agua, R134a y CO₂, cada punto sobre la superficie, el tramo de mezcla plano a la presión de saturación, v creciente a lo largo de cada isoterma y la campana del triple al crítico y de vuelta. |
 | `diagramas/refinarTrazo.test.js` | 5 | Que un isobárico de líquido a vapor pasa por los dos estados saturados exactos —también en entropía, que es lo que ve el T-s—, que con subdivisión v no salta más de lo permitido, y que un tramo todo en vapor queda como estaba. |
-| `permalink/formato.test.js` | 12 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera, incluida la configuración de líneas de fondo. |
+| `referenciaHS.test.js` | 10 | Las referencias de h y s: cada convenio da los valores de sus tablas (el agua con la del punto triple, contra el Çengel), la caída a la de CoolProp sin estado de referencia, que cambiarla no mueve ningún estado definido por h o s, y que un enlace sin referencia se abre con la IIR. |
+| `permalink/formato.test.js` | 13 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera, incluidas la configuración de líneas de fondo y la referencia de h y s. |
 | `permalink/problema.test.js` | 7 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. Incluye una mezcla adiabática —dos orígenes y dos caudales que sobrevivir al viaje— y un enlace de la 2.2.1 con claves de configuración ya retiradas, que debe abrirse igual. |
 
 Qué buscan estos tests, en una frase: fijar **el comportamiento del motor**, que es puro y

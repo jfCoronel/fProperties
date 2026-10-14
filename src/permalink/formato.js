@@ -10,6 +10,7 @@
 // estado de la aplicación.
 
 import { normalizarLineasFondo } from '../diagramas/familiasFondo';
+import { REFERENCIAS_HS } from '../propFluidos/fluidos';
 
 export const ESQUEMA_PROBLEMA = 1;
 
@@ -33,6 +34,7 @@ export const CLAVES_CONFIGURACION = [
   'menuActual',
   'idioma',
   'nCifras',
+  'referenciaHS',
   'columnasTablaFluidos',
   'columnasTablaAires',
   'tipoDiagrama',
@@ -184,7 +186,8 @@ function normalizarProceso(proceso) {
 // Las claves con estructura propia no se copian tal cual: pasan por su
 // normalizador, que descarta lo que no tenga la forma esperada.
 const NORMALIZADORES_CONFIGURACION = {
-  lineasFondo: normalizarLineasFondo
+  lineasFondo: normalizarLineasFondo,
+  referenciaHS: (valor) => (REFERENCIAS_HS.includes(valor) ? valor : 'IIR')
 };
 
 function normalizarConfiguracion(configuracion) {
@@ -196,6 +199,9 @@ function normalizarConfiguracion(configuracion) {
       limpia[clave] = normalizar ? normalizar(configuracion[clave]) : configuracion[clave];
     }
   });
+  // Antes de la 2.6.0 no había elección: todo iba con la IIR. Un enlace de
+  // entonces trae sus h y s escritos con ella y tiene que seguir leyéndose así.
+  if (limpia.referenciaHS === undefined) limpia.referenciaHS = 'IIR';
   return limpia;
 }
 

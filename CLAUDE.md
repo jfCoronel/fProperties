@@ -86,7 +86,7 @@ npm run preview      # Preview production build locally
 
 2. **Unit Conversions**: Internal CoolProp uses SI base units (K, Pa, J/kg), but the application presents user-friendly units (ºC, kPa, kJ/kg). All conversions happen in `cambiarUnidadEntrada*` and `cambiarUnidadSalida*` functions.
 
-3. **Reference State Adjustments**: Enthalpy and entropy have reference state offsets applied for better usability (h=200 kJ/kg, s=1 kJ/(kg·K) at 0ºC saturated liquid when possible).
+3. **Reference State Adjustments**: Enthalpy and entropy use a user-selectable reference (`configuracion.referenciaHS`: auto, IIR, ASHRAE, NBP, TRIPLE; auto = TRIPLE/IAPWS for water, IIR otherwise), applied as cached offsets in [fluidos.js](src/propFluidos/fluidos.js). Change it only through `cambiarReferenciaHS()` ([src/referenciaHS.js](src/referenciaHS.js)), which converts h/s inputs of states. Permalinks without the key load as IIR.
 
 4. **State Updates**: When modifying fluid/air states, always call `actualizarFluido()` or `actualizarAire()` to recalculate all dependent properties.
 

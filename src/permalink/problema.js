@@ -6,7 +6,7 @@ import { listaFluidos } from '../listaFluidos';
 import { listaAires } from '../listaAires';
 import { listaProcesos } from '../procesos/listaProcesos';
 import { propagarProcesos } from '../procesos/propagacion';
-import { getObjetoFluido, esperarCoolprop } from '../propFluidos/fluidos';
+import { getObjetoFluido, esperarCoolprop, setReferenciaHS } from '../propFluidos/fluidos';
 import { getObjetoAireHumedo } from '../propFluidos/aires';
 import {
   ESQUEMA_PROBLEMA,
@@ -71,6 +71,9 @@ export function serializarProblema() {
  */
 export function aplicarProblema(datos) {
   const problema = normalizarProblema(datos);
+
+  // La referencia antes que los estados: sus h y s están escritos con ella
+  setReferenciaHS(problema.configuracion.referenciaHS);
 
   listaFluidos.set(problema.estados.map((estado) => ({
     ...estado,

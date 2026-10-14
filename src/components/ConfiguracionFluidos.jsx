@@ -2,12 +2,22 @@ import { Drawer, Form, Select, InputNumber } from 'antd';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI } from '../configuracion';
+import { listaFluidos } from '../listaFluidos';
+import { REFERENCIAS_HS, tieneReferencia } from '../propFluidos/fluidos';
+import { cambiarReferenciaHS } from '../referenciaHS';
 
 const ConfiguracionFluidos = () => {
   const conf = useHookstate(configuracion);
   const columnasTabla = conf.columnasTablaFluidos;
   const nCifras = conf.nCifras;
   const verConfiguracion = conf.verConfiguracion;
+  const lista = useHookstate(listaFluidos);
+
+  // Los fluidos de la tabla que no tienen el estado de la referencia elegida
+  // (0 ºC por encima de su crítica, sin líquido a 1 atm...) van con la de CoolProp
+  const referencia = conf.referenciaHS.get();
+  const sinReferencia = [...new Set(lista.get({ noproxy: true }).map((estado) => estado.fluido))]
+    .filter((fluido) => !tieneReferencia(fluido, referencia));
 
   const { Option } = Select;
 
@@ -130,6 +140,23 @@ const ConfiguracionFluidos = () => {
             onChange={(value) => { columnasTabla[6].set(value); }}
           >
             {OPCIONES}
+          </Select>
+        </Form.Item>
+        <Form.Item
+          label={getTextoUI("lab_referencia_hs")}
+          extra={<>
+            {getTextoUI(`ayuda_ref_${referencia}`)}
+            {sinReferencia.length > 0 && (
+              <div style={{ color: '#d46b08', marginTop: 4 }}>
+                {getTextoUI("aviso_sin_referencia")}: {sinReferencia.join(', ')}
+              </div>
+            )}
+          </>}
+        >
+          <Select value={referencia} onChange={cambiarReferenciaHS}>
+            {REFERENCIAS_HS.map((clave) => (
+              <Option key={clave} value={clave}>{getTextoUI(`ref_${clave}`)}</Option>
+            ))}
           </Select>
         </Form.Item>
       </Form>
