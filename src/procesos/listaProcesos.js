@@ -11,7 +11,7 @@ export const listaProcesos = hookstate([]);
 const PREFIJO_ID = "p";
 
 // Paleta para que dos procesos consecutivos no salgan del mismo color en el diagrama.
-const COLORES = ['#1890FF', '#F5222D', '#52C41A', '#FA8C16', '#722ED1', '#13C2C2'];
+export const COLORES_PROCESOS = ['#1890FF', '#F5222D', '#52C41A', '#FA8C16', '#722ED1', '#13C2C2'];
 
 // Mismo criterio que en los estados: el id se deriva del máximo en uso, para que
 // siga siendo único tras cargar una lista completa (permalink, importación).
@@ -82,7 +82,7 @@ export const nuevoProceso = (idOrigen = null, idDestino = null, dominio = DOMINI
     // Un proceso nuevo se dibuja: ocultarlo es la excepción, no la norma.
     enDiagrama: true,
     estilo: {
-      color: COLORES[nProcesos % COLORES.length],
+      color: COLORES_PROCESOS[nProcesos % COLORES_PROCESOS.length],
       grosor: 2,
       trazo: "solid"
     }

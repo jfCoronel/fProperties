@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.6.1**.
+Estado del proyecto en la **versión 2.6.2**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -19,7 +19,7 @@ psicrométrico),
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre; Plotly (bundle gl3d) para el diagrama 3D, cargado solo al abrirlo |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (218 tests contra CoolProp real) |
+| Tests | Vitest (227 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -195,7 +195,10 @@ cae justo en la saturación: sin más, un isobárico llegaba en diagonal a la l�
 saturado en vez de doblar sobre ella. Antes de dibujar, en cada tramo que entra o sale de la
 campana se inserta el estado saturado exacto (`diagramas/refinarTrazo.js`, interpolando en
 (p, h) entre los dos puntos y por bisección). Es exacto en los isobáricos e isentálpicos, y
-una aproximación muy buena en el resto. No se aplica al psicrométrico.
+una aproximación muy buena en el resto. Qué línea saturada toca se decide por la h del punto
+de cruce (la más próxima, h_f o h_g), no por el volumen: un compresor que sale de vapor
+saturado acaba con menos v que la mezcla y se iba a buscar el líquido. No se aplica al
+psicrométrico.
 
 **Diagrama p-v-T (3D).** Dibuja la **superficie p-v-T** del fluido en gris, con las isotermas
 marcadas, la campana en negro, y los estados y procesos como en los planos (mismos colores,
@@ -693,12 +696,12 @@ llega a existir en vez de tener que romperse.
 
 | Componente | Función |
 |---|---|
-| `TablaFluidos.jsx` | La tabla de estados de fluido: columnas configurables, selección, borrado y duplicado en bloque, reordenación por arrastre, exportación CSV, marca de estado calculado, ojo de visibilidad en el diagrama y resaltado de los estados implicados en el proceso seleccionado. |
+| `TablaFluidos.jsx` | La tabla de estados de fluido: columnas configurables, selección, borrado y duplicado en bloque, reordenación por arrastre, exportación CSV, marca de estado calculado, ojo de visibilidad en el diagrama y resaltado de los estados implicados en el proceso seleccionado. Sin estados no se monta la tabla (como en la de procesos), para no dejar el recuadro vacío de antd. |
 | `DialogoFluido.jsx` | Alta y edición de un estado: nombre, fluido y las dos propiedades que lo definen. Es el único sitio donde un estado se edita a mano, y por eso es donde se rompe el vínculo de un estado calculado. |
 | `ConfiguracionFluidos.jsx` | Panel lateral de columnas de la tabla de fluidos y cifras significativas. |
 | `TablaAires.jsx`, `DialogoAire.jsx`, `ConfiguracionAires.jsx` | Los tres equivalentes para el aire húmedo, con la misma columna del ojo, la misma selección sincronizada y la misma marca de estado calculado. |
 | `TablaProcesos.jsx` | La tabla de procesos: columnas de resultado por tipo, diagnóstico con sus mensajes, selección sincronizada, ojo de visibilidad, CSV y disparo de la propagación al crear, borrar o duplicar. **Recibe el dominio como prop** y sirve igual para fluidos y para aire; monta también el panel de ciclos y el editor. |
-| `DialogoProceso.jsx` | Alta y edición de un proceso: tipo, modo del estado destino, extremos, parámetros y estilo. Monta **tantos selectores de origen como diga la aridad** del tipo, que es lo que necesita la mezcla adiabática. Rellena los parámetros al pasar a modo calculado —cada uno sabe leerse de la pareja de estados— En modo calculado sustituye el selector del estado final por su nombre; el estado lo crea la propagación cuando se puede calcular. |
+| `DialogoProceso.jsx` | Alta y edición de un proceso: tipo, modo del estado destino, extremos, parámetros y estilo. Monta **tantos selectores de origen como diga la aridad** del tipo, que es lo que necesita la mezcla adiabática. Rellena los parámetros al pasar a modo calculado —cada uno sabe leerse de la pareja de estados— En modo calculado sustituye el selector del estado final por su nombre; el estado lo crea la propagación cuando se puede calcular. El color se elige con `SelectorColor.jsx`: una paleta de colores habituales (los automáticos de `COLORES_PROCESOS` y seis más) y el selector libre solo tras "Otro color…". |
 | `Ciclos.jsx` | El panel de balance de los ciclos detectados. Solo se dibuja si hay ciclo, y declara el balance incompleto si alguno de sus procesos es de tipo indeterminado. |
 | `columnaDiagrama.jsx` | La columna del ojo, compartida por las dos tablas: recibe los ids, el conjunto de ocultos y la función que escribe, y devuelve la definición de columna. Ni conoce las listas ni las toca. |
 | `GraficaEstados.jsx` | **El andamiaje común a los dos diagramas**: rótulos de los puntos, tooltip, zoom, arrastre y reencuadre, clic sobre una curva traducido a la fila de su proceso, armado de series y resaltado. Recibe del diagrama concreto la proyección a los ejes, las etiquetas y las curvas de fondo. Dos cosas van memorizadas y ninguna por capricho: las curvas de los procesos son cientos de llamadas a CoolProp que no deben rehacerse en cada render, y **el objeto de opciones sostiene el zoom** —react-chartjs-2 lo vuelca sobre el gráfico cada vez que cambia de identidad, y el encuadre vive en los mínimos y máximos de las escalas—. También distingue un clic de un arrastre: sin ese umbral, mover el diagrama cambiaría la selección de procesos al soltar. |
@@ -775,7 +778,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**218 tests en 15 ficheros:**
+**227 tests en 16 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
@@ -790,7 +793,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 | `propFluidos/isolineasAire.test.js` | 6 | Las isolíneas de fondo del psicrométrico: que arrancan en la campana y llegan a w = 0 sin cruzar el eje, que respetan el recorte del fondo, que **todos** sus puntos tienen la propiedad de la etiqueta, que dependen de la presión total y que la de T_h = 0, sin extremo seco, no se inventa. |
 | `diagramas/lineasFondo.test.js` | 20 | Las líneas de fondo: valores automáticos redondos (lineales y logarítmicos), el recorte a la ventana —también en eje logarítmico—, la lectura de lo que escribe el usuario, el filtrado de lo que llega por un enlace y la física: una isoterma del p-h cruza la campana horizontal a la presión de saturación, una isobara del T-s a la temperatura de saturación, las de título acaban junto al crítico, nada se parte al cruzar la saturación ni se sale de la ventana, y en el h-s las isobaras son, dentro de la campana, rectas de pendiente T. |
 | `diagramas/superficiePvT.test.js` | 6 | La superficie del 3D: malla rectangular y casi sin huecos en agua, R134a y CO₂, cada punto sobre la superficie, el tramo de mezcla plano a la presión de saturación, v creciente a lo largo de cada isoterma y la campana del triple al crítico y de vuelta. |
-| `diagramas/refinarTrazo.test.js` | 5 | Que un isobárico de líquido a vapor pasa por los dos estados saturados exactos —también en entropía, que es lo que ve el T-s—, que con subdivisión v no salta más de lo permitido, y que un tramo todo en vapor queda como estaba. |
+| `diagramas/refinarTrazo.test.js` | 6 | Que un isobárico de líquido a vapor pasa por los dos estados saturados exactos —también en entropía, que es lo que ve el T-s—, que con subdivisión v no salta más de lo permitido, que un tramo todo en vapor queda como estaba y que un compresor desde vapor saturado no va a buscar el líquido. |
 | `referenciaHS.test.js` | 10 | Las referencias de h y s: cada convenio da los valores de sus tablas (el agua con la del punto triple, contra el Çengel), la caída a la de CoolProp sin estado de referencia, que cambiarla no mueve ningún estado definido por h o s, y que un enlace sin referencia se abre con la IIR. |
 | `permalink/formato.test.js` | 13 | Ida y vuelta de la codificación, tamaño del enlace, rechazo de cargas ilegibles o de otra versión, y la normalización de lo que llega de fuera, incluidas la configuración de líneas de fondo y la referencia de h y s. |
 | `permalink/problema.test.js` | 7 | Que lo que se serializa **basta** para reconstruir el problema contra el estado real de la aplicación. Es el test que detectaría un campo de entrada olvidado. Incluye una mezcla adiabática —dos orígenes y dos caudales que sobrevivir al viaje— y un enlace de la 2.2.1 con claves de configuración ya retiradas, que debe abrirse igual. |

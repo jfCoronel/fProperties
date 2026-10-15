@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Modal, Button, Row, Col, Select, Input, InputNumber, Form, ColorPicker, Alert } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, InputNumber, Form, Alert } from 'antd'
 import { configuracion, getTextoUI } from '../configuracion';
 import { getListaDominio } from '../listasDominio';
 import { listaProcesos, actualizarProceso, cambiarTipoProceso } from '../procesos/listaProcesos';
@@ -15,6 +15,7 @@ import { detectarTipo } from '../procesos/deteccion';
 import { propagarProcesos, nombreDestinoPendiente } from '../procesos/propagacion';
 import { getRendimientoIsentropico, getRendimientoExpansion } from '../procesos/resolvedores';
 import { textoMensaje } from '../procesos/mensajes';
+import SelectorColor from './SelectorColor';
 import formatear from '../util/formatear';
 
 const { Option } = Select;
@@ -283,9 +284,9 @@ const DialogoProceso = ({ dominio = 'fluido' }) => {
             <Row gutter={8}>
                 <Col span={8}>
                     <Form.Item label={getTextoUI("lab_estilo_color")}>
-                        <ColorPicker
+                        <SelectorColor
                             value={proceso.estilo.color}
-                            onChange={(_, hex) => guardar({ estilo: { ...proceso.estilo, color: hex } })}
+                            onChange={(hex) => guardar({ estilo: { ...proceso.estilo, color: hex } })}
                         />
                     </Form.Item>
                 </Col>

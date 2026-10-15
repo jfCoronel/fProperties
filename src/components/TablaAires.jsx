@@ -285,34 +285,36 @@ const TablaAires = () => {
         {getTextoUI("btn_exportar_csv")}
       </Button>
       <p> </p>
-      <DndContext modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
-        <SortableContext
-          items={datos.map((d) => d.key)}
-          strategy={verticalListSortingStrategy}
-        >
-          <Table
-            rowSelection={seleccionFilas}
-            columns={columnas}
-            dataSource={datos}
-            rowClassName={rowClassName}
-            pagination={{
-              showSizeChanger: true,
-              defaultPageSize: 5,
-              pageSizeOptions: [5, 10, 100]
-            }}
-            components={{
-              body: {
-                row: FilaArrastrable,
-              },
-            }}
-            onRow={(record) => {
-              return {
-                onDoubleClick: () => { idAireActual.set(record.key); verDialogoAire.set(true) }
-              };
-            }}
-          />
-        </SortableContext>
-      </DndContext>
+      {datos.length > 0 && (
+        <DndContext modifiers={[restrictToVerticalAxis]} onDragEnd={onDragEnd}>
+          <SortableContext
+            items={datos.map((d) => d.key)}
+            strategy={verticalListSortingStrategy}
+          >
+            <Table
+              rowSelection={seleccionFilas}
+              columns={columnas}
+              dataSource={datos}
+              rowClassName={rowClassName}
+              pagination={{
+                showSizeChanger: true,
+                defaultPageSize: 5,
+                pageSizeOptions: [5, 10, 100]
+              }}
+              components={{
+                body: {
+                  row: FilaArrastrable,
+                },
+              }}
+              onRow={(record) => {
+                return {
+                  onDoubleClick: () => { idAireActual.set(record.key); verDialogoAire.set(true) }
+                };
+              }}
+            />
+          </SortableContext>
+        </DndContext>
+      )}
 
       {verConfiguracion.get() && <ConfiguracionAires />}
     </div >

@@ -209,6 +209,8 @@
     "aviso_vinculo_roto": "Este estado lo calculaba un proceso; al editarlo a mano, ese proceso vuelve a modo manual",
 
     "lab_estilo_color": "Color",
+    "lab_colores_habituales": "Colores habituales",
+    "btn_otro_color": "Otro color…",
     "lab_estilo_grosor": "Grosor",
     "lab_estilo_trazo": "Trazo",
     "trazo_solid": "Continuo",

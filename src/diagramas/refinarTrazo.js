@@ -71,12 +71,13 @@ function cruceCampana(a, b) {
         const t = (t0 + t1) / 2;
         if (mezclaEn(a, b, t) === mezclaA) t0 = t; else t1 = t;
     }
-    const lado = esMezcla(a) ? b : a;     // el estado que no es mezcla
-    const mezcla = esMezcla(a) ? a : b;
-    const [presion] = parametro(a, b, (t0 + t1) / 2);
-    // Líquido saturado si el estado de fuera tiene menos volumen que la mezcla
-    const titulo = lado.V < mezcla.V ? 0 : 100;
-    const saturado = estadoLigero(a.fluido, 'P', presion, 'X', titulo);
+    const [presion, entalpia] = parametro(a, b, (t0 + t1) / 2);
+    // El cruce está sobre la campana: la línea saturada es la de h más próxima.
+    // No vale comparar volúmenes: un compresor que sale de vapor saturado acaba
+    // con menos v que la mezcla y se tomaría por líquido.
+    const liquido = estadoLigero(a.fluido, 'P', presion, 'X', 0);
+    const vapor = estadoLigero(a.fluido, 'P', presion, 'X', 100);
+    const saturado = Math.abs(liquido.H - entalpia) < Math.abs(vapor.H - entalpia) ? liquido : vapor;
     return valido(saturado) ? saturado : null;
 }
 

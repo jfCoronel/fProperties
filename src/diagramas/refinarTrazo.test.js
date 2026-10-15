@@ -56,4 +56,16 @@ describe('refinado del trazo 3D', () => {
     expect(trazo.some((e) => Math.abs(e.S - sf) < 1e-6)).toBe(true);
     expect(trazo.some((e) => Math.abs(e.S - sg) < 1e-6)).toBe(true);
   });
+
+  it('un compresor desde vapor saturado no va a buscar el líquido', () => {
+    // Isentrópico de 100 kPa (x = 1) a 1000 kPa: v baja, pero sigue en vapor
+    const s1 = getPropFluido('Agua', 'S', 'P', 100, 'X', 100);
+    const original = Array.from({ length: 25 }, (_, i) => {
+      const p = 100 + 900 * i / 24;
+      return estado(p, getPropFluido('Agua', 'H', 'P', p, 'S', s1));
+    });
+    original[0] = { fluido: 'Agua', ...getObjetoFluido('Agua', 'P', 100, 'X', 100) };
+    const hf = getPropFluido('Agua', 'H', 'P', 100, 'X', 0);
+    refinarTrazo(original).forEach((e) => expect(e.H).toBeGreaterThan(hf + 1000));
+  });
 });

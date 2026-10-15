@@ -209,6 +209,8 @@
     "aviso_vinculo_roto": "This state was computed by a process; editing it by hand returns that process to manual mode",
 
     "lab_estilo_color": "Colour",
+    "lab_colores_habituales": "Common colours",
+    "btn_otro_color": "Other colour…",
     "lab_estilo_grosor": "Width",
     "lab_estilo_trazo": "Line style",
     "trazo_solid": "Solid",
