@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.6.2**.
+Estado del proyecto en la **versión 2.6.3**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -176,8 +176,9 @@ aparece también en los demás diagramas, donde la isentrópica se curva.
 
 Los valores son **automáticos** por defecto: valores redondos que cubren el diagrama y se
 adaptan al fluido (o a la presión total, en el psicrométrico). Con **valores propios** se
-dibujan los que se escriban, separados por punto y coma o espacios y con el decimal con coma
-o con punto; se aplican al salir del campo o con Intro, porque cada redibujado son cientos de
+dibujan los que se escriban, con punto decimal como en las tablas y separados por comas,
+punto y coma o espacios ("0.5, 1, 2.5"); los rótulos de las líneas usan el mismo formato en
+los dos idiomas. Se aplican al salir del campo o con Intro, porque cada redibujado son cientos de
 llamadas a CoolProp. La configuración es **por tipo de diagrama**, no por fluido: al cambiar
 de fluido se conservan las familias encendidas y los automáticos se recalculan. Viaja en el
 **enlace compartido**, de modo que quien comparte un problema decide qué líneas se ven, y

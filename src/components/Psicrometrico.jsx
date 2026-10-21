@@ -36,7 +36,7 @@ const Psicrometrico = () => {
     const lista = useHookstate(listaAires);
     const {
         tipoPsicrometrico, opcionPsicrometrico, valorOpcionPsicrometrico, airesSeleccionados,
-        lineasFondo, idioma
+        lineasFondo
     } = useHookstate(configuracion);
 
     const tipoActual = tipoPsicrometrico.get();
@@ -50,11 +50,10 @@ const Psicrometrico = () => {
     );
 
     // Las curvas de fondo son unos cientos de llamadas a CoolProp: se recalculan
-    // solo cuando cambia la presión del diagrama, su configuración o el idioma
-    // (que cambia el decimal de los rótulos), no en cada render.
+    // solo cuando cambia la presión del diagrama o su configuración, no en cada
+    // render.
     const lineasGuardadas = lineasFondo.get({ noproxy: true });
     const firmaFondo = JSON.stringify(lineasGuardadas.psicrometrico ?? {});
-    const idiomaActual = idioma.get();
     const curvasFondo = useMemo(() => {
         const { xMin, xMax } = VENTANA_PSICROMETRICO;
         const saturacion = [];
@@ -62,13 +61,13 @@ const Psicrometrico = () => {
             saturacion.push({ x: t, y: getPropAireHumedo("W", opcionActual, valorActual, 'T', t, 'HR', 100) });
         }
         return [
-            ...curvasFondoAire(opcionActual, valorActual, lineasGuardadas, idiomaActual),
+            ...curvasFondoAire(opcionActual, valorActual, lineasGuardadas),
             ...recortarPolilinea(saturacion, VENTANA_PSICROMETRICO).map((trozo) => ({
                 data: trozo, showLine: true, pointRadius: 0, borderColor: GRIS_SATURACION, borderWidth: 3
             }))
         ];
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [opcionActual, valorActual, firmaFondo, idiomaActual]);
+    }, [opcionActual, valorActual, firmaFondo]);
 
     const panelFondo = (
         <PanelLineasFondo

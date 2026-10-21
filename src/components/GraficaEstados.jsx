@@ -348,17 +348,27 @@ const GraficaEstados = ({
     // el diagrama a su encuadre inicial. Que cambiar de vista sí lo reencuadre es
     // lo deseable: el encuadre anterior no significa nada en otros ejes.
     const opcionesGrafico = useMemo(() => ({
-        locale: "es",
+        // Mismo formato que las tablas: punto decimal y sin separador de miles,
+        // sea cual sea el idioma.
+        locale: "en-US",
         maintainAspectRatio: false,
         scales: {
             x: {
                 title: { display: true, text: etiquetaX, font: { size: 14 } },
-                ticks: { font: { size: 14 } }
+                ticks: { font: { size: 14 }, format: { useGrouping: false } }
             },
             y: {
                 type: escalaY,
                 title: { display: true, text: etiquetaY, font: { size: 14 } },
-                ticks: { font: { size: 14 } }
+                // Chart.js saca los decimales de la separación entre marcas y los
+                // aplica a todas: en logarítmica, unas marcas de 0.1 en 0.1 al pie
+                // del eje dejarían "1000.0" arriba. Se permite quitar ceros finales.
+                ticks: {
+                    font: { size: 14 },
+                    format: escalaY === 'logarithmic'
+                        ? { useGrouping: false, minimumFractionDigits: 0 }
+                        : { useGrouping: false }
+                }
             },
         },
         plugins: {

@@ -103,7 +103,7 @@
     "tab_lineas_fondo": "Líneas de fondo",
     "tab_ejes": "Ejes",
     "fondo_ayuda": "Enciende o apaga cada familia de líneas. Los valores automáticos se adaptan al fluido (o a la presión, en el psicrométrico); con valores propios se dibujan los que escribas.",
-    "fondo_ayuda_valores": "Separa los valores con punto y coma o espacios. Se aplican al salir del campo o al pulsar Intro.",
+    "fondo_ayuda_valores": "Separa los valores con comas o espacios, con punto decimal (0.5, 1, 2.5). Se aplican al salir del campo o al pulsar Intro.",
     "fondo_automaticos": "Automáticos",
     "fondo_propios": "Propios",
     "fondo_restablecer": "Valores por defecto",

@@ -37,7 +37,7 @@ const ETIQUETAS_Y = { "p-T": "p [kPa]", "p-h": "p [kPa]", "T-s": "T [ºC]", "h-s
 
 const Diagrama = () => {
     const lista = useHookstate(listaFluidos);
-    const { tipoDiagrama, fluidoDiagrama, fluidosSeleccionados, lineasFondo, idioma, referenciaHS } = useHookstate(configuracion);
+    const { tipoDiagrama, fluidoDiagrama, fluidosSeleccionados, lineasFondo, referenciaHS } = useHookstate(configuracion);
 
     const fluidoActual = fluidoDiagrama.get();
     const tipoActual = tipoDiagrama.get();
@@ -117,15 +117,14 @@ const Diagrama = () => {
 
     // La curva de saturación son ~200 llamadas a CoolProp, y las líneas de fondo
     // cientos más: se recalculan solo cuando cambia algo de lo que dependen
-    // (fluido, tipo, su configuración, el idioma de los rótulos), no en cada render.
+    // (fluido, tipo, su configuración), no en cada render.
     const lineasGuardadas = lineasFondo.get({ noproxy: true });
     const firmaFondo = JSON.stringify(lineasGuardadas[tipoActual] ?? {});
-    const idiomaActual = idioma.get();
     const curvasFondo = useMemo(() => (tipoActual === TIPO_3D ? [] : [
-        ...curvasFondoFluido(fluidoActual, tipoActual, lineasGuardadas, idiomaActual),
+        ...curvasFondoFluido(fluidoActual, tipoActual, lineasGuardadas),
         getCurvaSat(3)
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    ]), [getCurvaSat, firmaFondo, idiomaActual, referenciaActual]);
+    ]), [getCurvaSat, firmaFondo, referenciaActual]);
 
     // Los valores automáticos dependen del fluido: el contexto (puntos triple y
     // crítico) se calcula una vez por fluido. Solo con diagrama: sin él, este

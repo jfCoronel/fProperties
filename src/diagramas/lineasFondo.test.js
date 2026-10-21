@@ -77,11 +77,12 @@ describe('configuración y lo que escribe el usuario', () => {
   });
 
   it('lee listas con coma o punto decimal, separadas por ; o espacios', () => {
-    expect(parsearValores('0,5; 1;2,5')).toEqual([0.5, 1, 2.5]);
+    expect(parsearValores('0.5, 1,2.5')).toEqual([0.5, 1, 2.5]);
+    expect(parsearValores('0.5; 1;2.5')).toEqual([0.5, 1, 2.5]);
     expect(parsearValores('2.5 0.5  1 1 abc')).toEqual([0.5, 1, 2.5]);
     expect(parsearValores('')).toEqual([]);
-    expect(formatearValores([0.5, 10], 'es')).toBe('0,5; 10');
-    expect(formatearValores([0.5, 10], 'en')).toBe('0.5; 10');
+    expect(formatearValores([0.5, 10])).toBe('0.5, 10');
+    expect(formatearValores([12000])).toBe('12000');
   });
 
   it('del enlace solo pasa lo que tiene forma válida', () => {

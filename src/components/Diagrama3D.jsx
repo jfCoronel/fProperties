@@ -51,7 +51,7 @@ const PLANTILLA_PUNTO = "v: %{x:.4g} m³/kg<br>T: %{y:.4g} ºC<br>p: %{z:.4g} kP
  * @param pie            líneas informativas bajo los selectores
  */
 const Diagrama3D = ({ estados, seleccionados, visible, fluido, titulo, selectores, pie }) => {
-    const { procesosSeleccionados, idProcesoActual, idioma } = useHookstate(configuracion);
+    const { procesosSeleccionados, idProcesoActual } = useHookstate(configuracion);
     const procesos = useHookstate(listaProcesos);
     const procesosActuales = procesos.get({ noproxy: true })
         .filter((proceso) => dominioDeProceso(proceso) === "fluido");
@@ -178,14 +178,14 @@ const Diagrama3D = ({ estados, seleccionados, visible, fluido, titulo, selectore
         hoverinfo: 'skip'
     };
 
-    const idiomaActual = idioma.get();
     const datos = [...fondo, ...seriesProcesos, serieEstados, serieNombres];
     const layout = {
         // Mientras no cambie el fluido, Plotly conserva la cámara entre redibujos
         uirevision: fluido,
         margin: { l: 0, r: 0, t: 0, b: 0 },
         showlegend: false,
-        separators: idiomaActual === "es" ? ",." : ".,",
+        // Como en las tablas: punto decimal y sin separador de miles
+        separators: ".",
         scene: {
             // Sin líneas de proyección a las paredes al pasar el ratón
             xaxis: { title: { text: "v [m³/kg]" }, type: 'log', exponentformat: 'power', showspikes: false },

@@ -103,7 +103,7 @@
     "tab_lineas_fondo": "Background lines",
     "tab_ejes": "Axes",
     "fondo_ayuda": "Turn each family of lines on or off. Automatic values adapt to the fluid (or to the pressure, in the psychrometric chart); with your own values, the ones you type are drawn.",
-    "fondo_ayuda_valores": "Separate the values with semicolons or spaces. They are applied when leaving the field or pressing Enter.",
+    "fondo_ayuda_valores": "Separate the values with commas or spaces, using a decimal point (0.5, 1, 2.5). They are applied when leaving the field or pressing Enter.",
     "fondo_automaticos": "Automatic",
     "fondo_propios": "Custom",
     "fondo_restablecer": "Default values",

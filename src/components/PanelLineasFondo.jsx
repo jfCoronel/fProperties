@@ -28,9 +28,9 @@ const MuestraTrazo = ({ familia }) => (
 
 // Campo de valores propios con su propio borrador: se edita libremente y solo se
 // lleva a la configuración al confirmarlo.
-const CampoValores = ({ valores, idioma, alConfirmar }) => {
-    const [borrador, setBorrador] = useState(formatearValores(valores, idioma));
-    useEffect(() => { setBorrador(formatearValores(valores, idioma)); }, [valores, idioma]);
+const CampoValores = ({ valores, alConfirmar }) => {
+    const [borrador, setBorrador] = useState(formatearValores(valores));
+    useEffect(() => { setBorrador(formatearValores(valores)); }, [valores]);
     const confirmar = () => alConfirmar(parsearValores(borrador));
     return (
         <Input
@@ -44,7 +44,7 @@ const CampoValores = ({ valores, idioma, alConfirmar }) => {
 };
 
 const PanelLineasFondo = ({ diagrama, valoresAutomaticos }) => {
-    const { lineasFondo, idioma } = useHookstate(configuracion);
+    const { lineasFondo } = useHookstate(configuracion);
     const guardada = lineasFondo.get({ noproxy: true });
     const familias = configuracionFamilias(diagrama, guardada);
 
@@ -98,13 +98,12 @@ const PanelLineasFondo = ({ diagrama, valoresAutomaticos }) => {
                             ? <Input
                                 size="small"
                                 disabled
-                                value={formatearValores(valoresAutomaticos(familia), idioma.get())}
+                                value={formatearValores(valoresAutomaticos(familia))}
                             />
                             : <Tooltip title={getTextoUI("fondo_ayuda_valores")} mouseEnterDelay={0.5}>
                                 <span style={{ flex: 1 }}>
                                     <CampoValores
                                         valores={familia.valores}
-                                        idioma={idioma.get()}
                                         alConfirmar={(valores) => cambiarFamilia(familia.clave, { valores })}
                                     />
                                 </span>

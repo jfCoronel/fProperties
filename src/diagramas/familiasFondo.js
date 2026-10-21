@@ -119,25 +119,23 @@ export function normalizarLineasFondo(datos) {
     return limpia;
 }
 
-// Texto que escribe el usuario → lista de valores. Se separan con punto y coma
-// o espacios, y el decimal puede ir con punto o con coma: "0,5; 1; 2,5" y
-// "0.5 1 2.5" dan lo mismo. Lo que no sea un número se ignora. Ordenada y sin
-// repetidos, que es como se dibujan y como se rotulan.
+// Texto que escribe el usuario → lista de valores. El decimal es el punto, como
+// en las tablas, y los valores se separan con comas, punto y coma o espacios:
+// "0.5, 1, 2.5" y "0.5 1 2.5" dan lo mismo. Lo que no sea un número se ignora.
+// Ordenada y sin repetidos, que es como se dibujan y como se rotulan.
 export function parsearValores(texto) {
     const valores = String(texto ?? '')
-        .split(/[;\s]+/)
+        .split(/[,;\s]+/)
         .filter((trozo) => trozo !== '')
-        .map((trozo) => Number(trozo.replace(',', '.')))
+        .map(Number)
         .filter(Number.isFinite);
     return [...new Set(valores)].sort((a, b) => a - b).slice(0, MAX_VALORES_FAMILIA);
 }
 
-// Lista de valores → texto para el campo del diálogo, con el decimal del idioma.
-export function formatearValores(valores, idioma = 'es') {
+// Lista de valores → texto para el campo del diálogo, con el formato de las
+// tablas: punto decimal, sin separador de miles.
+export function formatearValores(valores) {
     return (valores ?? [])
-        .map((valor) => {
-            const texto = String(Number(valor.toPrecision(6)));
-            return idioma === 'es' ? texto.replace('.', ',') : texto;
-        })
-        .join('; ');
+        .map((valor) => String(Number(valor.toPrecision(6))))
+        .join(', ');
 }

@@ -275,19 +275,17 @@ export function recortarPolilinea(puntos, caja, logY = false) {
 // ---------------------------------------------------------------------------
 // Datasets para el diagrama
 
-const textoValor = (valor, idioma) => {
-    const texto = String(Number(valor.toPrecision(4)));
-    return idioma === 'es' ? texto.replace('.', ',') : texto;
-};
+// Como en las tablas: punto decimal, sin separador de miles.
+const textoValor = (valor) => String(Number(valor.toPrecision(4)));
 
 // Rótulo de cada línea: el valor con lo justo para saber de qué familia es.
 const ROTULOS = {
-    T: (v, i) => `${textoValor(v, i)} ºC`,
-    P: (v, i) => `${textoValor(v, i)} kPa`,
-    S: (v, i) => `s=${textoValor(v, i)}`,
-    H: (v, i) => `h=${textoValor(v, i)}`,
-    X: (v, i) => `x=${textoValor(v, i)}%`,
-    V: (v, i) => `v=${textoValor(v, i)}`
+    T: (v) => `${textoValor(v)} ºC`,
+    P: (v) => `${textoValor(v)} kPa`,
+    S: (v) => `s=${textoValor(v)}`,
+    H: (v) => `h=${textoValor(v)}`,
+    X: (v) => `x=${textoValor(v)}%`,
+    V: (v) => `v=${textoValor(v)}`
 };
 
 const ROTULO_FONDO = { font: '11px Arial', color: '#8c8c8c', align: 'left', dx: 3, dy: -6 };
@@ -320,7 +318,7 @@ const estiloFamilia = (familia) => ({
  * Devuelve también la ventana, por si quien llama quiere recortar con ella lo
  * suyo (la campana no hace falta: la ventana la contiene).
  */
-export function curvasFondoFluido(fluido, diagrama, guardada, idioma = 'es') {
+export function curvasFondoFluido(fluido, diagrama, guardada) {
     const ejes = EJES_FLUIDO[diagrama];
     if (!ejes) return [];
     const familias = configuracionFamilias(diagrama, guardada).filter((familia) => familia.activa);
@@ -347,7 +345,7 @@ export function curvasFondoFluido(fluido, diagrama, guardada, idioma = 'es') {
                     const k = enInicio ? 0 : trozo.length - 1;
                     trozo[k] = {
                         ...trozo[k],
-                        nombre: ROTULOS[familia.propiedad](valor, idioma),
+                        nombre: ROTULOS[familia.propiedad](valor),
                         posicionNombre: posicionRotulo(trozo[k], caja)
                     };
                 }
@@ -394,7 +392,7 @@ export function valoresAutomaticosAire(familia, opcion, valorOpcion) {
 // las de volumen, en la campana (por fuera y por dentro, para no pisarse); las
 // de entalpía y humedad relativa, en su extremo final, el eje w = 0 o el borde.
 const ROTULO_AIRE = {
-    HR: { extremo: 'fin', posicion: { align: 'right', dx: -3, dy: -6 }, texto: (v, i) => `${textoValor(v, i)} %` },
+    HR: { extremo: 'fin', posicion: { align: 'right', dx: -3, dy: -6 }, texto: (v) => `${textoValor(v)} %` },
     TH: { extremo: 'inicio', posicion: { align: 'right', dx: -4, dy: -6 }, texto: textoValor },
     // Si la línea llega al eje, el rótulo a su derecha; si acaba en el borde
     // derecho de la ventana, a su izquierda, para que no se salga.
@@ -420,7 +418,7 @@ function puntosIsolineaAire(familia, valor, opcion, valorOpcion) {
         .map(({ T, W }) => ({ x: T, y: W }));
 }
 
-export function curvasFondoAire(opcion, valorOpcion, guardada, idioma = 'es') {
+export function curvasFondoAire(opcion, valorOpcion, guardada) {
     return configuracionFamilias('psicrometrico', guardada)
         .filter((familia) => familia.activa)
         .flatMap((familia) => {
@@ -436,7 +434,7 @@ export function curvasFondoAire(opcion, valorOpcion, guardada, idioma = 'es') {
                         const k = rotulo.extremo === 'inicio' ? 0 : trozo.length - 1;
                         trozo[k] = {
                             ...trozo[k],
-                            nombre: rotulo.texto(valor, idioma),
+                            nombre: rotulo.texto(valor),
                             posicionNombre: {
                                 ...ROTULO_FONDO,
                                 ...(typeof rotulo.posicion === 'function' ? rotulo.posicion(trozo[k]) : rotulo.posicion)
