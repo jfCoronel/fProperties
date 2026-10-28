@@ -11,6 +11,7 @@ import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
 import { dominioDeProceso } from '../procesos/proceso';
 import { trazosProcesos } from '../diagramas/trazosProcesos';
 import { refinarTrazo } from '../diagramas/refinarTrazo';
+import { situarRotulo } from '../diagramas/lineasFondo';
 import formatear from '../util/formatear';
 
 // Andamiaje común a los dos diagramas: el de fluidos (p-h, T-s, p-T) y el
@@ -75,8 +76,12 @@ const TECLA_MODIFICADORA = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'm
 //
 // Por defecto el rótulo va arriba a la derecha del punto, que es lo que piden los
 // estados. Un punto puede traer su propia `posicionNombre` ({ align, dx, dy,
-// font, color }): lo usan los rótulos de las isolíneas de fondo, que no pueden
-// ir todos en el mismo sitio sin pisarse.
+// font, color }), como el final de un trazo auxiliar.
+//
+// Las isolíneas de fondo no rotulan un punto fijo: traen un `rotulo` por dataset
+// y se sitúa en cada dibujo sobre lo que se ve de la línea, para que siga dentro
+// del diagrama con zoom o con otros límites de ejes. Se trabaja en píxeles, que
+// ya tienen en cuenta la escala logarítmica.
 const POSICION_NOMBRE = { dx: 5, dy: -15 };
 
 const mostrarNombres = {
@@ -101,8 +106,50 @@ const mostrarNombres = {
                 }
             });
         });
+        if (options.showLabels) rotularFondo(chart);
     }
 };
+
+// Los trozos de una misma isolínea comparten el objeto `rotulo`: se juntan para
+// rotularla una sola vez, en el extremo de su parte visible.
+function rotularFondo(chart) {
+    const { ctx, chartArea, scales } = chart;
+    const trozosPorRotulo = new Map();
+    chart.data.datasets.forEach((dataset, i) => {
+        if (!dataset.rotulo || chart.getDatasetMeta(i).hidden) return;
+        const enPixeles = dataset.data.map(({ x, y }) => (
+            { x: scales.x.getPixelForValue(x), y: scales.y.getPixelForValue(y) }
+        ));
+        trozosPorRotulo.set(dataset.rotulo, [...(trozosPorRotulo.get(dataset.rotulo) ?? []), enPixeles]);
+    });
+    const caja = { xMin: chartArea.left, xMax: chartArea.right, yMin: chartArea.top, yMax: chartArea.bottom };
+    trozosPorRotulo.forEach((trozos, rotulo) => {
+        const situado = situarRotulo(trozos, rotulo, caja);
+        if (situado === null) return;
+        const { x, y, texto, posicion } = situado;
+        ctx.save();
+        ctx.fillStyle = posicion.color;
+        ctx.font = posicion.font;
+        ctx.textAlign = posicion.align;
+        ctx.textBaseline = 'middle';
+        ctx.fillText(texto, x + posicion.dx, y + posicion.dy);
+        ctx.restore();
+    });
+}
+
+// Límites de ejes fijados en el diálogo, por vista (firmaVista). Viven aquí, y
+// no en el estado del componente, para que sobrevivan a cambiar de tipo de
+// diagrama o de fluido y volver; no van al permalink.
+const limitesFijados = new Map();
+
+// Escribe los límites en las escalas (undefined: automáticos) y redibuja
+function aplicarLimites(grafico, limites) {
+    Object.assign(grafico.options.scales.x, { min: limites?.xMin, max: limites?.xMax });
+    Object.assign(grafico.options.scales.y, { min: limites?.yMin, max: limites?.yMax });
+    grafico.update('none');
+}
+
+
 
 /**
  * @param dominio        'fluido' | 'aire'; de él salen los procesos que se dibujan
@@ -136,7 +183,16 @@ const GraficaEstados = ({
     // Los límites de los ejes solo se aplican si se han tocado: abrir el diálogo
     // para cambiar las líneas de fondo no debe congelar el encuadre actual.
     const [ejesEditados, setEjesEditados] = useState(false);
-    const reencuadrar = () => { referenciaGrafico.current?.resetZoom(); };
+    // Reencuadrar vuelve a los límites fijados, o a los automáticos si no los hay.
+    // El resetZoom va primero para que el plugin de zoom olvide su estado, pero
+    // no basta solo: los límites "originales" que restaura son los que había al
+    // primer zoom, que pueden ser de otra vista.
+    const reencuadrar = () => {
+        const grafico = referenciaGrafico.current;
+        if (!grafico) return;
+        grafico.resetZoom('none');
+        aplicarLimites(grafico, limitesFijados.get(firmaVista));
+    };
 
     // Tirador de altura. Chart.js sigue al contenedor por su cuenta (responsive con
     // maintainAspectRatio: false), así que basta con cambiar la altura del div.
@@ -184,7 +240,8 @@ const GraficaEstados = ({
     const limitesValidos = limitesEjes !== null
         && Object.values(limitesEjes).every(Number.isFinite)
         && limitesEjes.xMin < limitesEjes.xMax
-        && limitesEjes.yMin < limitesEjes.yMax;
+        && limitesEjes.yMin < limitesEjes.yMax
+        && (escalaY !== 'logarithmic' || limitesEjes.yMin > 0);
 
     const editarLimite = (clave, valor) => {
         setLimitesEjes({ ...limitesEjes, [clave]: valor });
@@ -194,11 +251,26 @@ const GraficaEstados = ({
     const aplicarConfiguracion = () => {
         const grafico = referenciaGrafico.current;
         if (ejesEditados && limitesValidos && grafico) {
-            Object.assign(grafico.options.scales.x, { min: limitesEjes.xMin, max: limitesEjes.xMax });
-            Object.assign(grafico.options.scales.y, { min: limitesEjes.yMin, max: limitesEjes.yMax });
-            grafico.update();
+            limitesFijados.set(firmaVista, limitesEjes);
+            aplicarLimites(grafico, limitesEjes);
         }
         setDialogoEjesAbierto(false);
+    };
+
+    // Olvida los límites fijados y deja el diálogo con los automáticos
+    const limitesAutomaticos = () => {
+        const grafico = referenciaGrafico.current;
+        limitesFijados.delete(firmaVista);
+        if (!grafico) return;
+        grafico.resetZoom('none');
+        aplicarLimites(grafico, undefined);
+        setLimitesEjes({
+            xMin: grafico.scales.x.min,
+            xMax: grafico.scales.x.max,
+            yMin: grafico.scales.y.min,
+            yMax: grafico.scales.y.max
+        });
+        setEjesEditados(false);
     };
 
     // Los estados de este diagrama que no estén ocultos con el ojo de la tabla.
@@ -346,60 +418,68 @@ const GraficaEstados = ({
     // el zoom vive precisamente en los mínimos y máximos de las escalas. Sin
     // memorizar, cualquier render (seleccionar una fila, editar un estado) devolvería
     // el diagrama a su encuadre inicial. Que cambiar de vista sí lo reencuadre es
-    // lo deseable: el encuadre anterior no significa nada en otros ejes.
-    const opcionesGrafico = useMemo(() => ({
-        // Mismo formato que las tablas: punto decimal y sin separador de miles,
-        // sea cual sea el idioma.
-        locale: "en-US",
-        maintainAspectRatio: false,
-        scales: {
-            x: {
-                title: { display: true, text: etiquetaX, font: { size: 14 } },
-                ticks: { font: { size: 14 }, format: { useGrouping: false } }
-            },
-            y: {
-                type: escalaY,
-                title: { display: true, text: etiquetaY, font: { size: 14 } },
-                // Chart.js saca los decimales de la separación entre marcas y los
-                // aplica a todas: en logarítmica, unas marcas de 0.1 en 0.1 al pie
-                // del eje dejarían "1000.0" arriba. Se permite quitar ceros finales.
-                ticks: {
-                    font: { size: 14 },
-                    format: escalaY === 'logarithmic'
-                        ? { useGrouping: false, minimumFractionDigits: 0 }
-                        : { useGrouping: false }
-                }
-            },
-        },
-        plugins: {
-            legend: { display: false },
-            tooltip: {
-                callbacks: {
-                    title: (ctx) => ctx[0].raw.nombre,
-                    label: (ctx) => `${etiquetaX}: ${formatear(ctx.parsed.x, 3)}, `
-                        + `${etiquetaY}: ${formatear(ctx.parsed.y, 3)}`
-                }
-            },
-            mostrarNombres: { showLabels: true, align: 'left', baseline: 'middle' },
-            // Cmd en Apple y Ctrl en el resto evitan capturar la rueda de la página.
-            zoom: {
-                zoom: {
-                    wheel: { enabled: true, speed: 0.1, modifierKey: TECLA_MODIFICADORA },
-                    pinch: { enabled: true },
-                    drag: {
-                        enabled: true,
-                        modifierKey: 'shift',
-                        backgroundColor: 'rgba(24, 144, 255, 0.15)',
-                        borderColor: '#1890FF',
-                        borderWidth: 1
-                    },
-                    mode: 'xy'
+    // lo deseable: el encuadre anterior no significa nada en otros ejes. Los
+    // límites fijados en el diálogo para la nueva vista, si los hay, se recuperan.
+    const opcionesGrafico = useMemo(() => {
+        const fijados = limitesFijados.get(firmaVista);
+        return {
+            // Mismo formato que las tablas: punto decimal y sin separador de miles,
+            // sea cual sea el idioma.
+            locale: "en-US",
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    min: fijados?.xMin,
+                    max: fijados?.xMax,
+                    title: { display: true, text: etiquetaX, font: { size: 14 } },
+                    ticks: { font: { size: 14 }, format: { useGrouping: false } }
                 },
-                pan: { enabled: true, mode: 'xy', modifierKey: TECLA_MODIFICADORA }
+                y: {
+                    type: escalaY,
+                    min: fijados?.yMin,
+                    max: fijados?.yMax,
+                    title: { display: true, text: etiquetaY, font: { size: 14 } },
+                    // Chart.js saca los decimales de la separación entre marcas y los
+                    // aplica a todas: en logarítmica, unas marcas de 0.1 en 0.1 al pie
+                    // del eje dejarían "1000.0" arriba. Se permite quitar ceros finales.
+                    ticks: {
+                        font: { size: 14 },
+                        format: escalaY === 'logarithmic'
+                            ? { useGrouping: false, minimumFractionDigits: 0 }
+                            : { useGrouping: false }
+                    }
+                },
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (ctx) => ctx[0].raw.nombre,
+                        label: (ctx) => `${etiquetaX}: ${formatear(ctx.parsed.x, 3)}, `
+                            + `${etiquetaY}: ${formatear(ctx.parsed.y, 3)}`
+                    }
+                },
+                mostrarNombres: { showLabels: true, align: 'left', baseline: 'middle' },
+                // Cmd en Apple y Ctrl en el resto evitan capturar la rueda de la página.
+                zoom: {
+                    zoom: {
+                        wheel: { enabled: true, speed: 0.1, modifierKey: TECLA_MODIFICADORA },
+                        pinch: { enabled: true },
+                        drag: {
+                            enabled: true,
+                            modifierKey: 'shift',
+                            backgroundColor: 'rgba(24, 144, 255, 0.15)',
+                            borderColor: '#1890FF',
+                            borderWidth: 1
+                        },
+                        mode: 'xy'
+                    },
+                    pan: { enabled: true, mode: 'xy', modifierKey: TECLA_MODIFICADORA }
+                }
             }
-        }
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }), [firmaVista]);
+    }, [firmaVista]);
 
     return (<div className="panel">
         <h3>{titulo}</h3>
@@ -515,6 +595,9 @@ const GraficaEstados = ({
                                         </Form.Item>
                                     </Col>
                                 </Row>
+                                <Button onClick={limitesAutomaticos} disabled={!limitesFijados.has(firmaVista)}>
+                                    {getTextoUI("bot_ejes_automaticos")}
+                                </Button>
                             </Form>
                         )
                     }

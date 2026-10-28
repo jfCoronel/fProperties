@@ -12,7 +12,7 @@ import { getPropFluido } from '../propFluidos/fluidos';
 import {
   valoresLineales, valoresLogaritmicos, recortarPolilinea, contextoFluido,
   valoresAutomaticosFluido, curvasFondoFluido, ventanaFluido, curvasFondoAire,
-  VENTANA_PSICROMETRICO
+  VENTANA_PSICROMETRICO, situarRotulo
 } from './lineasFondo';
 import {
   configuracionFamilias, normalizarLineasFondo, parsearValores, formatearValores,
@@ -143,10 +143,21 @@ describe('isolíneas de fluido', () => {
 
   it('los rótulos del borde derecho se escriben hacia dentro', () => {
     // Las isócoras del agua en el p-h acaban todas a la derecha de la ventana
+    const caja = ventanaFluido('p-h', contextoFluido('Agua'));
     lineas('p-h', 'isocoras', [0.01, 0.1, 1]).forEach((dataset) => {
-      const rotulado = dataset.data.find((p) => p.nombre);
-      expect(rotulado.posicionNombre.align).toBe('right');
+      expect(situarRotulo([dataset.data], dataset.rotulo, caja).posicion.align).toBe('right');
     });
+  });
+
+  it('el rótulo va en el extremo de lo que se ve de la línea', () => {
+    // Al acercarse o fijar otros ejes, el rótulo sigue a la línea hasta el borde
+    const rotulo = { texto: 'r', extremo: 'fin', posicion: {} };
+    const trozos = [[{ x: 0, y: 0 }, { x: 10, y: 10 }], [{ x: 20, y: 20 }, { x: 30, y: 30 }]];
+    expect(situarRotulo(trozos, rotulo, { xMin: 0, xMax: 5, yMin: 0, yMax: 100 }))
+      .toMatchObject({ x: 5, y: 5 });
+    expect(situarRotulo(trozos, { ...rotulo, extremo: 'inicio' }, { xMin: 25, xMax: 100, yMin: 0, yMax: 100 }))
+      .toMatchObject({ x: 25, y: 25 });
+    expect(situarRotulo(trozos, rotulo, { xMin: 12, xMax: 18, yMin: 0, yMax: 100 })).toBeNull();
   });
 
   it('en el h-s, dentro de la campana las isobaras son rectas de pendiente T', () => {

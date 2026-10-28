@@ -301,8 +301,28 @@ const ROTULO_EN_INICIO = new Set(['X']);
 const BORDE_DERECHO = 0.85;
 const posicionRotulo = (punto, caja) =>
     (punto.x - caja.xMin) / (caja.xMax - caja.xMin) > BORDE_DERECHO
-        ? { ...ROTULO_FONDO, align: 'right', dx: -3 }
-        : ROTULO_FONDO;
+        ? { align: 'right', dx: -3 }
+        : {};
+
+/**
+ * Dónde va el rótulo de una isolínea: en el extremo (inicial o final) de lo que
+ * de ella se ve en la caja. Se resuelve al dibujar y no al calcular la línea,
+ * porque lo que se ve cambia con el zoom y con los límites de los ejes; los
+ * rótulos fijados de antemano quedaban fuera o a media línea.
+ *
+ * @param trozos  las polilíneas de la isolínea, en las coordenadas de la caja
+ *                (el diagrama las pasa en píxeles; ahí el eje y crece hacia
+ *                abajo, pero el recorte no distingue)
+ * @param rotulo  { texto, extremo: 'inicio' | 'fin', posicion: objeto o (punto, caja) => objeto }
+ * @returns       { x, y, texto, posicion } o null si la línea no se ve
+ */
+export function situarRotulo(trozos, rotulo, caja) {
+    const visibles = trozos.flatMap((trozo) => recortarPolilinea(trozo, caja));
+    if (visibles.length === 0) return null;
+    const punto = rotulo.extremo === 'inicio' ? visibles[0][0] : visibles.at(-1).at(-1);
+    const propia = typeof rotulo.posicion === 'function' ? rotulo.posicion(punto, caja) : rotulo.posicion;
+    return { x: punto.x, y: punto.y, texto: rotulo.texto, posicion: { ...ROTULO_FONDO, ...propia } };
+}
 
 // Estilo de una familia como propiedades de dataset de Chart.js
 const estiloFamilia = (familia) => ({
@@ -338,19 +358,16 @@ export function curvasFondoFluido(fluido, diagrama, guardada) {
             const puntos = parejasIsolinea(familia.propiedad, valor, ctx)
                 .map((pareja) => proyectarPareja(fluido, pareja, ejes))
                 .filter(({ x, y }) => Number.isFinite(x) && Number.isFinite(y));
-            const trozos = recortarPolilinea(puntos, caja, logY);
-            const enInicio = ROTULO_EN_INICIO.has(familia.propiedad);
-            return trozos.map((trozo, i) => {
-                if (i === (enInicio ? 0 : trozos.length - 1)) {
-                    const k = enInicio ? 0 : trozo.length - 1;
-                    trozo[k] = {
-                        ...trozo[k],
-                        nombre: ROTULOS[familia.propiedad](valor),
-                        posicionNombre: posicionRotulo(trozo[k], caja)
-                    };
-                }
-                return { ...estiloFamilia(familia), data: trozo, familia: familia.clave, valor };
-            });
+            // Los trozos de una isolínea comparten el mismo objeto rótulo: así se
+            // sabe al dibujar que son una sola línea con un solo rótulo.
+            const rotulo = {
+                texto: ROTULOS[familia.propiedad](valor),
+                extremo: ROTULO_EN_INICIO.has(familia.propiedad) ? 'inicio' : 'fin',
+                posicion: posicionRotulo
+            };
+            return recortarPolilinea(puntos, caja, logY).map((trozo) => (
+                { ...estiloFamilia(familia), data: trozo, familia: familia.clave, valor, rotulo }
+            ));
         });
     });
 }
@@ -394,11 +411,13 @@ export function valoresAutomaticosAire(familia, opcion, valorOpcion) {
 const ROTULO_AIRE = {
     HR: { extremo: 'fin', posicion: { align: 'right', dx: -3, dy: -6 }, texto: (v) => `${textoValor(v)} %` },
     TH: { extremo: 'inicio', posicion: { align: 'right', dx: -4, dy: -6 }, texto: textoValor },
-    // Si la línea llega al eje, el rótulo a su derecha; si acaba en el borde
-    // derecho de la ventana, a su izquierda, para que no se salga.
+    // Si la línea llega al borde inferior (el eje w = 0, salvo que se haya
+    // subido), el rótulo a su derecha; si acaba en el borde derecho de la
+    // ventana, a su izquierda, para que no se salga. La caja va en píxeles, con
+    // el eje y hacia abajo: el borde inferior es yMax.
     H: {
         extremo: 'fin',
-        posicion: (punto) => punto.y === 0
+        posicion: (punto, caja) => Math.abs(punto.y - caja.yMax) < 0.5
             ? { align: 'left', dx: 2, dy: -8 } : { align: 'right', dx: -3, dy: -6 },
         texto: textoValor
     },
@@ -423,26 +442,14 @@ export function curvasFondoAire(opcion, valorOpcion, guardada) {
         .filter((familia) => familia.activa)
         .flatMap((familia) => {
             const valores = familia.valores ?? valoresAutomaticosAire(familia, opcion, valorOpcion);
-            const rotulo = ROTULO_AIRE[familia.propiedad];
+            const { texto, ...rotulo } = ROTULO_AIRE[familia.propiedad];
             return valores.flatMap((valor) => {
-                const trozos = recortarPolilinea(
+                const rotuloValor = { ...rotulo, texto: texto(valor) };
+                return recortarPolilinea(
                     puntosIsolineaAire(familia, valor, opcion, valorOpcion), VENTANA_PSICROMETRICO
-                );
-                return trozos.map((trozo, i) => {
-                    const esElDelRotulo = rotulo.extremo === 'inicio' ? i === 0 : i === trozos.length - 1;
-                    if (esElDelRotulo) {
-                        const k = rotulo.extremo === 'inicio' ? 0 : trozo.length - 1;
-                        trozo[k] = {
-                            ...trozo[k],
-                            nombre: rotulo.texto(valor),
-                            posicionNombre: {
-                                ...ROTULO_FONDO,
-                                ...(typeof rotulo.posicion === 'function' ? rotulo.posicion(trozo[k]) : rotulo.posicion)
-                            }
-                        };
-                    }
-                    return { ...estiloFamilia(familia), data: trozo, familia: familia.clave, valor };
-                });
+                ).map((trozo) => (
+                    { ...estiloFamilia(familia), data: trozo, familia: familia.clave, valor, rotulo: rotuloValor }
+                ));
             });
         });
 }

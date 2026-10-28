@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.6.3**.
+Estado del proyecto en la **versión 2.6.4**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -131,10 +131,13 @@ hueco para que no tape la curva sobre la que cae.
 El encuadre se maneja sobre el propio lienzo: **Cmd+rueda** en Apple o **Ctrl+rueda** en el
 resto acerca y aleja (el pellizco sigue disponible en táctil), **Cmd+arrastrar** en Apple o
 **Ctrl+arrastrar** en el resto mueve, **Mayús+arrastrar** amplía el rectángulo que dibujes, y el botón
-*Reencuadrar* —o un doble clic— vuelve al ajuste automático. Solo cabe un gesto de arrastre, y
+*Reencuadrar* —o un doble clic— vuelve a los límites de ejes fijados en el diálogo de
+configuración o, si no los hay, al ajuste automático. Solo cabe un gesto de arrastre, y
 mover es el que se busca sin pensar; por eso el rectángulo va con Mayús. Cambiar de tipo de
 diagrama o de fluido también reencuadra: el encuadre anterior no significa nada en otros ejes.
-El zoom es estado de sesión y no viaja en el enlace compartido.
+Los límites fijados, en cambio, se guardan por vista (tipo y fluido, o presión en el
+psicrométrico) y se recuperan al volver a ella; el botón *Ejes automáticos* los olvida. El
+zoom y los límites fijados son estado de sesión y no viajan en el enlace compartido.
 
 El ancho del diagrama es el de la página y el **alto**, por defecto, tres cuartos de la
 ventana (entre 440 y 1000 px). Se cambia **arrastrando el tirador** que hay bajo el lienzo, y
@@ -185,6 +188,10 @@ de fluido se conservan las familias encendidas y los automáticos se recalculan.
 solo guarda lo que difiere de lo de por defecto. Al pie del diagrama, una leyenda dice qué
 familias hay y con qué trazo. Los límites de los ejes solo se aplican si se han tocado: abrir
 el diálogo para cambiar las líneas no congela el encuadre.
+
+Los rótulos de las isolíneas no van en un punto fijo: se colocan en cada dibujo en el extremo
+de la parte visible de la línea (`situarRotulo`), de modo que siguen dentro del diagrama con
+zoom, al moverlo o con otros límites de ejes.
 
 Las isolíneas se recortan a una **ventana** por fluido: del punto triple a un 60 % del rango
 triple-crítico por encima del crítico en temperatura, y hasta el doble de la presión crítica.
