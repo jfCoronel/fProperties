@@ -1,6 +1,7 @@
-import { Button, Tooltip } from 'antd';
+import { Button } from 'antd';
 import { EyeOutlined, EyeInvisibleOutlined } from '@ant-design/icons';
 import { getTextoUI } from '../configuracion';
+import { TooltipAccion } from './Ayudas';
 
 const COLOR_VISIBLE = '#1890FF';
 const COLOR_OCULTO = '#BFBFBF';
@@ -29,14 +30,14 @@ export function columnaDiagrama({ ids, ocultos, cambiar }) {
     title: (
       <span style={{ whiteSpace: 'nowrap' }}>
         {getTextoUI("col_diagrama")}
-        <Tooltip title={getTextoUI("tooltip_en_diagrama_todos")} mouseEnterDelay={1}>
+        <TooltipAccion title={getTextoUI("tooltip_en_diagrama_todos")}>
           <Button
             type='link'
             size='small'
             icon={ojo(todosVisibles)}
             onClick={() => { cambiar(ids, !todosVisibles); }}
           />
-        </Tooltip>
+        </TooltipAccion>
       </span>
     ),
     key: 'enDiagrama',
@@ -44,7 +45,7 @@ export function columnaDiagrama({ ids, ocultos, cambiar }) {
     render: (_, fila) => {
       const visible = !ocultos.has(fila.key);
       return (
-        <Tooltip title={getTextoUI("tooltip_en_diagrama")} mouseEnterDelay={1}>
+        <TooltipAccion title={getTextoUI("tooltip_en_diagrama")}>
           <Button
             type='link'
             size='small'
@@ -54,7 +55,7 @@ export function columnaDiagrama({ ids, ocultos, cambiar }) {
               cambiar([fila.key], !visible);
             }}
           />
-        </Tooltip>
+        </TooltipAccion>
       );
     }
   };

@@ -1,7 +1,8 @@
 import { useHookstate } from '@hookstate/core';
-import { Switch, Radio, Input, Button, Tooltip } from 'antd';
+import { Switch, Radio, Input, Button } from 'antd';
 import { useEffect, useState } from 'react';
 import { configuracion, getTextoUI } from '../configuracion';
+import { TooltipInfo } from './Ayudas';
 import {
     configuracionFamilias, parsearValores, formatearValores, TRAZOS
 } from '../diagramas/familiasFondo';
@@ -100,14 +101,14 @@ const PanelLineasFondo = ({ diagrama, valoresAutomaticos }) => {
                                 disabled
                                 value={formatearValores(valoresAutomaticos(familia))}
                             />
-                            : <Tooltip title={getTextoUI("fondo_ayuda_valores")} mouseEnterDelay={0.5}>
+                            : <TooltipInfo title={getTextoUI("fondo_ayuda_valores")} mouseEnterDelay={0.5}>
                                 <span style={{ flex: 1 }}>
                                     <CampoValores
                                         valores={familia.valores}
                                         alConfirmar={(valores) => cambiarFamilia(familia.clave, { valores })}
                                     />
                                 </span>
-                            </Tooltip>}
+                            </TooltipInfo>}
                     </div>}
                 </div>
             );

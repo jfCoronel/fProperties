@@ -1,5 +1,6 @@
 import { useHookstate } from '@hookstate/core';
-import { Modal, Button, Row, Col, Select, Input, InputNumber, Form, Alert } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, Form, Alert } from 'antd'
+import CampoNumero from './CampoNumero';
 import { configuracion, getTextoUI } from '../configuracion';
 import { getListaDominio } from '../listasDominio';
 import { listaProcesos, actualizarProceso, cambiarTipoProceso } from '../procesos/listaProcesos';
@@ -267,7 +268,7 @@ const DialogoProceso = ({ dominio = 'fluido' }) => {
                 {parametros.map((parametro) => (
                     <Col span={12} key={parametro.clave}>
                         <Form.Item label={`${getTextoUI(parametro.i18n)} [${parametro.unidad}]`}>
-                            <InputNumber
+                            <CampoNumero
                                 style={{ width: "100%" }}
                                 min={parametro.min}
                                 max={parametro.max}
@@ -292,7 +293,7 @@ const DialogoProceso = ({ dominio = 'fluido' }) => {
                 </Col>
                 <Col span={8}>
                     <Form.Item label={getTextoUI("lab_estilo_grosor")}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             min={1}
                             max={8}

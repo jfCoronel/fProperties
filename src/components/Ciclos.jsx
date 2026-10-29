@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Descriptions, Tag, Tooltip } from 'antd';
+import { Descriptions, Tag } from 'antd';
 import { WarningTwoTone } from '@ant-design/icons';
 
 import { configuracion, getTextoUI } from '../configuracion';
@@ -8,6 +8,7 @@ import { listaProcesos } from '../procesos/listaProcesos';
 import { dominioDeProceso } from '../procesos/proceso';
 import { getCiclos } from '../procesos/ciclo';
 import formatear from '../util/formatear';
+import { TooltipInfo } from './Ayudas';
 
 // El balance de un ciclo no necesita un objeto nuevo: sale de los procesos que
 // ya hay, en cuanto forman un camino cerrado (DOCUMENTACION.md §1.6). El panel
@@ -75,9 +76,9 @@ const Ciclos = ({ dominio = 'fluido' }) => {
                         <a onClick={() => procesosSeleccionados.set(ciclo.procesos.map((p) => p.id))}>
                             {ciclo.estados.map(nombreEstado).join(' → ')}
                         </a>
-                        {ciclo.hayAvisos && <Tooltip title={getTextoUI("ciclo_con_avisos")}>
+                        {ciclo.hayAvisos && <TooltipInfo title={getTextoUI("ciclo_con_avisos")}>
                             <WarningTwoTone twoToneColor="#faad14" style={{ marginLeft: 8 }} />
-                        </Tooltip>}
+                        </TooltipInfo>}
                         {ciclo.caudal !== null && <Tag style={{ marginLeft: 8 }}>
                             {magnitud(ciclo.caudal, 'kg/s')}
                         </Tag>}

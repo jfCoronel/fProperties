@@ -1,5 +1,6 @@
 import { useHookstate } from '@hookstate/core';
-import { Modal, Button, Row, Col, Select, Input, InputNumber, Form, message } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, Form, message } from 'antd'
+import CampoNumero from './CampoNumero';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaFluidos, actualizarFluido } from '../listaFluidos';
 import { propagarProcesos, romperVinculo } from '../procesos/propagacion';
@@ -115,7 +116,7 @@ const DialogoFluido = () => {
                         </Form.Item>
                     </Col>
                     <Col span={10}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             value={fluido.in1Val}
                             onChange={(value) => {
@@ -148,7 +149,7 @@ const DialogoFluido = () => {
                         </Form.Item>
                     </Col>
                     <Col span={10}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             value={fluido.in2Val}
                             onChange={(value) => {

@@ -1,5 +1,6 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Form, Button, InputNumber, Modal, Space, Tooltip, Tabs } from 'antd';
+import { Row, Col, Form, Button, Modal, Space, Tabs } from 'antd';
+import CampoNumero from './CampoNumero';
 import { ExpandOutlined, SettingOutlined } from '@ant-design/icons';
 // Importado por su efecto: registra todos los controladores de Chart.js.
 import 'chart.js/auto';
@@ -13,6 +14,8 @@ import { trazosProcesos } from '../diagramas/trazosProcesos';
 import { refinarTrazo } from '../diagramas/refinarTrazo';
 import { situarRotulo } from '../diagramas/lineasFondo';
 import formatear from '../util/formatear';
+import { TooltipAccion } from './Ayudas';
+import { ES_TACTIL } from '../util/tactil';
 
 // Andamiaje común a los dos diagramas: el de fluidos (p-h, T-s, p-T) y el
 // psicrométrico. Lo que cambia entre ellos es solo la proyección a los ejes y las
@@ -66,6 +69,9 @@ const FONDO_ESTADOS = "#FFFFFF";
 const RADIO_ESTADO = 6;
 const RADIO_ESTADO_SELECCIONADO = 10;
 const RADIO_MARCA_AUXILIAR = 3;
+// Un dedo no apunta como un ratón: en táctil, el tooltip de un estado sale al
+// tocar a esta distancia del punto, no solo encima de él.
+const RADIO_TOQUE_ESTADO = 20;
 const TECLA_MODIFICADORA = /Mac|iPhone|iPad|iPod/.test(navigator.userAgent) ? 'meta' : 'ctrl';
 
 // Rotula cada punto con su nombre. Va como plugin y no como opción de Chart.js
@@ -219,10 +225,6 @@ const GraficaEstados = ({
         arrastreAlto.current = null;
         guardarAlto(referenciaLienzo.current.getBoundingClientRect().height);
     };
-    const altoPorDefecto = () => {
-        setAlto(null);
-        guardarAlto(null);
-    };
 
     const abrirDialogoEjes = () => {
         const grafico = referenciaGrafico.current;
@@ -288,6 +290,7 @@ const GraficaEstados = ({
             borderColor: COLOR_ESTADOS,
             backgroundColor: FONDO_ESTADOS,
             pointBorderWidth: 2,
+            pointHitRadius: ES_TACTIL ? RADIO_TOQUE_ESTADO : 1,
             showLine: false,
             pointRadius: dibujables.map(
                 (estado) => marcados.has(estado.id) ? RADIO_ESTADO_SELECCIONADO : RADIO_ESTADO
@@ -398,8 +401,13 @@ const GraficaEstados = ({
             }
         }
 
-        procesosSeleccionados.set(idPulsado === null ? [] : [idPulsado]);
-        idProcesoActual.set(null);
+        // Solo se escribe lo que cambia: cada escritura redibuja el diagrama, y
+        // en táctil eso borraba el tooltip del estado recién tocado.
+        const seleccion = idPulsado === null ? [] : [idPulsado];
+        if (JSON.stringify(procesosSeleccionados.get({ noproxy: true })) !== JSON.stringify(seleccion)) {
+            procesosSeleccionados.set(seleccion);
+        }
+        if (idProcesoActual.get() !== null) idProcesoActual.set(null);
     };
 
     const todasLasSeries = () => {
@@ -427,6 +435,9 @@ const GraficaEstados = ({
             // sea cual sea el idioma.
             locale: "en-US",
             maintainAspectRatio: false,
+        // Sin animaciones: las series se rehacen en cada selección y en cada
+        // cambio de altura, y Chart.js las hacía crecer desde el eje cada vez.
+        animation: false,
             scales: {
                 x: {
                     min: fijados?.xMin,
@@ -490,14 +501,14 @@ const GraficaEstados = ({
                 <Col xs={24} sm={4} md={4}>
                     <Form.Item label={" "} style={{ marginBottom: 8 }}>
                         <Space.Compact block>
-                            <Tooltip title={getTextoUI("tooltip_reencuadrar")} mouseEnterDelay={1}>
+                            <TooltipAccion title={getTextoUI("tooltip_reencuadrar")}>
                                 <Button icon={<ExpandOutlined />} onClick={reencuadrar} block>
                                     {getTextoUI("bot_reencuadrar")}
                                 </Button>
-                            </Tooltip>
-                            <Tooltip title={getTextoUI("tooltip_configurar_ejes")} mouseEnterDelay={1}>
+                            </TooltipAccion>
+                            <TooltipAccion title={getTextoUI("tooltip_configurar_ejes")}>
                                 <Button icon={<SettingOutlined />} onClick={abrirDialogoEjes} />
-                            </Tooltip>
+                            </TooltipAccion>
                         </Space.Compact>
                     </Form.Item>
                 </Col>
@@ -505,7 +516,7 @@ const GraficaEstados = ({
         </Form>
 
         {pie}
-        <p className='comentario' style={{ marginTop: 0 }}>{getTextoUI("ayuda_zoom")}</p>
+        <p className='comentario' style={{ marginTop: 0 }}>{getTextoUI(ES_TACTIL ? "ayuda_zoom_tactil" : "ayuda_zoom")}</p>
 
         <div
             className="lienzo-diagrama"
@@ -516,13 +527,12 @@ const GraficaEstados = ({
                 ref={referenciaGrafico}
                 onClick={alHacerClic}
                 onPointerDown={alPulsar}
-                onDoubleClick={reencuadrar}
                 options={opcionesGrafico}
                 data={{ datasets: todasLasSeries() }}
                 plugins={[mostrarNombres, zoomPlugin]}
             />
         </div>
-        <Tooltip title={getTextoUI("tooltip_alto_diagrama")} mouseEnterDelay={1}>
+        <TooltipAccion title={getTextoUI("tooltip_alto_diagrama")}>
             <div
                 className="tirador-diagrama"
                 role="separator"
@@ -531,9 +541,8 @@ const GraficaEstados = ({
                 onPointerMove={moverArrastreAlto}
                 onPointerUp={terminarArrastreAlto}
                 onPointerCancel={terminarArrastreAlto}
-                onDoubleClick={altoPorDefecto}
             />
-        </Tooltip>
+        </TooltipAccion>
 
         <Modal
             title={getTextoUI("titulo_configurar_diagrama")}
@@ -560,7 +569,7 @@ const GraficaEstados = ({
                                 <Row gutter={16}>
                                     <Col span={12}>
                                         <Form.Item label={`${etiquetaX} ${getTextoUI("lab_minimo")}`}>
-                                            <InputNumber
+                                            <CampoNumero
                                                 value={limitesEjes.xMin}
                                                 onChange={(valor) => editarLimite('xMin', valor)}
                                                 style={{ width: "100%" }}
@@ -569,7 +578,7 @@ const GraficaEstados = ({
                                     </Col>
                                     <Col span={12}>
                                         <Form.Item label={`${etiquetaX} ${getTextoUI("lab_maximo")}`}>
-                                            <InputNumber
+                                            <CampoNumero
                                                 value={limitesEjes.xMax}
                                                 onChange={(valor) => editarLimite('xMax', valor)}
                                                 style={{ width: "100%" }}
@@ -578,7 +587,7 @@ const GraficaEstados = ({
                                     </Col>
                                     <Col span={12}>
                                         <Form.Item label={`${etiquetaY} ${getTextoUI("lab_minimo")}`}>
-                                            <InputNumber
+                                            <CampoNumero
                                                 value={limitesEjes.yMin}
                                                 onChange={(valor) => editarLimite('yMin', valor)}
                                                 style={{ width: "100%" }}
@@ -587,7 +596,7 @@ const GraficaEstados = ({
                                     </Col>
                                     <Col span={12}>
                                         <Form.Item label={`${etiquetaY} ${getTextoUI("lab_maximo")}`}>
-                                            <InputNumber
+                                            <CampoNumero
                                                 value={limitesEjes.yMax}
                                                 onChange={(valor) => editarLimite('yMax', valor)}
                                                 style={{ width: "100%" }}

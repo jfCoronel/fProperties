@@ -1,8 +1,9 @@
 import { useRef } from 'react';
-import { Button, Input, Modal, Tooltip, message } from 'antd';
+import { Button, Input, Modal, message } from 'antd';
 import { ShareAltOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons';
 
 import { getTextoUI } from '../configuracion';
+import { TooltipAccion } from './Ayudas';
 import {
   getEnlaceProblema,
   fijarHash,
@@ -70,15 +71,15 @@ const Compartir = () => {
 
   return (
     <span>
-      <Tooltip title={getTextoUI("tooltip_compartir")} mouseEnterDelay={1}>
+      <TooltipAccion title={getTextoUI("tooltip_compartir")}>
         <Button type='text' icon={<ShareAltOutlined />} onClick={compartir} />
-      </Tooltip>
-      <Tooltip title={getTextoUI("tooltip_descargar_problema")} mouseEnterDelay={1}>
+      </TooltipAccion>
+      <TooltipAccion title={getTextoUI("tooltip_descargar_problema")}>
         <Button type='text' icon={<DownloadOutlined />} onClick={descargarProblema} />
-      </Tooltip>
-      <Tooltip title={getTextoUI("tooltip_importar_problema")} mouseEnterDelay={1}>
+      </TooltipAccion>
+      <TooltipAccion title={getTextoUI("tooltip_importar_problema")}>
         <Button type='text' icon={<UploadOutlined />} onClick={() => ficheroRef.current?.click()} />
-      </Tooltip>
+      </TooltipAccion>
       <input
         type="file"
         accept="application/json,.json"

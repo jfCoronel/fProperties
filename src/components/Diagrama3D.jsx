@@ -1,5 +1,5 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Form, Button, Tooltip, Spin } from 'antd';
+import { Row, Col, Form, Button, Spin } from 'antd';
 import { ExpandOutlined } from '@ant-design/icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { configuracion, getTextoUI } from '../configuracion';
@@ -9,6 +9,8 @@ import { trazosProcesos } from '../diagramas/trazosProcesos';
 import { contextoPvT, superficiePvT, campanaPvT } from '../diagramas/superficiePvT';
 import { valoresLineales } from '../diagramas/lineasFondo';
 import { refinarTrazo } from '../diagramas/refinarTrazo';
+import { TooltipAccion } from './Ayudas';
+import { ES_TACTIL } from '../util/tactil';
 
 // Diagrama p-v-T en 3D. No usa GraficaEstados: Chart.js no dibuja en 3D, así
 // que aquí se dibuja con Plotly, que se carga solo al abrir este diagrama (pesa
@@ -184,6 +186,8 @@ const Diagrama3D = ({ estados, seleccionados, visible, fluido, titulo, selectore
         uirevision: fluido,
         margin: { l: 0, r: 0, t: 0, b: 0 },
         showlegend: false,
+        // En táctil Plotly no sabe qué hay bajo el dedo (lo decide con eventos
+        // de ratón): sin hover ni clics, el 3D solo se gira y se acerca.
         // Como en las tablas: punto decimal y sin separador de miles
         separators: ".",
         scene: {
@@ -192,21 +196,37 @@ const Diagrama3D = ({ estados, seleccionados, visible, fluido, titulo, selectore
             yaxis: { title: { text: "T [ºC]" }, showspikes: false },
             zaxis: { title: { text: "p [kPa]" }, type: 'log', exponentformat: 'power', showspikes: false },
             aspectmode: 'cube',
-            camera: CAMARA_INICIAL
+            camera: CAMARA_INICIAL,
+            hovermode: ES_TACTIL ? false : 'closest'
         }
     };
 
+    // Fluido del último dibujo: al cambiarlo, la cámara vuelve a la inicial
+    const fluidoDibujado = useRef(null);
+
     useEffect(() => {
         const lienzo = referenciaLienzo.current;
         if (!plotly || !lienzo) return;
-        plotly.react(lienzo, datos, layout, { responsive: true, displaylogo: false });
+        // Plotly conserva la vista girada entre redibujos (uirevision) solo si se
+        // ha enterado del giro, y en táctil no se entera: lo apunta al recibir un
+        // mouseup, que el dedo no produce. Así que, con el mismo fluido, se le
+        // devuelve la cámara que tiene ahora la escena; si no, cualquier cambio
+        // en la tabla devolvería el diagrama a la vista inicial.
+        const camaraActual = lienzo._fullLayout?.scene?._scene?.getCamera?.();
+        const camara = fluidoDibujado.current === fluido && camaraActual ? camaraActual : CAMARA_INICIAL;
+        fluidoDibujado.current = fluido;
+        const layoutConCamara = { ...layout, scene: { ...layout.scene, camera: camara } };
+        // Sin doble clic para volver a la vista inicial: en táctil el doble toque
+        // falla a menudo, y el botón reencuadrar hace lo mismo.
+        plotly.react(lienzo, datos, layoutConCamara, { responsive: true, displaylogo: false, doubleClick: false });
     });
 
     // Clic sobre una curva → selecciona su proceso; sobre la superficie, nada.
-    // Plotly solo avisa de clics sobre algo dibujado, nunca al girar.
+    // Plotly solo avisa de clics sobre algo dibujado, nunca al girar. En táctil
+    // sus clics no son fiables y no se escuchan.
     useEffect(() => {
         const lienzo = referenciaLienzo.current;
-        if (!plotly || !lienzo) return;
+        if (!plotly || !lienzo || ES_TACTIL) return;
         const alHacerClic = (evento) => {
             const idPulsado = evento.points?.[0]?.data?.meta?.idProceso ?? null;
             procesosSeleccionados.set(idPulsado === null ? [] : [idPulsado]);
@@ -235,18 +255,18 @@ const Diagrama3D = ({ estados, seleccionados, visible, fluido, titulo, selectore
                 {selectores}
                 <Col xs={24} sm={4} md={4}>
                     <Form.Item label={" "} style={{ marginBottom: 8 }}>
-                        <Tooltip title={getTextoUI("tooltip_reencuadrar")} mouseEnterDelay={1}>
+                        <TooltipAccion title={getTextoUI("tooltip_reencuadrar")}>
                             <Button icon={<ExpandOutlined />} onClick={reencuadrar} block>
                                 {getTextoUI("bot_reencuadrar")}
                             </Button>
-                        </Tooltip>
+                        </TooltipAccion>
                     </Form.Item>
                 </Col>
             </Row>
         </Form>
 
         {pie}
-        <p className='comentario' style={{ marginTop: 0 }}>{getTextoUI("ayuda_3d")}</p>
+        <p className='comentario' style={{ marginTop: 0 }}>{getTextoUI(ES_TACTIL ? "ayuda_3d_tactil" : "ayuda_3d")}</p>
 
         <Spin spinning={plotly === null}>
             <div className="lienzo-diagrama" ref={referenciaLienzo} />

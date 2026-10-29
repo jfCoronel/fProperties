@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.7.0**.
+Estado del proyecto en la **versión 2.8.0**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -129,19 +129,43 @@ que estén seleccionados— y las **curvas de los procesos** de ese mismo fluido
 hueco para que no tape la curva sobre la que cae.
 
 El encuadre se maneja sobre el propio lienzo: **Cmd+rueda** en Apple o **Ctrl+rueda** en el
-resto acerca y aleja (el pellizco sigue disponible en táctil), **Cmd+arrastrar** en Apple o
+resto acerca y aleja, **Cmd+arrastrar** en Apple o
 **Ctrl+arrastrar** en el resto mueve, **Mayús+arrastrar** amplía el rectángulo que dibujes, y el botón
-*Reencuadrar* —o un doble clic— vuelve a los límites de ejes fijados en el diálogo de
+*Reencuadrar* vuelve a los límites de ejes fijados en el diálogo de
 configuración o, si no los hay, al ajuste automático. Solo cabe un gesto de arrastre, y
 mover es el que se busca sin pensar; por eso el rectángulo va con Mayús. Cambiar de tipo de
 diagrama o de fluido también reencuadra: el encuadre anterior no significa nada en otros ejes.
 Los límites fijados, en cambio, se guardan por vista (tipo y fluido, o presión en el
 psicrométrico) y se recuperan al volver a ella; el botón *Ejes automáticos* los olvida. El
-zoom y los límites fijados son estado de sesión y no viajan en el enlace compartido.
+zoom y los límites fijados son estado de sesión y no viajan en el enlace compartido. El
+diagrama no se anima: las series se rehacen en cada selección y cada cambio de altura, y
+crecían desde el eje cada vez. Un clic solo escribe la selección si cambia, porque cada
+escritura redibuja y en táctil borraba el tooltip del estado tocado. No hay
+doble clic para reencuadrar (ni en el 2D ni en el 3D): en táctil el doble toque fallaba a
+menudo, y el botón hace lo mismo.
+
+**En tablet** (cualquier dispositivo sin *hover*, según la media query `(hover: none)` que
+lee `util/tactil.js`) arrastrar con un dedo mueve el diagrama y el pellizco acerca. Mover con
+dos dedos se probó y se descartó: ningún pellizco es exacto y el desplazamiento arrastraba
+también zoom. Tocar un estado muestra sus valores (el radio de toque es mayor que el del
+ratón). Los tooltips de los botones salen con una **pulsación larga**, que no ejecuta la acción,
+y los informativos (estado calculado, diagnóstico, avisos) con un toque; las dos variantes
+están en `components/Ayudas.jsx`. Botones pequeños, casillas y asa de las filas crecen hasta
+un tamaño de dedo, y los campos numéricos piden el teclado numérico
+(`components/CampoNumero.jsx`), salvo en el iPhone los que admiten negativos: su teclado
+decimal no tiene signo menos.
+
+En el 3D un dedo gira; acercar y mover se hace con los botones de la barra de Plotly, porque
+sus gestos de pellizco y dos dedos no funcionan en táctil. Tampoco sabe qué hay bajo el dedo
+(lo decide con eventos de ratón), así que en táctil el 3D no tiene hover ni clic sobre estados
+y procesos: se probó a resolverlo proyectando los puntos con la cámara de la escena y no
+llegó a funcionar en el iPad. Los valores se leen en la tabla. Cada redibujo pasa a Plotly la
+cámara que tiene la escena en ese momento: su `uirevision` solo conserva la vista girada si se
+ha enterado del giro, y lo apunta en el `mouseup`, que el dedo no produce; sin esto, cualquier
+cambio en la tabla devolvía el 3D a la vista inicial.
 
 El ancho del diagrama es el de la página y el **alto**, por defecto, tres cuartos de la
-ventana (entre 440 y 1000 px). Se cambia **arrastrando el tirador** que hay bajo el lienzo, y
-un doble clic sobre él devuelve la altura por defecto. La altura elegida se recuerda en el
+ventana (entre 440 y 1000 px). Se cambia **arrastrando el tirador** que hay bajo el lienzo. La altura elegida se recuerda en el
 navegador —es la misma para el diagrama de fluidos y el psicrométrico— pero no viaja en el
 enlace: depende de la pantalla de cada uno, no del problema.
 

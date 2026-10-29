@@ -7,7 +7,7 @@ import {
   CalculatorOutlined,
   HolderOutlined
 } from '@ant-design/icons';
-import { Button, Tooltip, Table } from 'antd';
+import { Button, Table } from 'antd';
 import { DndContext } from '@dnd-kit/core';
 import { restrictToVerticalAxis } from '@dnd-kit/modifiers';
 import {
@@ -27,6 +27,7 @@ import { esDerivado } from '../procesos/propagacion';
 import formatear from '../util/formatear';
 import ConfiguracionAires from './ConfiguracionAires';
 import { columnaDiagrama } from './columnaDiagrama';
+import { TooltipAccion, TooltipInfo } from './Ayudas';
 
 // Componente DragHandle que se renderiza en cada fila
 const DragHandle = ({ rowKey }) => {
@@ -35,6 +36,7 @@ const DragHandle = ({ rowKey }) => {
   return (
     <HolderOutlined
       ref={setActivatorNodeRef}
+      className="asa-fila"
       style={{ cursor: 'move', marginRight: 8, touchAction: 'none' }}
       {...attributes}
       {...listeners}
@@ -129,9 +131,9 @@ const TablaAires = () => {
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <DragHandle rowKey={record.key} />
           <a onClick={(event) => { event.stopPropagation(); idAireActual.set(record.key); verDialogoAire.set(true) }} >{text}</a>
-          {derivados.has(record.key) && <Tooltip title={getTextoUI("tooltip_estado_derivado")}>
+          {derivados.has(record.key) && <TooltipInfo title={getTextoUI("tooltip_estado_derivado")}>
             <CalculatorOutlined style={{ marginLeft: 6, color: '#1890FF' }} />
-          </Tooltip>}
+          </TooltipInfo>}
         </div>
       ),
     },
@@ -240,9 +242,9 @@ const TablaAires = () => {
   return (
     <div className='panel'>
       <h3>{getTextoUI("titulo_estados")}</h3>
-      <Tooltip title={getTextoUI("tooltip_nuevo_aire")} mouseEnterDelay={1}>
+      <TooltipAccion title={getTextoUI("tooltip_nuevo_aire")}>
         <Button type='link' icon={<PlusCircleOutlined />} size='large' onClick={() => nuevoAire()}></Button>
-      </Tooltip>
+      </TooltipAccion>
       <span>  </span>
 
       {
@@ -252,27 +254,27 @@ const TablaAires = () => {
             <Button type='link' icon={<CopyOutlined />} size='large' disabled></Button>
           </span>
           : <span>
-            <Tooltip title={getTextoUI("tooltip_borrar_seleccionados")} mouseEnterDelay={1}>
+            <TooltipAccion title={getTextoUI("tooltip_borrar_seleccionados")}>
               <Button type='link' icon={<DeleteOutlined />} size='large' onClick={() => {
                 const ids = [...airesSeleccionados.get()];
                 airesSeleccionados.set([]);
                 borrarAires(ids);
               }}></Button>
-            </Tooltip>
+            </TooltipAccion>
             <span>  </span>
-            <Tooltip title={getTextoUI("tooltip_duplicar_seleccionados")} mouseEnterDelay={1}>
+            <TooltipAccion title={getTextoUI("tooltip_duplicar_seleccionados")}>
               <Button type='link' icon={<CopyOutlined />} size='large' onClick={() => {
                 const ids = [...airesSeleccionados.get()];
                 airesSeleccionados.set([]);
                 duplicarAires(ids);
               }}></Button>
-            </Tooltip>
+            </TooltipAccion>
           </span>
       }
       <span>  </span>
-      <Tooltip title={getTextoUI("tooltip_configuracion")} mouseEnterDelay={1}>
+      <TooltipAccion title={getTextoUI("tooltip_configuracion")}>
         <Button type='link' icon={<SettingOutlined />} size='large' onClick={() => { verConfiguracion.set(true); }}></Button>
-      </Tooltip>
+      </TooltipAccion>
       <span>  </span>
       {/* El psicrométrico ya no se enciende desde aquí: su propio desplegable de
           tipo hace de interruptor, igual que en el diagrama de fluidos. */}

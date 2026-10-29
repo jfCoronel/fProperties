@@ -1,5 +1,6 @@
 import { useHookstate } from '@hookstate/core';
-import { Modal, Button, Row, Col, Select, Input, InputNumber, Form } from 'antd'
+import { Modal, Button, Row, Col, Select, Input, Form } from 'antd'
+import CampoNumero from './CampoNumero';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires, actualizarAire } from '../listaAires';
 
@@ -80,7 +81,7 @@ const DialogoAire = () => {
                         </Form.Item>
                     </Col>
                     <Col span={10}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             value={aire.in1Val}
                             onChange={(value) => {
@@ -110,7 +111,7 @@ const DialogoAire = () => {
                         </Form.Item>
                     </Col>
                     <Col span={10}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             value={aire.in2Val}
                             onChange={(value) => {
@@ -144,7 +145,7 @@ const DialogoAire = () => {
                         </Form.Item>
                     </Col>
                     <Col span={10}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             value={aire.in3Val}
                             onChange={(value) => {

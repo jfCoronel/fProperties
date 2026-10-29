@@ -7,7 +7,7 @@ import {
   WarningTwoTone,
   CloseCircleTwoTone
 } from '@ant-design/icons';
-import { Button, Tooltip, Table } from 'antd';
+import { Button, Table } from 'antd';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI, descargarTablaCSV } from '../configuracion';
@@ -37,6 +37,7 @@ import formatear from '../util/formatear';
 import DialogoProceso from './DialogoProceso';
 import Ciclos from './Ciclos';
 import { columnaDiagrama } from './columnaDiagrama';
+import { TooltipAccion, TooltipInfo } from './Ayudas';
 
 // La misma tabla sirve para los dos dominios: lo único que cambia es de qué
 // lista salen los estados, qué selección se sincroniza y qué diagrama decide si
@@ -152,9 +153,9 @@ const TablaProcesos = ({ dominio = 'fluido' }) => {
     }
     return (
       <span>
-        <Tooltip title={mensajes.map((m, i) => <div key={i}>{m}</div>)}>
+        <TooltipInfo title={mensajes.map((m, i) => <div key={i}>{m}</div>)}>
           <span>{icono} {mensajes[0]}</span>
-        </Tooltip>
+        </TooltipInfo>
         {enlaceSugerencia(proceso, evaluacion)}
       </span>
     );
@@ -191,9 +192,9 @@ const TablaProcesos = ({ dominio = 'fluido' }) => {
     ...columnasIdentidad,
     ...columnasResultado.map((columna) => ({
       title: (
-        <Tooltip title={getTextoUI(columna.i18n)}>
+        <TooltipInfo title={getTextoUI(columna.i18n)}>
           <span dangerouslySetInnerHTML={{ __html: `${columna.simbolo} [${columna.unidad}]` }} />
-        </Tooltip>
+        </TooltipInfo>
       ),
       dataIndex: columna.clave,
       key: columna.clave,
@@ -264,9 +265,9 @@ const TablaProcesos = ({ dominio = 'fluido' }) => {
     <div className='panel'>
       <h3>{getTextoUI("titulo_procesos")}</h3>
 
-      <Tooltip title={getTextoUI("tooltip_nuevo_proceso")} mouseEnterDelay={1}>
+      <TooltipAccion title={getTextoUI("tooltip_nuevo_proceso")}>
         <Button type='link' icon={<PlusCircleOutlined />} size='large' onClick={crearProceso}></Button>
-      </Tooltip>
+      </TooltipAccion>
       <span>  </span>
       {
         (procesosSeleccionados.length === 0) ?
@@ -276,21 +277,21 @@ const TablaProcesos = ({ dominio = 'fluido' }) => {
             <Button type='link' icon={<CopyOutlined />} size='large' disabled></Button>
           </span>
           : <span>
-            <Tooltip title={getTextoUI("tooltip_borrar_seleccionados")} mouseEnterDelay={1}>
+            <TooltipAccion title={getTextoUI("tooltip_borrar_seleccionados")}>
               <Button type='link' icon={<DeleteOutlined />} size='large' onClick={() => {
                 const ids = [...procesosSeleccionados.get()];
                 procesosSeleccionados.set([]);
                 conPropagacion(borrarProcesos)(ids);
               }}></Button>
-            </Tooltip>
+            </TooltipAccion>
             <span>  </span>
-            <Tooltip title={getTextoUI("tooltip_duplicar_seleccionados")} mouseEnterDelay={1}>
+            <TooltipAccion title={getTextoUI("tooltip_duplicar_seleccionados")}>
               <Button type='link' icon={<CopyOutlined />} size='large' onClick={() => {
                 const ids = [...procesosSeleccionados.get()];
                 procesosSeleccionados.set([]);
                 conPropagacion(duplicarProcesos)(ids);
               }}></Button>
-            </Tooltip>
+            </TooltipAccion>
           </span>
       }
       <span>  </span>

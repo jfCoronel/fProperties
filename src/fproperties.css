@@ -131,3 +131,31 @@ a {
 .fila-resaltada>td {
   font-weight: 500;
 }
+/* Ajustes para tablets y móviles: la misma condición (hover: none) con la que
+   src/util/tactil.js decide que el dispositivo es táctil. */
+@media (hover: none) {
+  /* La ayuda de los botones sale con una pulsación larga: que el navegador no
+     la interprete como selección de texto ni abra su menú. */
+  .ant-btn,
+  .tirador-diagrama {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Objetivos del tamaño de un dedo (unos 40 px): botones pequeños de las
+     tablas, casillas de selección y asa para reordenar filas. */
+  .ant-btn-sm {
+    min-width: 36px;
+    height: 36px;
+  }
+
+  .ant-table-selection-column .ant-checkbox {
+    transform: scale(1.4);
+  }
+
+  .asa-fila {
+    font-size: 20px;
+    padding: 8px;
+  }
+}

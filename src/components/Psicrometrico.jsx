@@ -1,5 +1,6 @@
 import { useHookstate } from '@hookstate/core';
-import { Row, Col, Select, InputNumber, Form } from 'antd';
+import { Row, Col, Select, Form } from 'antd';
+import CampoNumero from './CampoNumero';
 import { configuracion, getTextoUI } from '../configuracion';
 import { listaAires } from '../listaAires';
 import { getPropAireHumedo } from '../propFluidos/aires';
@@ -112,7 +113,7 @@ const Psicrometrico = () => {
                         </Select>
                     </Col>
                     <Col span={14}>
-                        <InputNumber
+                        <CampoNumero
                             style={{ width: "100%" }}
                             value={valorActual}
                             onChange={(valor) => { valorOpcionPsicrometrico.set(valor); }}

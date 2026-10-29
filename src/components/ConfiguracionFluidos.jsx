@@ -1,4 +1,5 @@
-import { Drawer, Form, Select, InputNumber } from 'antd';
+import { Drawer, Form, Select } from 'antd';
+import CampoNumero from './CampoNumero';
 
 import { useHookstate } from '@hookstate/core';
 import { configuracion, getTextoUI } from '../configuracion';
@@ -66,7 +67,7 @@ const ConfiguracionFluidos = () => {
     >
       <Form {...formItemLayout} >
         <Form.Item label={getTextoUI("lab_n_cifras")}>
-          <InputNumber
+          <CampoNumero
             min={0}
             max={10}
             defaultValue={nCifras.get()}
