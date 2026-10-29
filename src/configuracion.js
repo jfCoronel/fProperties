@@ -42,10 +42,18 @@ const configuracionInicial = {
 
 export const configuracion = hookstate(configuracionInicial);
 
+// textosCargados es la señal a la que está suscrita la interfaz: getTextoUI lee
+// textosUI sin suscribirse. Por eso se baja mientras llegan los textos y se sube
+// al final; si ya estaba en true —un permalink que cambia el idioma— los textos
+// nuevos llegaban sin repintar nada.
 export async function cargarTextosUI() {
-  const url = './json/' + configuracion.idioma.get() + '.json'
-  const respuesta = await fetch(url)
-  const respuestaJson = await respuesta.json()
+  const idioma = configuracion.idioma.get();
+  configuracion.textosCargados.set(false);
+  const respuesta = await fetch('./json/' + idioma + '.json');
+  const respuestaJson = await respuesta.json();
+  // Si el idioma ha cambiado mientras llegaba la respuesta, manda la petición más
+  // reciente: esta ya no tiene nada que pintar.
+  if (configuracion.idioma.get() !== idioma) return;
   configuracion.textosUI.set(respuestaJson);
   configuracion.textosCargados.set(true);
 }

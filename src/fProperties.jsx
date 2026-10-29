@@ -68,10 +68,7 @@ const FProperties = () => {
       return (
         <Select
           value={idioma.get()}
-          onChange={value => {
-            textosCargados.set(false);
-            idioma.set(value);
-          }}
+          onChange={value => { idioma.set(value); }}
         >
           <Option key="es" value="es"><img src="./img/es.svg" width="24" /> {" " + getTextoUI("lab_idioma_es")}</Option>
           <Option key="en" value="en"><img src="./img/en.svg" width="24" /> {" " + getTextoUI("lab_idioma_en")}</Option>

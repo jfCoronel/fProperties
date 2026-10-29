@@ -1,7 +1,7 @@
 // Puente entre el formato serializado (formato.js) y el estado vivo de la
 // aplicación: lee las tres listas hookstate para construir el problema, y las
 // reemplaza al cargar uno. Ver DOCUMENTACION.md §2.
-import { configuracion } from '../configuracion';
+import { configuracion, cargarTextosUI } from '../configuracion';
 import { listaFluidos } from '../listaFluidos';
 import { listaAires } from '../listaAires';
 import { listaProcesos } from '../procesos/listaProcesos';
@@ -16,6 +16,7 @@ import {
   decodificarProblema,
   normalizarProblema
 } from './formato';
+import { CLAVE_EJEMPLO, getEjemplo } from './ejemplos';
 
 // Un enlace deja de ser cómodo de pegar mucho antes de tocar el límite del
 // navegador; a partir de aquí conviene sugerir la descarga del JSON.
@@ -131,25 +132,34 @@ export function fijarHash(enlace) {
   window.history.replaceState(null, '', hash);
 }
 
-function getCargaDelHash() {
+// El fragmento trae o un permalink (#p=…) o el nombre de un ejemplo (#ex=…).
+function leerHash() {
   const hash = window.location.hash.replace(/^#/, '');
-  if (!hash.startsWith(`${CLAVE_HASH}=`)) return null;
-  const carga = hash.slice(CLAVE_HASH.length + 1);
-  return carga.length > 0 ? carga : null;
+  for (const clave of [CLAVE_HASH, CLAVE_EJEMPLO]) {
+    if (hash.startsWith(`${clave}=`)) {
+      const valor = hash.slice(clave.length + 1);
+      return valor.length > 0 ? { clave, valor } : null;
+    }
+  }
+  return null;
 }
 
 /**
  * Carga el problema del fragmento de la URL, si lo hay.
  *
- * Devuelve el problema aplicado, o null si no había permalink. Propaga el error
- * (con clave i18n) si el enlace es ilegible o de otra versión del formato.
+ * Devuelve el problema aplicado, o null si no había permalink ni ejemplo. Propaga
+ * el error (con clave i18n) si el enlace es ilegible, de otra versión del formato
+ * o nombra un ejemplo que no existe.
  */
 export async function cargarDesdePermalink() {
-  const carga = getCargaDelHash();
-  if (carga === null) return null;
+  const hash = leerHash();
+  if (hash === null) return null;
 
-  const problema = await decodificarProblema(carga);
+  const problema = hash.clave === CLAVE_EJEMPLO
+    ? getEjemplo(decodeURIComponent(hash.valor))
+    : await decodificarProblema(hash.valor);
   await esperarCoolprop();
+  await adoptarIdioma(problema);
   return aplicarProblema(problema);
 }
 
@@ -161,7 +171,18 @@ export async function cargarProblemaJSON(texto) {
     throw new Error('error_problema_ilegible');
   }
   await esperarCoolprop();
+  await adoptarIdioma(datos);
   return aplicarProblema(datos);
+}
+
+// El idioma del problema va antes que sus estados: la fase de cada estado y el
+// mensaje de carga se escriben con los textos del momento, y con los del idioma
+// anterior se quedaban sin traducir.
+async function adoptarIdioma(datos) {
+  const { idioma } = normalizarProblema(datos).configuracion;
+  if (idioma === undefined || idioma === configuracion.idioma.get()) return;
+  configuracion.idioma.set(idioma);
+  await cargarTextosUI();
 }
 
 export function descargarProblema() {

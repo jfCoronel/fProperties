@@ -1,0 +1,108 @@
+{
+  "v": 1,
+  "estados": [],
+  "aires": [
+    {
+      "id": "a1",
+      "nombre": "O",
+      "in1Id": "A",
+      "in1Val": 0,
+      "in2Id": "T",
+      "in2Val": 35,
+      "in3Id": "HR",
+      "in3Val": 40,
+      "enDiagrama": true
+    },
+    {
+      "id": "a2",
+      "nombre": "R",
+      "in1Id": "A",
+      "in1Val": 0,
+      "in2Id": "T",
+      "in2Val": 25,
+      "in3Id": "HR",
+      "in3Val": 50,
+      "enDiagrama": true
+    },
+    {
+      "id": "a3",
+      "nombre": "M",
+      "in1Id": "A",
+      "in1Val": 0,
+      "in2Id": "T",
+      "in2Val": 28,
+      "in3Id": "HR",
+      "in3Val": 50,
+      "enDiagrama": true
+    },
+    {
+      "id": "a4",
+      "nombre": "S",
+      "in1Id": "A",
+      "in1Val": 0,
+      "in2Id": "T",
+      "in2Val": 13,
+      "in3Id": "HR",
+      "in3Val": 95,
+      "enDiagrama": true
+    }
+  ],
+  "procesos": [
+    {
+      "id": "q1",
+      "origenes": [
+        "a1",
+        "a2"
+      ],
+      "destino": "a3",
+      "tipo": "mezcla_adiabatica",
+      "modoDestino": "calculado",
+      "parametros": {
+        "m_1": 0.3,
+        "m_2": 0.7
+      },
+      "enDiagrama": true,
+      "estilo": {
+        "color": "#722ED1",
+        "grosor": 2,
+        "trazo": "solid"
+      }
+    },
+    {
+      "id": "q2",
+      "origenes": [
+        "a3"
+      ],
+      "destino": "a4",
+      "tipo": "enfriamiento_deshumidificacion",
+      "modoDestino": "calculado",
+      "parametros": {
+        "t_final": 13,
+        "hr_final": 95
+      },
+      "enDiagrama": true,
+      "estilo": {
+        "color": "#1890FF",
+        "grosor": 2,
+        "trazo": "solid"
+      }
+    }
+  ],
+  "configuracion": {
+    "menuActual": "aireHumedo",
+    "idioma": "en",
+    "nCifras": 4,
+    "columnasTablaAires": [
+      "W",
+      "HR",
+      "TH",
+      "H",
+      "NO",
+      "NO",
+      "NO"
+    ],
+    "tipoPsicrometrico": "psicrometrico",
+    "opcionPsicrometrico": "A",
+    "valorOpcionPsicrometrico": 0
+  }
+}

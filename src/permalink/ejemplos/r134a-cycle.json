@@ -1,0 +1,140 @@
+{
+  "v": 1,
+  "estados": [
+    {
+      "id": "f1",
+      "nombre": "1",
+      "fluido": "R134a",
+      "in1Id": "T",
+      "in1Val": -10,
+      "in2Id": "X",
+      "in2Val": 100,
+      "enDiagrama": true
+    },
+    {
+      "id": "f2",
+      "nombre": "2",
+      "fluido": "R134a",
+      "in1Id": "P",
+      "in1Val": 1016.6,
+      "in2Id": "H",
+      "in2Val": 437.75,
+      "enDiagrama": true
+    },
+    {
+      "id": "f3",
+      "nombre": "3",
+      "fluido": "R134a",
+      "in1Id": "T",
+      "in1Val": 40,
+      "in2Id": "X",
+      "in2Val": 0,
+      "enDiagrama": true
+    },
+    {
+      "id": "f4",
+      "nombre": "4",
+      "fluido": "R134a",
+      "in1Id": "P",
+      "in1Val": 200.6,
+      "in2Id": "H",
+      "in2Val": 256.41,
+      "enDiagrama": true
+    }
+  ],
+  "aires": [],
+  "procesos": [
+    {
+      "id": "p1",
+      "origenes": [
+        "f1"
+      ],
+      "destino": "f2",
+      "tipo": "compresion_isentropica",
+      "modoDestino": "calculado",
+      "parametros": {
+        "eta": 0.75,
+        "p_final": 1016.6,
+        "m_punto": 0.05
+      },
+      "enDiagrama": true,
+      "estilo": {
+        "color": "#52C41A",
+        "grosor": 2,
+        "trazo": "solid"
+      }
+    },
+    {
+      "id": "p2",
+      "origenes": [
+        "f2"
+      ],
+      "destino": "f3",
+      "tipo": "isobarico",
+      "modoDestino": "manual",
+      "parametros": {
+        "m_punto": 0.05
+      },
+      "enDiagrama": true,
+      "estilo": {
+        "color": "#FA8C16",
+        "grosor": 2,
+        "trazo": "solid"
+      }
+    },
+    {
+      "id": "p3",
+      "origenes": [
+        "f3"
+      ],
+      "destino": "f4",
+      "tipo": "isentalpico",
+      "modoDestino": "calculado",
+      "parametros": {
+        "p_final": 200.6,
+        "m_punto": 0.05
+      },
+      "enDiagrama": true,
+      "estilo": {
+        "color": "#1890FF",
+        "grosor": 2,
+        "trazo": "solid"
+      }
+    },
+    {
+      "id": "p4",
+      "origenes": [
+        "f4"
+      ],
+      "destino": "f1",
+      "tipo": "isobarico",
+      "modoDestino": "manual",
+      "parametros": {
+        "m_punto": 0.05
+      },
+      "enDiagrama": true,
+      "estilo": {
+        "color": "#F5222D",
+        "grosor": 2,
+        "trazo": "solid"
+      }
+    }
+  ],
+  "configuracion": {
+    "menuActual": "fluidos",
+    "idioma": "en",
+    "nCifras": 4,
+    "referenciaHS": "IIR",
+    "columnasTablaFluidos": [
+      "X",
+      "RO",
+      "H",
+      "S",
+      "NO",
+      "NO",
+      "NO"
+    ],
+    "tipoDiagrama": "p-h",
+    "fluidoDiagrama": "R134a"
+  }
+}

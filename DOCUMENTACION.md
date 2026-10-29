@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.6.4**.
+Estado del proyecto en la **versión 2.7.0**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -19,7 +19,7 @@ psicrométrico),
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre; Plotly (bundle gl3d) para el diagrama 3D, cargado solo al abrirlo |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (227 tests contra CoolProp real) |
+| Tests | Vitest (236 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -506,7 +506,9 @@ al pegarlo y sugiere descargar el fichero.
    configuración se filtra por lista blanca. Un enlace manipulado no puede inyectar claves
    arbitrarias en la aplicación.
 3. Se espera a que CoolProp esté listo —un permalink se resuelve al arrancar, y puede
-   adelantarse al binario— y se recalculan todos los estados.
+   adelantarse al binario—. Si el problema trae otro idioma, se cargan antes sus textos:
+   la fase de cada estado y el mensaje de carga se escriben con ellos. Después se
+   recalculan todos los estados.
 4. Se **sustituye** el contenido de la aplicación, no se mezcla con lo que hubiera abierto.
 5. Se propagan los procesos en modo calculado, que es de donde sale la marca de estado
    generado.
@@ -521,6 +523,37 @@ el formato de archivo si se quiere guardar una colección de casos.
 El botón de compartir copia el enlace al portapapeles y lo deja en la barra de direcciones.
 Si el navegador no da acceso al portapapeles —hace falta contexto seguro—, el enlace se
 muestra para copiarlo a mano.
+
+### 2.5 Ejemplos con nombre
+
+Un permalink de un problema de cuatro estados ocupa unos 700 caracteres: cabe en un mensaje,
+no en el pie de una figura ni en un enunciado impreso. Para eso hay **ejemplos con nombre**,
+que se abren con un fragmento corto:
+
+```
+https://fproperties.jfcoronel.org/#ex=r134a-cycle
+```
+
+Cada ejemplo es un problema en el mismo formato que el permalink (`{"v":1,…}`), guardado
+como JSON en `src/permalink/ejemplos/` con el nombre del enlace. Van **empaquetados con la
+aplicación**, no en un servidor, así que funcionan sin conexión y no hay nada que desplegar
+aparte; añadir uno es dejar su fichero ahí. Al abrirlos siguen el mismo camino que un
+permalink ([§2.3](#23-qué-pasa-al-abrir-un-enlace)): normalización, espera a CoolProp,
+sustitución y propagación. Un nombre que no existe da un mensaje traducido.
+
+Un ejemplo citado fuera —en un artículo, en un enunciado— es un **compromiso**: si cambia, el
+enlace publicado miente. Por eso `ejemplos.test.js` fija sus resultados (el COP del ciclo,
+los avisos del de errores, la mezcla de la climatizadora). Si un ejemplo tiene que cambiar,
+mejor uno nuevo con otro nombre.
+
+| Nombre | Qué es |
+|---|---|
+| `r134a-cycle` | Ciclo frigorífico de R-134a (−10/40 ºC, η_s = 0,75), COP 3,022 |
+| `r134a-student-errors` | El mismo ciclo entregado con dos errores: el compresor reduce la entropía y la laminación no conserva h |
+| `ahu-mixing-coil` | Mezcla 30/70 de exterior y retorno y batería de frío con SHR, ADP y factor de by-pass |
+
+Los tres están en inglés (`idioma: "en"`): son los del artículo sobre la enseñanza de las
+propiedades de fluidos. El idioma del enlace se aplica al abrirlo, como en un permalink.
 
 ---
 
@@ -698,6 +731,7 @@ llega a existir en vez de tener que romperse.
 | Fichero | Función |
 |---|---|
 | `permalink/formato.js` | Puro: sin hookstate, sin DOM y sin CoolProp. Serializa, comprime, codifica en base64url y —sobre todo— **normaliza** lo que llega de fuera. Aquí está la lista blanca de claves de configuración y el número de versión del formato. |
+| `permalink/ejemplos.js` | Los ejemplos con nombre ([§2.5](#25-ejemplos-con-nombre)): recoge con `import.meta.glob` los JSON de `permalink/ejemplos/` y entrega una copia del que pida el fragmento `#ex=`. |
 | `permalink/problema.js` | El puente con el estado vivo: construye el problema leyendo las tres listas, y al revés las sustituye al cargar uno. Genera el enlace, fija el fragmento, descarga el JSON e importa un fichero. |
 
 ### 3.6 Componentes
@@ -786,10 +820,12 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**227 tests en 16 ficheros:**
+**236 tests en 18 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|
+| `permalink/ejemplos.test.js` | 6 | Los ejemplos con nombre: que todos pasan la normalización enteros, que un nombre desconocido da error traducible y que cada uno sigue dando lo que se ha publicado (COP 3,022, los dos avisos, la mezcla a 28 ºC). |
+| `textosUI.test.js` | 2 | La carga de los textos: que baja `textosCargados` mientras llegan aunque ya estuviera en true —la señal que repinta la interfaz, sin la cual un permalink en otro idioma no se traducía— y que descarta la respuesta de un idioma ya abandonado. |
 | `propFluidos/coolprop.entorno.test.js` | 3 | Que CoolProp arranca en Node y que un estado irresoluble devuelve `NaN`. Es la sonda de la que depende todo lo demás. |
 | `procesos/proceso.test.js` | 53 | El motor: contrato de la tabla de definiciones, tolerancias, avisos de cada tipo, errores estructurales, columnas de resultado y sus signos, trazado de la curva, cálculo del estado destino y orden de propagación. Compresión y expansión se comprueban en espejo, incluido que cada una recupera el rendimiento con el que se construyó su estado destino, y que la expansión dibuja su ideal *2s* a la entropía de entrada. |
 | `procesos/dominios.test.js` | 10 | El contrato del adaptador de dominio: que los dos implementan las mismas cinco operaciones, que construyen el mismo estado que la tabla y que cada uno sabe qué hace incompatibles a dos estados —fluidos distintos, presiones totales distintas—. |

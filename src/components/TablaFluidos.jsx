@@ -29,6 +29,13 @@ import formatear from '../util/formatear';
 import ConfiguracionFluidos from './ConfiguracionFluidos';
 import { columnaDiagrama } from './columnaDiagrama';
 
+// fluidos.js guarda la fase como texto fijo en español; se traduce al mostrarla
+const CLAVES_FASE = {
+  "Líquido": "fase_liquido",
+  "Vapor": "fase_vapor",
+  "Bifásico": "fase_bifasico",
+  "Desconocido": "fase_desconocida"
+};
 
 
 // Componente DragHandle que se renderiza en cada fila
@@ -205,11 +212,12 @@ const TablaFluidos = () => {
 
 
   const datos = lista.map((fluido) => {
+    const fase = fluido.ESTADO.get();
     let dato = {
       key: fluido.id.get(),
       nombre: fluido.nombre.get(),
       fluido: fluido.fluido.get(),
-      fase: fluido.ESTADO.get(),
+      fase: CLAVES_FASE[fase] ? getTextoUI(CLAVES_FASE[fase]) : fase,
       temperatura: formatear(fluido.T.get(), nCifras.get()),
       presion: formatear(fluido.P.get(), nCifras.get())
     }

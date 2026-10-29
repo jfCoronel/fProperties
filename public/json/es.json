@@ -254,6 +254,11 @@
     "msg_problema_cargado": "Problema cargado: {estados} estados y {procesos} procesos",
     "error_problema_ilegible": "El enlace o el fichero no se pueden leer",
     "error_problema_version": "Este enlace lo generó otra versión del formato de fProperties",
+    "error_ejemplo_desconocido": "El ejemplo del enlace no existe en esta versión de fProperties",
+    "fase_liquido": "Líquido",
+    "fase_vapor": "Vapor",
+    "fase_bifasico": "Bifásico",
+    "fase_desconocida": "Desconocido",
     "error_coolprop_no_listo": "La biblioteca de propiedades no terminó de cargar",
 
     "titulo_ciclos": "Ciclos",
