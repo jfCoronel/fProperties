@@ -82,7 +82,7 @@ const Psicrometrico = () => {
             <Form.Item label={getTextoUI("lab_tipo_diagrama")} style={{ marginBottom: 8 }}>
                 <Select value={tipoActual} onChange={(valor) => { tipoPsicrometrico.set(valor); }}>
                     <Option value="ninguno">{getTextoUI("tipo_ninguno")}</Option>
-                    <Option value="psicrometrico">{getTextoUI("titulo_psicrometrico")}</Option>
+                    <Option value="psicrometrico">{getTextoUI("tipo_psicrometrico")}</Option>
                 </Select>
             </Form.Item>
         </Col>

@@ -78,6 +78,7 @@
     "tooltip_en_diagrama": "Mostrar esta fila en el diagrama",
     "tooltip_en_diagrama_todos": "Mostrar u ocultar todas en el diagrama",
     "tipo_ninguno": "Ninguno",
+    "tipo_psicrometrico": "Diagrama psicrométrico",
     "tipo_p-T": "p[kPa] - T[°C]",
     "tipo_p-h": "log p[kPa] - h[kJ/kg]",
     "tipo_T-s": "T[°C] - s[kJ/(kg·K)]",

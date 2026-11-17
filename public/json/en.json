@@ -78,6 +78,7 @@
     "tooltip_en_diagrama": "Show this row in the diagram",
     "tooltip_en_diagrama_todos": "Show or hide all of them in the diagram",
     "tipo_ninguno": "None",
+    "tipo_psicrometrico": "Psychrometric chart",
     "tipo_p-T": "p[kPa] - T[°C]",
     "tipo_p-h": "log p[kPa] - h[kJ/kg]",
     "tipo_T-s": "T[°C] - s[kJ/(kg·K)]",

@@ -159,8 +159,12 @@ const TablaAires = () => {
     }
   ];
 
+  // Solo las columnas opcionales conocidas: una clave que no lo es (w, que ya es
+  // fija, o una retirada) pintaba una columna vacía
+  const esColumnaOpcional = (clave) => clave !== "NO" && NOMBRE_COLUMNAS[clave] !== undefined;
+
   columnasTablaAires.forEach((columna) => {
-    if (columna.get() !== "NO") {
+    if (esColumnaOpcional(columna.get())) {
       const nuevaColumna = {
         title: <div dangerouslySetInnerHTML={{ __html: TITULO_COLUMNAS[columna.get()] }} />,
         dataIndex: NOMBRE_COLUMNAS[columna.get()],
@@ -181,7 +185,7 @@ const TablaAires = () => {
     }
 
     columnasTablaAires.forEach((columna) => {
-      if (columna.get() !== "NO") {
+      if (esColumnaOpcional(columna.get())) {
         dato[NOMBRE_COLUMNAS[columna.get()]] = formatear(aire[columna.get()].get(), nCifras.get());
       }
     });
