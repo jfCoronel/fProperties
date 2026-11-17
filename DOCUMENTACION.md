@@ -1,6 +1,6 @@
 # fProperties — documentación
 
-Estado del proyecto en la **versión 2.8.1**.
+Estado del proyecto en la **versión 2.8.2**.
 
 fProperties es una calculadora tabular de propiedades de fluidos y de aire húmedo que
 funciona entera en el navegador. La física la resuelve **CoolProp 6.4.1** compilado a
@@ -19,7 +19,7 @@ psicrométrico),
 | Gráficas | Chart.js 4 con react-chartjs-2, y chartjs-plugin-zoom para el encuadre; Plotly (bundle gl3d) para el diagrama 3D, cargado solo al abrirlo |
 | Física | CoolProp 6.4.1 (WebAssembly) |
 | Construcción | Vite 5 + vite-plugin-pwa |
-| Tests | Vitest (236 tests contra CoolProp real) |
+| Tests | Vitest (241 tests contra CoolProp real) |
 | Idiomas | Español e inglés |
 
 Índice:
@@ -215,7 +215,10 @@ el diálogo para cambiar las líneas no congela el encuadre.
 
 Los rótulos de las isolíneas no van en un punto fijo: se colocan en cada dibujo en el extremo
 de la parte visible de la línea (`situarRotulo`), de modo que siguen dentro del diagrama con
-zoom, al moverlo o con otros límites de ejes.
+zoom, al moverlo o con otros límites de ejes. Como cada uno se coloca sin mirar a los demás, dos
+líneas que salen casi por el mismo punto (en el p-h del R-134a, la isoterma de 0 ºC y la
+isentrópica s=1) dejaban sus textos uno encima del otro: desde la 2.8.2, `separarRotulos` baja
+—o, si no cabe, sube— el que choca lo justo para que no se pisen, sin sacarlo del diagrama.
 
 Las isolíneas se recortan a una **ventana** por fluido: del punto triple a un 60 % del rango
 triple-crítico por encima del crítico en temperatura, y hasta el doble de la presión crítica.
@@ -844,7 +847,7 @@ tres empujones, todos confinados y documentados en `src/test/setupCoolprop.js`: 
 `public/` y esperar a la instanciación asíncrona. Todo test que use CoolProp llama a
 `esperarCoolprop(Module)` en su `beforeAll`.
 
-**236 tests en 18 ficheros:**
+**241 tests en 18 ficheros:**
 
 | Fichero | Tests | Qué fija |
 |---|---:|---|

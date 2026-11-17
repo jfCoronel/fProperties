@@ -324,6 +324,49 @@ export function situarRotulo(trozos, rotulo, caja) {
     return { x: punto.x, y: punto.y, texto: rotulo.texto, posicion: { ...ROTULO_FONDO, ...propia } };
 }
 
+// Desplazamientos que se prueban, en alturas de rótulo: primero hacia abajo,
+// porque los rótulos que chocan suelen ser los del borde superior (isotermas e
+// isentrópicas que salen por arriba) y por encima no hay sitio.
+const DESPLAZAMIENTOS_ROTULO = [0, 1, 2, 3, -1, -2, -3];
+
+/**
+ * Separa los rótulos de fondo que se pisan. Cada uno situarRotulo lo coloca en
+ * el extremo de su línea sin mirar a los demás, y dos líneas que salen del
+ * diagrama casi por el mismo punto (en el p-h del R-134a, la isoterma de 0 ºC y
+ * la isentrópica s=1) dejaban sus textos uno encima del otro.
+ *
+ * Recorre los rótulos en orden y baja (o, si no cabe, sube) el que choca con uno
+ * ya colocado lo justo para que no lo pise, sin sacarlo por debajo del diagrama.
+ * Si no encuentra hueco lo deja donde estaba: un rótulo encima de otro se lee
+ * mal, pero uno que desaparece no se lee nada.
+ *
+ * @param rotulos     lo que devuelve situarRotulo, sin los null
+ * @param anchoTexto  (texto, font) => ancho en píxeles (en el diagrama, measureText)
+ * @param caja        el área del diagrama en píxeles
+ * @returns           los mismos rótulos, con posicion.dy corregido donde hace falta
+ */
+export function separarRotulos(rotulos, anchoTexto, caja) {
+    const colocados = [];
+    return rotulos.map((rotulo) => {
+        const { x, y, texto, posicion } = rotulo;
+        const altura = (parseFloat(posicion.font) || 11) + 2;
+        const ancho = anchoTexto(texto, posicion.font);
+        const izquierda = posicion.align === 'right' ? x + posicion.dx - ancho
+            : posicion.align === 'center' ? x + posicion.dx - ancho / 2
+                : x + posicion.dx;
+        const libre = (centro) => colocados.every((otro) =>
+            izquierda >= otro.derecha || otro.izquierda >= izquierda + ancho ||
+            Math.abs(centro - otro.centro) >= (altura + otro.altura) / 2);
+        const cabe = (centro) => centro >= caja.yMin - altura && centro <= caja.yMax - altura / 2;
+
+        const desplazamiento = DESPLAZAMIENTOS_ROTULO
+            .map((n) => n * altura)
+            .find((d) => (d === 0 || cabe(y + posicion.dy + d)) && libre(y + posicion.dy + d)) ?? 0;
+        colocados.push({ izquierda, derecha: izquierda + ancho, centro: y + posicion.dy + desplazamiento, altura });
+        return desplazamiento === 0 ? rotulo : { ...rotulo, posicion: { ...posicion, dy: posicion.dy + desplazamiento } };
+    });
+}
+
 // Estilo de una familia como propiedades de dataset de Chart.js
 const estiloFamilia = (familia) => ({
     showLine: true,

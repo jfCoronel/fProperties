@@ -12,7 +12,7 @@ import { getPropFluido } from '../propFluidos/fluidos';
 import {
   valoresLineales, valoresLogaritmicos, recortarPolilinea, contextoFluido,
   valoresAutomaticosFluido, curvasFondoFluido, ventanaFluido, curvasFondoAire,
-  VENTANA_PSICROMETRICO, situarRotulo
+  VENTANA_PSICROMETRICO, situarRotulo, separarRotulos
 } from './lineasFondo';
 import {
   configuracionFamilias, normalizarLineasFondo, parsearValores, formatearValores,
@@ -158,6 +158,57 @@ describe('isolíneas de fluido', () => {
     expect(situarRotulo(trozos, { ...rotulo, extremo: 'inicio' }, { xMin: 25, xMax: 100, yMin: 0, yMax: 100 }))
       .toMatchObject({ x: 25, y: 25 });
     expect(situarRotulo(trozos, rotulo, { xMin: 12, xMax: 18, yMin: 0, yMax: 100 })).toBeNull();
+  });
+
+  describe('rótulos que se pisan', () => {
+    // Medida de texto de los test: 6 px por carácter, como Arial de 11 px a ojo
+    const ancho = (texto) => 6 * texto.length;
+    const caja = { xMin: 0, xMax: 500, yMin: 20, yMax: 300 };
+    const rotulo = (x, y, texto, posicion = {}) => (
+      { x, y, texto, posicion: { font: '11px Arial', align: 'left', dx: 3, dy: -6, ...posicion } }
+    );
+    const cajaDe = ({ x, y, texto, posicion }) => {
+      const izquierda = posicion.align === 'right' ? x + posicion.dx - ancho(texto) : x + posicion.dx;
+      return { izquierda, derecha: izquierda + ancho(texto), centro: y + posicion.dy };
+    };
+    const sePisan = (a, b) => {
+      const ca = cajaDe(a), cb = cajaDe(b);
+      return ca.izquierda < cb.derecha && cb.izquierda < ca.derecha && Math.abs(ca.centro - cb.centro) < 12;
+    };
+
+    it('deja como están los que no chocan', () => {
+      const rotulos = [rotulo(10, 20, 's=0.8'), rotulo(200, 20, '50 ºC')];
+      expect(separarRotulos(rotulos, ancho, caja)).toEqual(rotulos);
+    });
+
+    it('baja el segundo de dos que caen en el mismo sitio, como 0 ºC y s=1 en el p-h', () => {
+      const [a, b] = separarRotulos([rotulo(100, 20, '0 ºC'), rotulo(104, 20, 's=1')], ancho, caja);
+      expect(a.posicion.dy).toBe(-6);
+      expect(b.posicion.dy).toBeGreaterThan(-6);
+      expect(sePisan(a, b)).toBe(false);
+    });
+
+    it('separa una pila de tres sin que ninguno pise a otro', () => {
+      const separados = separarRotulos(
+        [rotulo(100, 20, 's=1.2'), rotulo(102, 20, '50 ºC'), rotulo(98, 20, 'v=0.1')], ancho, caja
+      );
+      for (let i = 0; i < separados.length; i++) {
+        for (let j = i + 1; j < separados.length; j++) {
+          expect(sePisan(separados[i], separados[j])).toBe(false);
+        }
+      }
+    });
+
+    it('tiene en cuenta la alineación: uno escrito hacia la izquierda no choca con el de su derecha', () => {
+      const rotulos = [rotulo(100, 20, '100 ºC', { align: 'right', dx: -3 }), rotulo(100, 20, 's=1.8')];
+      expect(separarRotulos(rotulos, ancho, caja)).toEqual(rotulos);
+    });
+
+    it('no saca un rótulo por debajo del diagrama', () => {
+      const separados = separarRotulos([rotulo(100, 296, 'x=10%'), rotulo(102, 296, 'x=20%')], ancho, caja);
+      separados.forEach((r) => expect(r.y + r.posicion.dy).toBeLessThanOrEqual(caja.yMax));
+      expect(sePisan(separados[0], separados[1])).toBe(false);
+    });
   });
 
   it('en el h-s, dentro de la campana las isobaras son rectas de pendiente T', () => {

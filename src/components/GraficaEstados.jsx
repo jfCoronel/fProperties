@@ -12,7 +12,7 @@ import { listaProcesos, idsProcesosDeEstados } from '../procesos/listaProcesos';
 import { dominioDeProceso } from '../procesos/proceso';
 import { trazosProcesos } from '../diagramas/trazosProcesos';
 import { refinarTrazo } from '../diagramas/refinarTrazo';
-import { situarRotulo } from '../diagramas/lineasFondo';
+import { situarRotulo, separarRotulos } from '../diagramas/lineasFondo';
 import formatear from '../util/formatear';
 import { TooltipAccion } from './Ayudas';
 import { ES_TACTIL } from '../util/tactil';
@@ -129,10 +129,17 @@ function rotularFondo(chart) {
         trozosPorRotulo.set(dataset.rotulo, [...(trozosPorRotulo.get(dataset.rotulo) ?? []), enPixeles]);
     });
     const caja = { xMin: chartArea.left, xMax: chartArea.right, yMin: chartArea.top, yMax: chartArea.bottom };
-    trozosPorRotulo.forEach((trozos, rotulo) => {
-        const situado = situarRotulo(trozos, rotulo, caja);
-        if (situado === null) return;
-        const { x, y, texto, posicion } = situado;
+    const situados = [...trozosPorRotulo]
+        .map(([rotulo, trozos]) => situarRotulo(trozos, rotulo, caja))
+        .filter((situado) => situado !== null);
+    const anchoTexto = (texto, font) => {
+        ctx.save();
+        ctx.font = font;
+        const ancho = ctx.measureText(texto).width;
+        ctx.restore();
+        return ancho;
+    };
+    separarRotulos(situados, anchoTexto, caja).forEach(({ x, y, texto, posicion }) => {
         ctx.save();
         ctx.fillStyle = posicion.color;
         ctx.font = posicion.font;
